@@ -2,9 +2,10 @@
 Contains functions specific to formatting reports for IPR that are unlikely to be used
 by other reporting systems
 """
-from graphkb import GraphKBConnection
-from graphkb import statement as gkb_statement
-from graphkb import vocab as gkb_vocab
+
+from pori_python.graphkb import GraphKBConnection
+from pori_python.graphkb import statement as gkb_statement
+from pori_python.graphkb import vocab as gkb_vocab
 from typing import Dict, Iterable, List, Sequence, Set, Tuple
 
 from .constants import GERMLINE_BASE_TERMS, VARIANT_CLASSES
@@ -175,9 +176,11 @@ def convert_statements_to_alterations(
                     'reference': pmid,
                     'relevance': statement['relevance']['displayName'],
                     'kbRelevanceId': statement['relevance']['@rid'],
-                    'externalSource': str(statement['source'].get('displayName', ''))
-                    if statement['source']
-                    else None,
+                    'externalSource': (
+                        str(statement['source'].get('displayName', ''))
+                        if statement['source']
+                        else None
+                    ),
                     'externalStatementId': statement.get('sourceId'),
                     'reviewStatus': statement.get('reviewStatus'),
                 }

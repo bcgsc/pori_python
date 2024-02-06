@@ -1,10 +1,10 @@
 import pytest
-from graphkb import statement as gkb_statement
-from graphkb import vocab as gkb_vocab
+from pori_python.graphkb import statement as gkb_statement
+from pori_python.graphkb import vocab as gkb_vocab
 from unittest.mock import Mock, patch
 
-from ipr.ipr import convert_statements_to_alterations, germline_kb_matches
-from ipr.types import GkbStatement
+from pori_python.ipr.ipr import convert_statements_to_alterations, germline_kb_matches
+from pori_python.ipr.types import GkbStatement
 
 DISEASE_RIDS = ["#138:12", "#138:13"]
 APPROVED_EVIDENCE_RIDS = ["approved1", "approved2"]
@@ -285,7 +285,7 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row["category"] == "diagnostic"
 
-    @patch("ipr.ipr.get_evidencelevel_mapping")
+    @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
     def test_unapproved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
         mock_get_evidencelevel_mapping.return_value = {"other": "test"}
 
@@ -300,7 +300,7 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row["category"] == "therapeutic"
 
-    @patch("ipr.ipr.get_evidencelevel_mapping")
+    @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
     def test_approved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
         mock_get_evidencelevel_mapping.return_value = {APPROVED_EVIDENCE_RIDS[0]: "test"}
 

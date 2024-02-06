@@ -3,20 +3,16 @@
 
 name: build
 
-on:
-  push:
-    branches:
-      - master
-      - develop
-  pull_request:
+on: [push]
 
 jobs:
   build:
 
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 4
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.7', '3.8', '3.9', '3.10']
 
     steps:
     - uses: actions/checkout@v3
@@ -27,35 +23,31 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip setuptools
-        pip install -e .[test]  # coverage reports need -e to capture properly
+        pip install .[test]
     - name: Lint with flake8
       run: |
         pip install flake8
         # stop the build if there are Python syntax errors or undefined names
-        flake8 ipr graphkb --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 graphkb --count --select=E9,F63,F7,F82 --show-source --statistics
     - name: Check with black
       run: |
         pip install black
-        black --check -S -l 100 ipr graphkb tests
-    - name: Full Tests with pytest
+        black --check -S -l 100 graphkb tests
+    - name: Test with pytest
       run: |
         pip list
-        pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov ipr --cov-report term --cov-report xml
+        pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov graphkb --cov-report term --cov-report xml --durations 10 -vv
       env:
-        IPR_USER: ${{ secrets.IPR_TEST_USER }}
-        IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
         GRAPHKB_USER: ${{ secrets.GKB_TEST_USER }}
         GRAPHKB_PASS: ${{ secrets.GKB_TEST_PASS }}
-        # SDEV-3381 - Turn off integration tests temporarily, till efficiency is increased
-        # turn on integration tests for one python version only
-        EXCLUDE_INTEGRATION_TESTS: ${{ matrix.python-version != '3.11' }}
+        EXCLUDE_INTEGRATION_TESTS: 0
     - name: Upload pytest test results
       uses: actions/upload-artifact@master
       with:
         name: pytest-results-${{ matrix.python-version }}
         path: junit/test-results-${{ matrix.python-version }}.xml
         # Use always() to always run this step to publish test results when there are test failures
-      if: matrix.python-version == 3.9
+      if: always()
     - name: Update code coverage report to CodeCov
       uses: codecov/codecov-action@v3
       with:

@@ -5,7 +5,7 @@ try:
 except ImportError:
     from typing_extensions import TypedDict
 
-from graphkb.types import Ontology, Record
+from pori_python.graphkb.types import Ontology, Record
 
 # TODO: Can constants in inputs.py like COPY_REQ, SMALL_MUT_REQ, just be replaced by types?
 

@@ -1,12 +1,13 @@
 """
 Read/Validate the variant input files
 """
+
 import json
 import jsonschema
 import os
 import pandas as pd
 from Bio.Data.IUPACData import protein_letters_3to1
-from graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
+from pori_python.graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 
 from .types import (

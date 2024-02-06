@@ -4,8 +4,8 @@ import pytest
 from typing import Dict
 from unittest.mock import MagicMock, patch
 
-from ipr.connection import IprConnection
-from ipr.main import create_report
+from pori_python.ipr.connection import IprConnection
+from pori_python.ipr.main import create_report
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
 

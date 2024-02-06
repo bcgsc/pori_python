@@ -1,6 +1,6 @@
 import pytest
 
-from ipr.util import create_variant_name_tuple, trim_empty_values
+from pori_python.ipr.util import create_variant_name_tuple, trim_empty_values
 
 
 @pytest.mark.parametrize(

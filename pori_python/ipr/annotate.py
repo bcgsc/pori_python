@@ -1,14 +1,15 @@
 """
 handles annotating variants with annotation information from graphkb
 """
+
 from requests.exceptions import HTTPError
 
-from graphkb import GraphKBConnection
-from graphkb import match as gkb_match
-from graphkb.match import INPUT_COPY_CATEGORIES
-from graphkb.statement import get_statements_from_variants
-from graphkb.types import Variant
-from graphkb.util import FeatureNotFoundError
+from pori_python.graphkb import GraphKBConnection
+from pori_python.graphkb import match as gkb_match
+from pori_python.graphkb.match import INPUT_COPY_CATEGORIES
+from pori_python.graphkb.statement import get_statements_from_variants
+from pori_python.graphkb.types import Variant
+from pori_python.graphkb.util import FeatureNotFoundError
 from pandas import isnull
 from progressbar import progressbar
 from typing import Dict, List, Sequence

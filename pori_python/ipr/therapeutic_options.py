@@ -1,8 +1,9 @@
 """
 upload variant and report information to IPR
 """
+
 import pandas
-from graphkb import GraphKBConnection
+from pori_python.graphkb import GraphKBConnection
 from typing import Dict, List, Sequence
 
 from .types import IprVariant, KbMatch

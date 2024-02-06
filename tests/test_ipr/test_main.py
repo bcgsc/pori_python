@@ -6,9 +6,9 @@ import sys
 from typing import Dict
 from unittest.mock import MagicMock, patch
 
-from ipr.connection import IprConnection
-from ipr.main import command_interface
-from ipr.types import IprGene
+from pori_python.ipr.connection import IprConnection
+from pori_python.ipr.main import command_interface
+from pori_python.ipr.types import IprGene
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
 

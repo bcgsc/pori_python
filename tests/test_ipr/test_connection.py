@@ -2,9 +2,9 @@ import os
 import pytest
 from unittest import mock
 
-from ipr.connection import IprConnection
+from pori_python.ipr.connection import IprConnection
 
-IMAGE_DIR = os.path.join(os.path.dirname(__file__), '../docs/images')
+IMAGE_DIR = os.path.join(os.path.dirname(__file__), '../../docs/images')
 
 
 class TestPostImages:
@@ -15,7 +15,7 @@ class TestPostImages:
             )
             return m
 
-        with mock.patch('ipr.connection.requests.request', request):
+        with mock.patch('pori_python.ipr.connection.requests.request', request):
             conn = IprConnection('user', 'pass')
             result = conn.post_images('report_id', files={}, data={})
             assert result is None
@@ -27,7 +27,7 @@ class TestPostImages:
             )
             return m
 
-        with mock.patch('ipr.connection.requests.request', request):
+        with mock.patch('pori_python.ipr.connection.requests.request', request):
             conn = IprConnection('user', 'pass')
             result = conn.post_images(
                 'report_id',
@@ -48,7 +48,7 @@ class TestPostImages:
             )
             return m
 
-        with mock.patch('ipr.connection.requests.request', request):
+        with mock.patch('pori_python.ipr.connection.requests.request', request):
             conn = IprConnection('user', 'pass')
             result = conn.post_images(
                 'report_id',
@@ -69,7 +69,7 @@ class TestPostImages:
             )
             return m
 
-        with mock.patch('ipr.connection.requests.request', request):
+        with mock.patch('pori_python.ipr.connection.requests.request', request):
             conn = IprConnection('user', 'pass')
             with pytest.raises(FileNotFoundError):
                 conn.post_images(
@@ -84,7 +84,7 @@ class TestPostImages:
             )
             return m
 
-        with mock.patch('ipr.connection.requests.request', request):
+        with mock.patch('pori_python.ipr.connection.requests.request', request):
             conn = IprConnection('user', 'pass')
             with pytest.raises(ValueError):
                 conn.post_images(

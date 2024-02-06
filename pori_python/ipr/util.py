@@ -2,9 +2,9 @@ import hashlib
 import json
 import logging
 import pandas as pd
-from graphkb import GraphKBConnection
-from graphkb.types import Ontology, Record
-from graphkb.vocab import get_term_tree
+from pori_python.graphkb import GraphKBConnection
+from pori_python.graphkb.types import Ontology, Record
+from pori_python.graphkb.vocab import get_term_tree
 from numpy import nan
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 

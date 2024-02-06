@@ -1,3 +1,6 @@
 
-recursive-include ipr *.py *.json
+recursive-include ipr graphkb *.py *.json
+
+recursive-include knowledgebase_match *
+
 include README.md

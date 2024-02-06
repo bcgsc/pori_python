@@ -3,10 +3,10 @@ import numpy as np
 import os
 import pandas as pd
 import pytest
-from graphkb.match import INPUT_COPY_CATEGORIES
+from pori_python.graphkb.match import INPUT_COPY_CATEGORIES
 from unittest import mock
 
-from ipr.inputs import (
+from pori_python.ipr.inputs import (
     COPY_OPTIONAL,
     check_comparators,
     check_variant_links,
@@ -17,8 +17,8 @@ from ipr.inputs import (
     preprocess_structural_variants,
     validate_report_content,
 )
-from ipr.types import IprFusionVariant, IprGeneVariant
-from ipr.util import logger
+from pori_python.ipr.types import IprFusionVariant, IprGeneVariant
+from pori_python.ipr.util import logger
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'test_data')
 NON_EMPTY_STRING_NULLS = ['', None, np.nan, pd.NA]

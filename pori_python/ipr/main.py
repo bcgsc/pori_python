@@ -5,8 +5,8 @@ import jsonschema.exceptions
 import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from graphkb import GraphKBConnection
-from graphkb.genes import get_gene_information
+from pori_python.graphkb import GraphKBConnection
+from pori_python.graphkb.genes import get_gene_information
 from typing import Dict, List, Sequence
 
 from .annotate import (

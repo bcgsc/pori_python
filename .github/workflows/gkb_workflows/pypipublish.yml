@@ -5,7 +5,8 @@ name: upload to pypi
 
 on:
   release:
-    types: [published]
+    types: [released]
+  workflow_dispatch:
 
 jobs:
   deploy:
