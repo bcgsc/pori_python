@@ -225,6 +225,7 @@ def get_preferred_gene_name(
         )
     return gene_names[0]
 
+
 # DEVSU-2348 - relate the genes to the variants
 def get_cancer_predisposition_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
@@ -307,6 +308,7 @@ def get_cancer_predisposition_info(
         logger.error(f"Unable to find gene for '{name}' ({biotype})")
 
     return sorted(genes), variants
+
 
 # DEVSU-2348 - relate the genes to the variants
 def get_pharmacogenomic_info(
