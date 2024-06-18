@@ -7,7 +7,10 @@ import pytest
 
 import pori_python.graphkb
 from pori_python.graphkb import GraphKBConnection, match
-from pori_python.graphkb.constants import DEFAULT_NON_STRUCTURAL_VARIANT_TYPE, STRUCTURAL_VARIANT_SIZE_THRESHOLD
+from pori_python.graphkb.constants import (
+    DEFAULT_NON_STRUCTURAL_VARIANT_TYPE,
+    STRUCTURAL_VARIANT_SIZE_THRESHOLD,
+)
 from pori_python.graphkb.util import FeatureNotFoundError
 
 # Test datasets
@@ -499,6 +502,7 @@ class TestCacheMissingFeatures:
         assert "kras" in match.FEATURES_CACHE
         assert "alice" in match.FEATURES_CACHE
         match.FEATURES_CACHE = None
+
 
 class TestTypeScreening:
     # Types as class variables

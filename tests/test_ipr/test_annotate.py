@@ -47,6 +47,7 @@ def graphkb_conn():
     graphkb_conn.login(username, password)
     return graphkb_conn
 
+
 class TestAnnotation:
     def test_annotate_nonsense_vs_missense(self, graphkb_conn):
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
@@ -58,7 +59,6 @@ class TestAnnotation:
             assert not nonsense, f"nonsense matched to {key}: {TP53_MUT_DICT[key]}"
             assert matched, f"should have matched in {key}: {TP53_MUT_DICT[key]}"
 
-
     def test_annotate_nonsense_vs_missense_protein(self, graphkb_conn):
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
         disease = 'cancer'
@@ -68,7 +68,6 @@ class TestAnnotation:
             nonsense = [a for a in matched if 'nonsense' in a['kbVariant']]
             assert not nonsense, f"nonsense matched to {key}: {TP53_MUT_DICT[key]}"
             assert matched, f"should have matched in {key}: {TP53_MUT_DICT[key]}"
-
 
     def test_annotate_structural_variants_tp53(self, graphkb_conn):
         """Verify alternate TP53 variants match."""
