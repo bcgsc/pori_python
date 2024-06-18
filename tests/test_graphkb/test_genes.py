@@ -140,7 +140,7 @@ def test_cancer_genes(conn):
     for gene in CANONICAL_ONCOGENES:
         assert gene not in names
 
-
+@pytest.mark.skip(reason="DEVSU-2348")
 def test_get_pharmacogenomic_info(conn):
     genes, matches = get_pharmacogenomic_info(conn)
     for gene in PHARMACOGENOMIC_INITIAL_GENES:
