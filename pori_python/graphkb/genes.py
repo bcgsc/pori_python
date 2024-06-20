@@ -226,6 +226,7 @@ def get_preferred_gene_name(
     return gene_names[0]
 
 
+# DEVSU-2348 - relate the genes to the variants
 def get_cancer_predisposition_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
 ) -> Tuple[List[str], Dict[str, str]]:
@@ -309,6 +310,7 @@ def get_cancer_predisposition_info(
     return sorted(genes), variants
 
 
+# DEVSU-2348 - relate the genes to the variants
 def get_pharmacogenomic_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
 ) -> Tuple[List[str], Dict[str, str]]:

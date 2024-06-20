@@ -1,6 +1,10 @@
 from unittest.mock import MagicMock
 
-from pori_python.ipr.summary import GRAPHKB_GUI, get_preferred_drug_representation, substitute_sentence_template
+from pori_python.ipr.summary import (
+    GRAPHKB_GUI,
+    get_preferred_drug_representation,
+    substitute_sentence_template,
+)
 
 
 class TestGetPreferredDrugRepresentation:
