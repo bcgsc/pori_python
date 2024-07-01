@@ -11,7 +11,7 @@ IMAGE_MAX = 20  # cannot upload more than 20 images at a time
 
 
 class IprConnection:
-    def __init__(self, username: str, password: str, url: str = DEFAULT_URL):
+    def __init__(self, username: str, password: str, url: str = os.environ.get("IPR_URL", DEFAULT_URL)):
         self.token = None
         self.url = url
         self.username = username

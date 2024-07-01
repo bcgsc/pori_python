@@ -69,8 +69,8 @@ def command_interface() -> None:
     req.add_argument(
         '-c', '--content', required=True, type=file_path, help="Report Content as JSON"
     )
-    parser.add_argument('--ipr_url', default=DEFAULT_URL)
-    parser.add_argument('--graphkb_url', default=None)
+    parser.add_argument('--ipr_url', default=os.environ.get("IPR_URL", DEFAULT_URL))
+    parser.add_argument('--graphkb_url', default=os.environ.get("GRAPHKB_URL", None))
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument(
         '--therapeutics', default=False, help='Generate therapeutic options', action='store_true'

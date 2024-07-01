@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import logging
 import re
 import time
@@ -95,7 +96,7 @@ def cache_key(request_body) -> str:
 class GraphKBConnection:
     def __init__(
         self,
-        url: str = DEFAULT_URL,
+        url: str = os.environ.get("GRAPHKB_URL", DEFAULT_URL),
         username: str = "",
         password: str = "",
         use_global_cache: bool = True,
