@@ -10,6 +10,7 @@ GKB_DEV_URL = "https://graphkbdev-api.bcgsc.ca/api"
 DEFAULT_URL = GKB_BASE_URL
 
 PREFERRED_GENE_SOURCE = "#39:5"  # HGNC
+PREFERRED_GENE_SOURCE_NAME = "HGNC"
 
 BASE_RETURN_PROPERTIES = ["@rid", "@class"]
 
