@@ -10,6 +10,7 @@ from .test_match import (  # noqa - 'F401 imported but unused' is being fooled b
 )
 
 EXCLUDE_INTEGRATION_TESTS = os.environ.get("EXCLUDE_INTEGRATION_TESTS") == "1"
+EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
 
 
 @pytest.fixture()
@@ -85,7 +86,7 @@ class TestCategorizeRelevance:
         )
         assert category == "blargh"
 
-
+@pytest.mark.skip(EXCLUDE_BCGSC_TESTS, reason='db-specific rid; requires Inferred Functional Annotation source')
 @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestStatementMatch:
     def test_truncating_categories(self, conn):  # noqa - pytest fixture, not redefinition
