@@ -41,6 +41,11 @@ def conn() -> GraphKBConnection:
 def kras(conn):
     return [f["displayName"] for f in match.get_equivalent_features(conn, "kras")]
 
+""" 
+version found in the db for ENSG00000133703 will vary depending on which
+version of ensembl was loaded. checking for any . version
+ """
+kras_ensg_version = r'ENSG00000133703\..*'
 
 class TestGetEquivalentFeatures:
     def test_kras_has_self(self, kras):
@@ -55,12 +60,20 @@ class TestGetEquivalentFeatures:
 
     def test_expands_generalizations(self, kras):
         assert "NM_033360.4" in kras
-        assert "ENSG00000133703.11" in kras
+        ensg_version_found = False
+        for item in kras:
+            if re.match(kras_ensg_version, item):
+                ensg_version_found = True
+        assert ensg_version_found
 
     def test_expands_generalizations_kras(self, kras):
         assert "NM_033360.4" in kras
         assert "NM_033360" in kras
-        assert "ENSG00000133703.11" in kras
+        ensg_version_found = False
+        for item in kras:
+            if re.match(kras_ensg_version, item):
+                ensg_version_found = True
+        assert ensg_version_found
         assert "ENSG00000133703" in kras
 
     @pytest.mark.parametrize(
@@ -70,7 +83,11 @@ class TestGetEquivalentFeatures:
         kras = [f["displayName"] for f in match.get_equivalent_features(conn, alt_rep)]
         assert "NM_033360.4" in kras
         assert "NM_033360" in kras
-        assert "ENSG00000133703.11" in kras
+        ensg_version_found = False
+        for item in kras:
+            if re.match(kras_ensg_version, item):
+                ensg_version_found = True
+        assert ensg_version_found
         assert "ENSG00000133703" in kras
 
     def test_checks_by_source_id_kras(self, conn):
