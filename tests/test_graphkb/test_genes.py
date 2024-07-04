@@ -112,7 +112,6 @@ def conn():
 def test_oncogene(conn):
     result = get_oncokb_oncogenes(conn)
     names = {row["name"] for row in result}
-    import pdb; pdb.set_trace()
     for gene in CANONICAL_ONCOGENES:
         assert gene in names
     for gene in CANONICAL_TS:
@@ -122,7 +121,6 @@ def test_oncogene(conn):
 
 @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (oncokb loader deprecated)")
 def test_tumour_supressors(conn):
-    import pdb; pdb.set_trace()
     result = get_oncokb_tumour_supressors(conn)
     names = {row["name"] for row in result}
     for gene in CANONICAL_TS:
@@ -147,7 +145,6 @@ def test_cancer_genes(conn):
 @pytest.mark.skip(reason="DEVSU-2348")
 @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))")
 def test_get_pharmacogenomic_info(conn):
-    import pdb; pdb.set_trace()
     genes, matches = get_pharmacogenomic_info(conn)
     for gene in PHARMACOGENOMIC_INITIAL_GENES:
         assert gene in genes, f"{gene} not found in get_pharmacogenomic_info"
@@ -176,12 +173,11 @@ def test_get_preferred_gene_name_kras(alt_rep, conn):
     ), f"Expected KRAS as preferred gene name for {alt_rep}, not '{gene_name}'"
 
 
-#@pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))")
+@pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))")
 @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 def test_find_genes_by_variant_type_structural_variant(conn):
     result = get_genes_from_variant_types(conn, ["structural variant"])
     names = {row["name"] for row in result}
-    import pdb; pdb.set_trace()
     for gene in CANONICAL_STRUCTURAL_VARIANT_GENES:
         assert gene in names, f"{gene} was not identified as a structural variant gene."
 

@@ -16,6 +16,7 @@ from pori_python.graphkb.util import FeatureNotFoundError
 # Test datasets
 from .data import structuralVariants
 
+EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
 EXCLUDE_INTEGRATION_TESTS = os.environ.get("EXCLUDE_INTEGRATION_TESTS") == "1"
 
 INCREASE_PREFIXES = ["up", "increase", "over", "gain", "amp"]
@@ -204,6 +205,9 @@ class TestMatchExpressionVariant:
 
     @pytest.mark.skipif(
         EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+    )
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS, reason="variants in db for this test are from IPRKB and ESMO"
     )
     def test_known_reduced_expression(self, conn):
         matches = match.match_expression_variant(
@@ -407,6 +411,7 @@ class TestMatchPositionalVariant:
             ["EGFR:p.E746_S752delinsI", ["EGFR mutation"], ["EGFR copy variant"]],
         ],
     )
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason='TODO: fix loader for vars ending in X, p.?, copy variant')
     def test_known_variants(self, conn, known_variant, related_variants, unrelated_variants):
         matches = match.match_positional_variant(conn, known_variant)
         names = {m["displayName"] for m in matches}
@@ -417,6 +422,7 @@ class TestMatchPositionalVariant:
         for variant in unrelated_variants:
             assert variant not in names
 
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="TODO: add nonIPRKB fusion tests; source for these is IPRKB")
     @pytest.mark.parametrize(
         "known_variant,related_variants",
         [
@@ -452,12 +458,14 @@ class TestMatchPositionalVariant:
     )
     def test_genomic_coordinates(self, conn):
         genomic = "X:g.100611165A>T"
-        match.match_positional_variant(conn, genomic)
-        # no assert b/c checking for no error rather than the result
+        x = match.match_positional_variant(conn, genomic)
+        assert x != []
+        # no assert b/c checking for no error rather than the result (but also want to confirm some result returned)
 
     @pytest.mark.skipif(
         EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
     )
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason='source for this variant is IPRKB')
     def test_tert_promoter(self, conn):
         assert match.match_positional_variant(conn, "TERT:c.-124C>T")
 
@@ -481,6 +489,7 @@ class TestMatchPositionalVariant:
                 not nonsense
             ), f"Missense {mut} is not a nonsense variant: {((m['displayName'], m['@rid']) for m in nonsense)}"
 
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason='TODO: missing record for FGFR3 rearrangement')
     def test_structural_variants(self, conn):
         """KBDEV-1056"""
         for variant_string, expected in structuralVariants.items():
