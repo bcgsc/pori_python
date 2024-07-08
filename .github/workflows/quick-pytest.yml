@@ -13,7 +13,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.7', '3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
 
     steps:
     - uses: actions/checkout@v3
@@ -29,11 +29,11 @@ jobs:
       run: |
         pip install flake8
         # stop the build if there are Python syntax errors or undefined names
-        flake8 ipr graphkb --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 pori_python --count --select=E9,F63,F7,F82 --show-source --statistics
     - name: Check with black
       run: |
         pip install black
-        black --check -S -l 100 ipr graphkb tests
+        black --check -S -l 100 pori_python tests
     - name: Short Tests with pytest
       run: pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov ipr --cov-report term --cov-report xml
       env:
