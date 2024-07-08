@@ -11,7 +11,7 @@ This python tool takes in variant inputs as tab-delimited files and annotates th
 The resulting output is uploaded to IPR as a report. Additional report content such as images and
 metadata can be passed to be included in the report upload.
 
-For documentation on how to create reports using the IPR adaptor, see the [main documentation site](https://bcgsc.github.io/pori/) for the platform. For the GraphKB adaptor, see the [user manual](https://bcgsc.github.io/pori/graphkb/scripting/)
+For documentation on how to create reports using the IPR adaptor, see the [main documentation site](https://bcgsc.github.io/pori/) for the platform. For the GraphKB adaptor, see the [user manual](https://bcgsc.github.io/pori/graphkb/scripting/).
 
 - [Getting Started](#getting-started)
   - [Install (For developers)](#install-for-developers)
