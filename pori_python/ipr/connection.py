@@ -76,31 +76,24 @@ class IprConnection:
         if async_upload:
             initial_result = self.post('reports-async', content)
             report_id = initial_result["ident"]
-            for i in range(5):
-                logger.info('checking report loading status in 5 seconds')
-                time.sleep(5)
-                current_status = self.get(f'reports-async/{report_id}')
-                if current_status['state'] not in ['active', 'ready']:
-                    raise Exception(f'async report upload in unexpected state: {current_status}')
-                if current_status['state'] == 'ready':
-                    return current_status
-            for i in range(5):
-                logger.info('checking report loading status in 30 seconds')
-                time.sleep(30)
-                current_status = self.get(f'reports-async/{report_id}')
-                if current_status['state'] not in ['active', 'ready']:
-                    raise Exception(f'async report upload in unexpected state: {current_status}')
-                if current_status['state'] == 'ready':
-                    return current_status
-            for i in range(mins_to_wait):
-                logger.info('checking report loading status in 1 minute')
-                time.sleep(60)
-                current_status = self.get(f'reports-async/{report_id}')
-                if current_status['state'] not in ['active', 'ready']:
-                    raise Exception(f'async report upload in unexpected state: {current_status}')
-                if current_status['state'] == 'ready':
-                    return current_status
-            raise Exception(f'async report upload taking longer than expected: {current_status}')
+
+            def check_status(interval: int = 5, num_attempts: int = 5):
+                for i in range (num_attempts):
+                    logger.info(f'checking report loading status in {interval} seconds')
+                    time.sleep(interval)
+                    current_status = self.get(f'reports-async/{report_id}')
+                    if current_status['state'] not in ['active', 'ready']:
+                        raise Exception(f'async report upload in unexpected state: {current_status}')
+                    if current_status['state'] == 'ready':
+                        return current_status
+            current_status = check_status()
+            if current_status['state'] == 'active':
+                current_status = check_status(interval=30)
+                if current_status['state'] == 'active':
+                    current_status = check_status(interval=60, num_attempts=mins_to_wait)
+                    if current_status['state'] == 'active':
+                        raise Exception(f'async report upload taking longer than expected: {current_status}')
+            return current_status
         else:
             return self.post('reports', content)
 
