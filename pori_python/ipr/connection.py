@@ -72,27 +72,34 @@ class IprConnection:
             **kwargs,
         )
 
-    def upload_report(self, content: Dict, mins_to_wait: int = 5, async_upload: bool = False) -> Dict:
+    def upload_report(
+        self, content: Dict, mins_to_wait: int = 5, async_upload: bool = False
+    ) -> Dict:
         if async_upload:
             initial_result = self.post('reports-async', content)
             report_id = initial_result["ident"]
 
             def check_status(interval: int = 5, num_attempts: int = 5):
-                for i in range (num_attempts):
+                for i in range(num_attempts):
                     logger.info(f'checking report loading status in {interval} seconds')
                     time.sleep(interval)
                     current_status = self.get(f'reports-async/{report_id}')
                     if current_status['state'] not in ['active', 'ready']:
-                        raise Exception(f'async report upload in unexpected state: {current_status}')
+                        raise Exception(
+                            f'async report upload in unexpected state: {current_status}'
+                        )
                     if current_status['state'] == 'ready':
                         return current_status
+
             current_status = check_status()
             if current_status['state'] == 'active':
                 current_status = check_status(interval=30)
                 if current_status['state'] == 'active':
                     current_status = check_status(interval=60, num_attempts=mins_to_wait)
                     if current_status['state'] == 'active':
-                        raise Exception(f'async report upload taking longer than expected: {current_status}')
+                        raise Exception(
+                            f'async report upload taking longer than expected: {current_status}'
+                        )
             return current_status
         else:
             return self.post('reports', content)
