@@ -18,6 +18,7 @@ def conn():
     conn.login(os.environ["GRAPHKB_USER"], os.environ["GRAPHKB_PASS"])
     return conn
 
+
 class TestPaginate:
     @mock.patch("pori_python.graphkb.GraphKBConnection.request")
     def test_does_not_paginate_when_false(self, graphkb_request, conn):
