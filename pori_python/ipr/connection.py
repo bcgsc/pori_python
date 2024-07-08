@@ -4,8 +4,9 @@ import json
 import os
 import zlib
 from typing import Dict, List
-
+import time
 from .constants import DEFAULT_URL
+from .util import logger
 
 IMAGE_MAX = 20  # cannot upload more than 20 images at a time
 
@@ -62,8 +63,46 @@ class IprConnection:
             **kwargs,
         )
 
-    def upload_report(self, content: Dict) -> Dict:
-        return self.post('reports', content)
+    def get(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
+        """Convenience method for making get requests"""
+        return self.request(
+            uri,
+            method='GET',
+            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
+            **kwargs,
+        )
+
+    def upload_report(self, content: Dict, mins_to_wait: int = 5, async_upload: bool = False) -> Dict:
+        if async_upload:
+            initial_result = self.post('reports-async', content)
+            report_id = initial_result["ident"]
+            for i in range(5):
+                logger.info('checking report loading status in 5 seconds')
+                time.sleep(5)
+                current_status = self.get(f'reports-async/{report_id}')
+                if current_status['state'] not in ['active', 'ready']:
+                    raise Exception(f'async report upload in unexpected state: {current_status}')
+                if current_status['state'] == 'ready':
+                    return current_status
+            for i in range(5):
+                logger.info('checking report loading status in 30 seconds')
+                time.sleep(30)
+                current_status = self.get(f'reports-async/{report_id}')
+                if current_status['state'] not in ['active', 'ready']:
+                    raise Exception(f'async report upload in unexpected state: {current_status}')
+                if current_status['state'] == 'ready':
+                    return current_status
+            for i in range(mins_to_wait):
+                logger.info('checking report loading status in 1 minute')
+                time.sleep(60)
+                current_status = self.get(f'reports-async/{report_id}')
+                if current_status['state'] not in ['active', 'ready']:
+                    raise Exception(f'async report upload in unexpected state: {current_status}')
+                if current_status['state'] == 'ready':
+                    return current_status
+            raise Exception(f'async report upload taking longer than expected: {current_status}')
+        else:
+            return self.post('reports', content)
 
     def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
         """
