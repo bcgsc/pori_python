@@ -84,9 +84,13 @@ class IprConnection:
                     logger.info(f'checking report loading status in {interval} seconds')
                     time.sleep(interval)
                     current_status = self.get(f'reports-async/{report_id}')
-                    if current_status['state'] not in ['active', 'ready', 'waiting', 'completed']:
+                    if current_status['state'] not in ['active', 'ready', 'waiting', 'completed', 'failed']:
                         raise Exception(
                             f'async report upload in unexpected state: {current_status}'
+                        )
+                    if current_status['state'] == 'failed':
+                        raise Exception(
+                            f'report upload failed with reason: {current_status["failedReason"]}'
                         )
                     if current_status['state'] in ['ready', 'completed']:
                         return current_status
@@ -104,6 +108,7 @@ class IprConnection:
                 raise Exception(
                     f'async report upload taking longer than expected: {current_status}'
                 )
+
             return current_status
         else:
             return self.post('reports', content)
