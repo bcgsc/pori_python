@@ -84,12 +84,13 @@ class IprConnection:
                     logger.info(f'checking report loading status in {interval} seconds')
                     time.sleep(interval)
                     current_status = self.get(f'reports-async/{report_id}')
-                    if current_status['state'] not in ['active', 'ready']:
+                    if current_status['state'] not in ['active', 'ready', 'waiting', 'completed']:
                         raise Exception(
                             f'async report upload in unexpected state: {current_status}'
                         )
-                    if current_status['state'] == 'ready':
+                    if current_status['state'] in ['ready', 'completed']:
                         return current_status
+                return current_status
 
             current_status = check_status()
             if current_status['state'] == 'active':
