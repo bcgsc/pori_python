@@ -24,6 +24,7 @@ jobs:
         pip install .[docs]
         pip install markdown_refdocs mkdocs mkdocs-material
         markdown_refdocs ipr -o docs/reference --link
+        markdown_refdocs graphkb -o docs/docs_graphkb/reference --link
         mkdocs build
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
