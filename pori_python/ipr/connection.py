@@ -93,11 +93,11 @@ class IprConnection:
                 return current_status
 
             current_status = check_status()
-            if current_status['state'] == 'active':
+            if current_status['state'] in ['active', 'waiting']:
                 current_status = check_status(interval=30)
-                if current_status['state'] == 'active':
+                if current_status['state'] == ['active', 'waiting']:
                     current_status = check_status(interval=60, num_attempts=mins_to_wait)
-                    if current_status['state'] == 'active':
+                    if current_status['state'] == ['active', 'waiting']:
                         raise Exception(
                             f'async report upload taking longer than expected: {current_status}'
                         )
