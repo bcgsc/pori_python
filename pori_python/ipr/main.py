@@ -216,6 +216,8 @@ def ipr_report(
     generate_comments: bool = True,
     match_germline: bool = False,
     custom_kb_match_filter=None,
+    async_upload: bool = False,
+    mins_to_wait: int = 5,
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
 
@@ -234,6 +236,8 @@ def ipr_report(
         generate_comments: create the analyst comments section for upload with the report
         match_germline: match only germline statements to germline events and non-germline statements to non-germline events.
         custom_kb_match_filter: function(List[kbMatch]) -> List[kbMatch]
+        async_upload: use report_async endpoint to upload reports
+        mins_to_wait: if using report_async, number of minutes to wait for success before exception raised
 
     Returns:
         ipr_conn.upload_report return dictionary
@@ -444,7 +448,7 @@ def ipr_report(
     if ipr_upload:
         try:
             logger.info(f'Uploading to IPR {ipr_conn.url}')
-            ipr_result = ipr_conn.upload_report(output)
+            ipr_result = ipr_conn.upload_report(output, async_upload, mins_to_wait)
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
