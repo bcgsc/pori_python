@@ -9,9 +9,9 @@ from .constants import (
     CHROMOSOMES,
     FAILED_REVIEW_STATUS,
     GENE_RETURN_PROPERTIES,
+    GSC_PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST,
     ONCOGENE,
     ONCOKB_SOURCE_NAME,
-    PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST,
     PREFERRED_GENE_SOURCE,
     RELEVANCE_BASE_TERMS,
     TSO500_SOURCE_NAME,
@@ -24,10 +24,7 @@ from .vocab import get_terms_set
 
 
 def _get_tumourigenesis_genes_list(
-    conn: GraphKBConnection,
-    relevance: str,
-    sources: List[str],
-    ignore_cache: bool = False,
+    conn: GraphKBConnection, relevance: str, sources: List[str], ignore_cache: bool = False
 ) -> List[Ontology]:
     statements = cast(
         List[Statement],
@@ -274,12 +271,10 @@ def get_gene_linked_cancer_predisposition_info(
                         "evidence": {
                             "target": "Source",
                             "filters": {"@rid": get_rid(conn, "Source", "CGL")},
-                        },
+                        }
                     },
-                    {
-                        "relevance": {"target": "Vocabulary", "filters": {"@rid": relevance_rids}},
-                    },
-                ],
+                    {"relevance": {"target": "Vocabulary", "filters": {"@rid": relevance_rids}}},
+                ]
             },
             "returnProperties": [
                 "conditions.@class",
@@ -380,7 +375,7 @@ def get_gene_linked_pharmacogenomic_info(
         ignore_cache=False,
     ):
         if record["source"]:  # type: ignore
-            if record["source"]["name"].lower() in PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST:  # type: ignore
+            if record["source"]["name"].lower() in GSC_PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST:  # type: ignore
                 continue
 
         for condition in record["conditions"]:  # type: ignore
