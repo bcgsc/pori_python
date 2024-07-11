@@ -89,20 +89,21 @@ class IprConnection:
                     if current_status.get("ident", False):
                         return current_status
 
+                    if current_status["state"] == "failed":
+                        raise Exception(
+                            f'async report upload failed with reason: {current_status["failedReason"]}'
+                        )
+
                     if current_status["state"] not in [
                         "active",
                         "ready",
                         "waiting",
                         "completed",
-                        "failed",
                     ]:
                         raise Exception(
                             f"async report upload in unexpected state: {current_status}"
                         )
-                    if current_status["state"] == "failed":
-                        raise Exception(
-                            f'report upload failed with reason: {current_status["failedReason"]}'
-                        )
+
                 return current_status
 
             current_status = check_status()
