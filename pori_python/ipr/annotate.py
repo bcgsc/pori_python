@@ -11,7 +11,7 @@ from pori_python.graphkb.statement import get_statements_from_variants
 from pori_python.graphkb.types import Variant
 from pori_python.graphkb.util import FeatureNotFoundError
 from pandas import isnull
-from progressbar import progressbar
+from tqdm import tqdm
 from typing import Dict, List, Sequence
 
 from .constants import TMB_HIGH_CATEGORY
@@ -102,7 +102,7 @@ def annotate_expression_variants(
     problem_genes = set()
 
     logger.info(f"Starting annotation of {len(variants)} expression category_variants")
-    iterfunc = progressbar if show_progress else iter
+    iterfunc = tqdm if show_progress else iter
     for row in iterfunc(variants):
         gene = row['gene']
         variant = row['variant']
@@ -155,7 +155,7 @@ def annotate_copy_variants(
     problem_genes = set()
 
     logger.info(f"Starting annotation of {len(variants)} copy category_variants")
-    iterfunc = progressbar if show_progress else iter
+    iterfunc = tqdm if show_progress else iter
     for row in iterfunc(variants):
         gene = row['gene']
         variant = row['variant']
@@ -213,7 +213,7 @@ def annotate_positional_variants(
     alterations = []
     problem_genes = set()
 
-    iterfunc = progressbar if show_progress else iter
+    iterfunc = tqdm if show_progress else iter
     for row in iterfunc(variants):
         if not row.get('gene') and (not row.get('gene1') or not row.get('gene2')):
             # https://www.bcgsc.ca/jira/browse/GERO-56?focusedCommentId=1234791&page=com.atlassian.jira.plugin.system.issuetabpanels:comment-tabpanel#comment-1234791
