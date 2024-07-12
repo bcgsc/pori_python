@@ -90,7 +90,9 @@ def command_interface() -> None:
         action="store_true",
         help='Write to output_json_path on successful IPR uploads instead of just when the upload fails',
     )
-
+    parser.add_argument('--async_upload', default=False, action='store_true', help='True if reports-async ipr endpoint should be used instead of basic reports')
+    parser.add_argument('--mins_to_wait', default=5, action='store', help='is using reports-async, number of minutes to wait before throwing error')
+    
     args = parser.parse_args()
 
     with open(args.content, 'r') as fh:
@@ -107,6 +109,8 @@ def command_interface() -> None:
         always_write_output_json=args.always_write_output_json,
         generate_therapeutics=args.therapeutics,
         generate_comments=not args.skip_comments,
+        async_upload=args.async_upload,
+        mins_to_wait = args.mins_to_wait,
     )
 
 
