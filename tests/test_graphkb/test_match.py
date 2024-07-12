@@ -110,6 +110,7 @@ class TestMatchCopyVariant:
         with pytest.raises(FeatureNotFoundError):
             match.match_copy_variant(conn, "not a real gene name", match.INPUT_COPY_CATEGORIES.AMP)
 
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests - no copy loss variants in other data")
     def test_known_loss(self, conn):
         matches = match.match_copy_variant(conn, "CDKN2A", match.INPUT_COPY_CATEGORIES.ANY_LOSS)
         assert matches
@@ -126,6 +127,7 @@ class TestMatchCopyVariant:
         for variant_type in types_selected:
             assert not has_prefix(variant_type, INCREASE_PREFIXES)
 
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests - no copy loss variants in other data")
     def test_known_loss_zygosity_filtered(self, conn):
         matches = match.match_copy_variant(
             conn, "CDKN2A", match.INPUT_COPY_CATEGORIES.ANY_LOSS, True
@@ -223,6 +225,7 @@ class TestMatchExpressionVariant:
         for variant_type in types_selected:
             assert not has_prefix(variant_type, INCREASE_PREFIXES)
 
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests - no applicable variants")
     def test_known_reduced_expression_gene_id(self, conn):
         gene_id = conn.query({"target": "Feature", "filters": [{"name": "PTEN"}]})[0]["@rid"]
         matches = match.match_expression_variant(
