@@ -47,8 +47,7 @@ def natural_join(word_list: List[str]) -> str:
 
 
 def natural_join_records(
-    records: Sequence[Record],
-    covert_to_word: Callable[[Dict], str] = lambda x: x["displayName"],
+    records: Sequence[Record], covert_to_word: Callable[[Dict], str] = lambda x: x["displayName"]
 ) -> str:
     word_list = sorted(list({covert_to_word(rec) for rec in records}))
     return natural_join(word_list)
@@ -97,15 +96,7 @@ def substitute_sentence_template(
             [d["@class"] == "Disease" for d in diseases]
         ):
             words = sorted(
-                list(
-                    set(
-                        [
-                            s["displayName"]
-                            for s in diseases
-                            if s["@rid"] in disease_matches
-                        ]
-                    )
-                )
+                list(set([s["displayName"] for s in diseases if s["@rid"] in disease_matches]))
             )
             words.append(OTHER_DISEASES)
             return natural_join(words)
@@ -115,29 +106,19 @@ def substitute_sentence_template(
     if r"{subject}" in template:
         # remove subject from the conditions replacements
         subjects_ids = convert_to_rid_set(subjects)
-        disease_conditions = [
-            d for d in disease_conditions if d["@rid"] not in subjects_ids
-        ]
-        variant_conditions = [
-            d for d in variant_conditions if d["@rid"] not in subjects_ids
-        ]
-        other_conditions = [
-            d for d in other_conditions if d["@rid"] not in subjects_ids
-        ]
+        disease_conditions = [d for d in disease_conditions if d["@rid"] not in subjects_ids]
+        variant_conditions = [d for d in variant_conditions if d["@rid"] not in subjects_ids]
+        other_conditions = [d for d in other_conditions if d["@rid"] not in subjects_ids]
 
         result = result.replace(r"{subject}", merge_diseases(subjects))
 
     if r"{conditions:disease}" in template:
-        result = result.replace(
-            r"{conditions:disease}", merge_diseases(disease_conditions)
-        )
+        result = result.replace(r"{conditions:disease}", merge_diseases(disease_conditions))
     else:
         other_conditions.extend(disease_conditions)
 
     if r"{conditions:variant}" in template:
-        result = result.replace(
-            r"{conditions:variant}", natural_join_records(variant_conditions)
-        )
+        result = result.replace(r"{conditions:variant}", natural_join_records(variant_conditions))
     else:
         other_conditions.extend(variant_conditions)
 
@@ -168,9 +149,7 @@ def aggregate_statements(
     def generate_key(statement: GkbStatement) -> Tuple:
         result = [
             cond["displayName"]
-            for cond in filter_by_record_class(
-                statement["conditions"], "Disease", exclude=True
-            )
+            for cond in filter_by_record_class(statement["conditions"], "Disease", exclude=True)
             if cond["@rid"] != statement["subject"]["@rid"]
         ]
         if statement.get("subject", {}).get("@class", "Disease") != "Disease":
@@ -230,9 +209,7 @@ def display_variant(variant: IprVariant) -> str:
     # Use chosen legacy 'proteinChange' or an hgvs description of lowest detail.
     hgvs = variant.get(
         "proteinChange",
-        variant.get(
-            "hgvsProtein", variant.get("hgvsCds", variant.get("hgvsGenomic", ""))
-        ),
+        variant.get("hgvsProtein", variant.get("hgvsCds", variant.get("hgvsGenomic", ""))),
     )
 
     if gene and hgvs:
@@ -244,16 +221,14 @@ def display_variant(variant: IprVariant) -> str:
 
 
 def display_variants(gene_name: str, variants: List[IprVariant]) -> str:
-    result = sorted(
-        list({v for v in [display_variant(e) for e in variants] if gene_name in v})
-    )
+    result = sorted(list({v for v in [display_variant(e) for e in variants] if gene_name in v}))
     variants_text = natural_join(result)
     if len(result) > 1:
-        return f"Multiple variants of the gene {gene_name} were observed in this case: {variants_text}"
-    elif result:
         return (
-            f"{variants_text[0].upper()}{variants_text[1:]} was observed in this case."
+            f"Multiple variants of the gene {gene_name} were observed in this case: {variants_text}"
         )
+    elif result:
+        return f"{variants_text[0].upper()}{variants_text[1:]} was observed in this case."
     return ""
 
 
@@ -274,9 +249,7 @@ def create_section_html(
     for statement_id, sentence in sentences_by_statement_id.items():
         relevance = statements[statement_id]["relevance"]["@rid"]
         category = categorize_relevance(
-            graphkb_conn,
-            relevance,
-            RELEVANCE_BASE_TERMS + [("resistance", ["no sensitivity"])],
+            graphkb_conn, relevance, RELEVANCE_BASE_TERMS + [("resistance", ["no sensitivity"])]
         )
         sentence_categories[sentence] = category
 
@@ -287,12 +260,7 @@ def create_section_html(
                 "target": "Feature",
                 "filters": {
                     "AND": [
-                        {
-                            "source": {
-                                "target": "Source",
-                                "filters": {"name": "entrez gene"},
-                            }
-                        },
+                        {"source": {"target": "Source", "filters": {"name": "entrez gene"}}},
                         {"name": gene_name},
                         {"biotype": "gene"},
                     ]
@@ -326,22 +294,11 @@ def create_section_html(
     for section in [
         {s for (s, v) in sentence_categories.items() if v == "diagnostic"},
         {s for (s, v) in sentence_categories.items() if v == "biological"},
+        {s for (s, v) in sentence_categories.items() if v in ["therapeutic", "prognostic"]},
         {
             s
             for (s, v) in sentence_categories.items()
-            if v in ["therapeutic", "prognostic"]
-        },
-        {
-            s
-            for (s, v) in sentence_categories.items()
-            if v
-            not in [
-                "diagnostic",
-                "biological",
-                "therapeutic",
-                "prognostic",
-                "resistance",
-            ]
+            if v not in ["diagnostic", "biological", "therapeutic", "prognostic", "resistance"]
         },
         {s for (s, v) in sentence_categories.items() if v == "resistance"},
     ]:
@@ -412,14 +369,10 @@ def summarize(
     # aggregate similar sentences
     sentences = {}
     for template, group in templates.items():
-        sentences.update(
-            aggregate_statements(graphkb_conn, template, group, disease_matches)
-        )
+        sentences.update(aggregate_statements(graphkb_conn, template, group, disease_matches))
 
     # section statements by genes
-    statements_by_genes = section_statements_by_genes(
-        graphkb_conn, list(statements.values())
-    )
+    statements_by_genes = section_statements_by_genes(graphkb_conn, list(statements.values()))
 
     output: List[str] = [
         "<h3>The comments below were automatically generated from matches to GraphKB and have not been manually reviewed</h3>"

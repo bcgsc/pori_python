@@ -154,11 +154,7 @@ def graphkb_conn():
 
         def __call__(self, *args, **kwargs):
             self.index += 1
-            ret_val = (
-                self.return_values[self.index]
-                if self.index < len(self.return_values)
-                else []
-            )
+            ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
             return ret_val
 
     def mock_get_source(source):
@@ -175,11 +171,7 @@ def base_graphkb_statement(
     statement = GkbStatement(  # type: ignore
         {
             "conditions": [
-                {
-                    "@class": "Disease",
-                    "@rid": disease_id,
-                    "displayName": "disease_display_name",
-                },
+                {"@class": "Disease", "@rid": disease_id, "displayName": "disease_display_name"},
                 {
                     "@class": "CategoryVariant",
                     "@rid": "variant_rid",
@@ -302,9 +294,7 @@ class TestConvertStatementsToAlterations:
         assert row["category"] == "diagnostic"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
-    def test_unapproved_therapeutic(
-        self, mock_get_evidencelevel_mapping, graphkb_conn
-    ) -> None:
+    def test_unapproved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
         mock_get_evidencelevel_mapping.return_value = {"other": "test"}
 
         statement = base_graphkb_statement()
@@ -319,12 +309,8 @@ class TestConvertStatementsToAlterations:
         assert row["category"] == "therapeutic"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
-    def test_approved_therapeutic(
-        self, mock_get_evidencelevel_mapping, graphkb_conn
-    ) -> None:
-        mock_get_evidencelevel_mapping.return_value = {
-            APPROVED_EVIDENCE_RIDS[0]: "test"
-        }
+    def test_approved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
+        mock_get_evidencelevel_mapping.return_value = {APPROVED_EVIDENCE_RIDS[0]: "test"}
 
         statement = base_graphkb_statement()
         statement["relevance"]["@rid"] = "therapeutic"

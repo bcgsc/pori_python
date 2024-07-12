@@ -32,9 +32,7 @@ class TestPostImages:
             result = conn.post_images(
                 "report_id",
                 files={
-                    "expression.correlation": os.path.join(
-                        IMAGE_DIR, "expression_correlation.png"
-                    ),
+                    "expression.correlation": os.path.join(IMAGE_DIR, "expression_correlation.png"),
                     "mixcr.circos_trb_vj_gene_usage": os.path.join(
                         IMAGE_DIR, "mixcr.circos_trb_vj_gene_usage.png"
                     ),
@@ -55,9 +53,7 @@ class TestPostImages:
             result = conn.post_images(
                 "report_id",
                 files={
-                    "expression.correlation": os.path.join(
-                        IMAGE_DIR, "expression_correlation.png"
-                    ),
+                    "expression.correlation": os.path.join(IMAGE_DIR, "expression_correlation.png"),
                     "mixcr.circos_trb_vj_gene_usage": os.path.join(
                         IMAGE_DIR, "mixcr.circos_trb_vj_gene_usage.png"
                     ),
@@ -77,8 +73,7 @@ class TestPostImages:
             conn = IprConnection("user", "pass")
             with pytest.raises(FileNotFoundError):
                 conn.post_images(
-                    "report_id",
-                    files={"expression.correlation": "thing/that/does/not/exist.png"},
+                    "report_id", files={"expression.correlation": "thing/that/does/not/exist.png"}
                 )
 
     def test_failed_image_load(self):

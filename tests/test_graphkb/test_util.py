@@ -97,28 +97,12 @@ class TestStripDisplayName:
     @pytest.mark.parametrize(
         "opt,stripDisplayName",
         [
+            [{"displayName": "ABL1:p.T315I", "withRef": True, "withRefSeq": True}, "ABL1:p.T315I"],
+            [{"displayName": "ABL1:p.T315I", "withRef": False, "withRefSeq": True}, "p.T315I"],
+            [{"displayName": "ABL1:p.T315I", "withRef": True, "withRefSeq": False}, "ABL1:p.315I"],
+            [{"displayName": "ABL1:p.T315I", "withRef": False, "withRefSeq": False}, "p.315I"],
             [
-                {"displayName": "ABL1:p.T315I", "withRef": True, "withRefSeq": True},
-                "ABL1:p.T315I",
-            ],
-            [
-                {"displayName": "ABL1:p.T315I", "withRef": False, "withRefSeq": True},
-                "p.T315I",
-            ],
-            [
-                {"displayName": "ABL1:p.T315I", "withRef": True, "withRefSeq": False},
-                "ABL1:p.315I",
-            ],
-            [
-                {"displayName": "ABL1:p.T315I", "withRef": False, "withRefSeq": False},
-                "p.315I",
-            ],
-            [
-                {
-                    "displayName": "chr3:g.41266125C>T",
-                    "withRef": False,
-                    "withRefSeq": False,
-                },
+                {"displayName": "chr3:g.41266125C>T", "withRef": False, "withRefSeq": False},
                 "g.41266125>T",
             ],
             [
@@ -158,16 +142,8 @@ class TestStringifyVariant:
                 {"withRef": False, "withRefSeq": False},
                 "fusion(e.10,e.12)",
             ],
-            [
-                "ABCA12:p.N1671Ifs*4",
-                {"withRef": False, "withRefSeq": False},
-                "p.1671Ifs*4",
-            ],
-            [
-                "x:y.p22.33copyloss",
-                {"withRef": False, "withRefSeq": False},
-                "y.p22.33copyloss",
-            ],
+            ["ABCA12:p.N1671Ifs*4", {"withRef": False, "withRefSeq": False}, "p.1671Ifs*4"],
+            ["x:y.p22.33copyloss", {"withRef": False, "withRefSeq": False}, "y.p22.33copyloss"],
             # TODO: ['MED12:p.(?34_?68)mut', {'withRef': False, 'withRefSeq': False}, 'p.(34_68)mut'],
             # TODO: ['FLT3:p.(?572_?630)_(?572_?630)ins', {'withRef': False, 'withRefSeq': False}, 'p.(572_630)_(572_630)ins'],
         ],
@@ -186,9 +162,7 @@ class TestStringifyVariant:
             ["#158:35317", 1652734056311, "c.1>G"],
         ],
     )
-    def test_stringifyVariant_positional(
-        self, conn, rid, createdAt, stringifiedVariant
-    ):
+    def test_stringifyVariant_positional(self, conn, rid, createdAt, stringifiedVariant):
         opt = {"withRef": False, "withRefSeq": False}
         variant = conn.get_record_by_id(rid)
         if variant and variant.get("createdAt", None) == createdAt:

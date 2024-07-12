@@ -95,12 +95,7 @@ class IprConnection:
                             f'async report upload failed with reason: {current_status["failedReason"]}'
                         )
 
-                    if current_status["state"] not in [
-                        "active",
-                        "ready",
-                        "waiting",
-                        "completed",
-                    ]:
+                    if current_status["state"] not in ["active", "ready", "waiting", "completed"]:
                         raise Exception(
                             f"async report upload in unexpected state: {current_status}"
                         )
@@ -138,9 +133,7 @@ class IprConnection:
             data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
         )
 
-    def post_images(
-        self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}
-    ) -> None:
+    def post_images(self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}) -> None:
         """
         Post images to the report
         """
@@ -171,9 +164,7 @@ class IprConnection:
                     handler.close()
             start_index += IMAGE_MAX
         if image_errors:
-            raise ValueError(
-                f'Error uploading images ({", ".join(sorted(list(image_errors)))})'
-            )
+            raise ValueError(f'Error uploading images ({", ".join(sorted(list(image_errors)))})')
 
     def get_spec(self) -> Dict:
         """

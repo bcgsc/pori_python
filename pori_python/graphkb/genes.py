@@ -24,10 +24,7 @@ from .vocab import get_terms_set
 
 
 def _get_tumourigenesis_genes_list(
-    conn: GraphKBConnection,
-    relevance: str,
-    sources: List[str],
-    ignore_cache: bool = False,
+    conn: GraphKBConnection, relevance: str, sources: List[str], ignore_cache: bool = False
 ) -> List[Ontology]:
     statements = cast(
         List[Statement],
@@ -37,17 +34,10 @@ def _get_tumourigenesis_genes_list(
                 "filters": {
                     "AND": [
                         {"source": {"target": "Source", "filters": {"name": sources}}},
-                        {
-                            "relevance": {
-                                "target": "Vocabulary",
-                                "filters": {"name": relevance},
-                            }
-                        },
+                        {"relevance": {"target": "Vocabulary", "filters": {"name": relevance}}},
                     ]
                 },
-                "returnProperties": [
-                    f"subject.{prop}" for prop in GENE_RETURN_PROPERTIES
-                ],
+                "returnProperties": [f"subject.{prop}" for prop in GENE_RETURN_PROPERTIES],
             },
             ignore_cache=ignore_cache,
         ),
@@ -84,9 +74,7 @@ def get_oncokb_tumour_supressors(conn: GraphKBConnection) -> List[Ontology]:
     Returns:
         gene (Feature) records
     """
-    return _get_tumourigenesis_genes_list(
-        conn, TUMOUR_SUPPRESSIVE, [ONCOKB_SOURCE_NAME]
-    )
+    return _get_tumourigenesis_genes_list(conn, TUMOUR_SUPPRESSIVE, [ONCOKB_SOURCE_NAME])
 
 
 def get_cancer_genes(conn: GraphKBConnection) -> List[Ontology]:
@@ -159,12 +147,7 @@ def get_genes_from_variant_types(
     filters: List[Dict[str, Any]] = []
     if types:
         filters.append(
-            {
-                "type": {
-                    "target": "Vocabulary",
-                    "filters": {"name": types, "operator": "IN"},
-                }
-            }
+            {"type": {"target": "Vocabulary", "filters": {"name": types, "operator": "IN"}}}
         )
 
     variants = cast(
@@ -194,11 +177,7 @@ def get_genes_from_variant_types(
     result = cast(
         List[Ontology],
         conn.query(
-            {
-                "target": list(genes),
-                "returnProperties": GENE_RETURN_PROPERTIES,
-                "filters": filters,
-            },
+            {"target": list(genes), "returnProperties": GENE_RETURN_PROPERTIES, "filters": filters},
             ignore_cache=ignore_cache,
         ),
     )
@@ -294,12 +273,7 @@ def get_gene_linked_cancer_predisposition_info(
                             "filters": {"@rid": get_rid(conn, "Source", "CGL")},
                         }
                     },
-                    {
-                        "relevance": {
-                            "target": "Vocabulary",
-                            "filters": {"@rid": relevance_rids},
-                        }
-                    },
+                    {"relevance": {"target": "Vocabulary", "filters": {"@rid": relevance_rids}}},
                 ]
             },
             "returnProperties": [
@@ -333,10 +307,7 @@ def get_gene_linked_cancer_predisposition_info(
                             logger.error(
                                 f"Non-gene cancer predisposition {biotype}: {name} for {condition['displayName']}"
                             )
-                variants[condition["@rid"]] = [
-                    condition["displayName"],
-                    assoc_gene_list,
-                ]
+                variants[condition["@rid"]] = [condition["displayName"], assoc_gene_list]
 
     for gene, name, biotype in infer_genes:
         logger.debug(f"Found gene '{gene}' for '{name}' ({biotype})")
@@ -388,12 +359,7 @@ def get_gene_linked_pharmacogenomic_info(
         {
             "target": "Statement",
             "filters": [
-                {
-                    "relevance": {
-                        "target": "Vocabulary",
-                        "filters": {"@rid": relevance_rids},
-                    }
-                }
+                {"relevance": {"target": "Vocabulary", "filters": {"@rid": relevance_rids}}}
             ],
             "returnProperties": [
                 "conditions.@class",
@@ -431,10 +397,7 @@ def get_gene_linked_pharmacogenomic_info(
                             logger.error(
                                 f"Non-gene pharmacogenomic {biotype}: {name} for {condition['displayName']}"
                             )
-                variants[condition["@rid"]] = [
-                    condition["displayName"],
-                    assoc_gene_list,
-                ]
+                variants[condition["@rid"]] = [condition["displayName"], assoc_gene_list]
     for gene, name, biotype in infer_genes:
         logger.debug(f"Found gene '{gene}' for '{name}' ({biotype})")
         genes.add(gene)
@@ -486,9 +449,7 @@ def get_gene_information(
 
     gene_names = sorted(set(gene_names))
     statements = graphkb_conn.query(body)
-    statements = [
-        s for s in statements if s.get("reviewStatus") != FAILED_REVIEW_STATUS
-    ]
+    statements = [s for s in statements if s.get("reviewStatus") != FAILED_REVIEW_STATUS]
 
     gene_flags: Dict[str, Set[str]] = {
         "kbStatementRelated": set(),
@@ -511,13 +472,9 @@ def get_gene_information(
     logger.info("fetching oncogenes list")
     gene_flags["oncogene"] = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
     logger.info("fetching tumour supressors list")
-    gene_flags["tumourSuppressor"] = convert_to_rid_set(
-        get_oncokb_tumour_supressors(graphkb_conn)
-    )
+    gene_flags["tumourSuppressor"] = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
     logger.info("fetching cancerGeneListMatch list")
-    gene_flags["cancerGeneListMatch"] = convert_to_rid_set(
-        get_cancer_genes(graphkb_conn)
-    )
+    gene_flags["cancerGeneListMatch"] = convert_to_rid_set(get_cancer_genes(graphkb_conn))
 
     logger.info("fetching therapeutic associated genes lists")
     gene_flags["therapeuticAssociated"] = convert_to_rid_set(
@@ -527,9 +484,7 @@ def get_gene_information(
     logger.info(f"Setting gene_info flags on {len(gene_names)} genes")
     result = []
     for gene_name in gene_names:
-        equivalent = convert_to_rid_set(
-            get_equivalent_features(graphkb_conn, gene_name)
-        )
+        equivalent = convert_to_rid_set(get_equivalent_features(graphkb_conn, gene_name))
         row = {"name": gene_name}
         flagged = False
         for flag in gene_flags:

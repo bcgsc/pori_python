@@ -14,18 +14,8 @@ class TestGetPreferredDrugRepresentation:
                 side_effect=[
                     [],
                     [
-                        {
-                            "sourceId": "1",
-                            "alias": False,
-                            "source": "source",
-                            "name": "name",
-                        },
-                        {
-                            "sourceId": "2",
-                            "alias": True,
-                            "source": "source",
-                            "name": "name",
-                        },
+                        {"sourceId": "1", "alias": False, "source": "source", "name": "name"},
+                        {"sourceId": "2", "alias": True, "source": "source", "name": "name"},
                     ],
                 ]
             )
@@ -39,18 +29,8 @@ class TestGetPreferredDrugRepresentation:
                 side_effect=[
                     [],
                     [
-                        {
-                            "sourceId": "1",
-                            "deprecated": True,
-                            "source": "source",
-                            "name": "name",
-                        },
-                        {
-                            "sourceId": "2",
-                            "deprecated": False,
-                            "source": "source",
-                            "name": "name",
-                        },
+                        {"sourceId": "1", "deprecated": True, "source": "source", "name": "name"},
+                        {"sourceId": "2", "deprecated": False, "source": "source", "name": "name"},
                     ],
                 ]
             )
@@ -64,18 +44,8 @@ class TestGetPreferredDrugRepresentation:
                 side_effect=[
                     [{"@rid": "source2", "sort": 0}, {"@rid": "source1", "sort": 1}],
                     [
-                        {
-                            "sourceId": "1",
-                            "deprecated": False,
-                            "source": "source1",
-                            "name": "name",
-                        },
-                        {
-                            "sourceId": "2",
-                            "deprecated": False,
-                            "source": "source2",
-                            "name": "name",
-                        },
+                        {"sourceId": "1", "deprecated": False, "source": "source1", "name": "name"},
+                        {"sourceId": "2", "deprecated": False, "source": "source2", "name": "name"},
                     ],
                 ]
             )
@@ -129,13 +99,7 @@ class TestSubstituteSentenceTemplate:
         ]
         subjects = [{"@class": "Therapy", "displayName": "some drug", "@rid": "5"}]
         sentence = substitute_sentence_template(
-            template,
-            diseases + variants,
-            subjects,
-            relevance,
-            [],
-            ["6", "7"],
-            disease_matches,
+            template, diseases + variants, subjects, relevance, [], ["6", "7"], disease_matches
         )
         assert (
             sentence
@@ -160,13 +124,7 @@ class TestSubstituteSentenceTemplate:
         ]
         subjects = [{"@class": "Therapy", "displayName": "some drug", "@rid": "5"}]
         sentence = substitute_sentence_template(
-            template,
-            diseases + variants,
-            subjects,
-            relevance,
-            [],
-            ["6", "7"],
-            disease_matches,
+            template, diseases + variants, subjects, relevance, [], ["6", "7"], disease_matches
         )
         assert (
             sentence
@@ -191,13 +149,7 @@ class TestSubstituteSentenceTemplate:
         ]
         subjects = [{"@class": "Therapy", "displayName": "some drug", "@rid": "5"}]
         sentence = substitute_sentence_template(
-            template,
-            diseases + variants,
-            subjects,
-            relevance,
-            [],
-            ["6", "7"],
-            disease_matches,
+            template, diseases + variants, subjects, relevance, [], ["6", "7"], disease_matches
         )
         assert (
             sentence

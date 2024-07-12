@@ -46,16 +46,12 @@ def probe_upload_content() -> Dict:
     return report_content
 
 
-@pytest.mark.skipif(
-    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
-)
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestCreateReport:
     def test_found_probe_small_mutations(self, probe_upload_content: Dict) -> None:
         assert probe_upload_content["smallMutations"]
 
-    def test_found_probe_small_mutations_match(
-        self, probe_upload_content: Dict
-    ) -> None:
+    def test_found_probe_small_mutations_match(self, probe_upload_content: Dict) -> None:
         # verify each probe had a KB match
         for sm_probe in probe_upload_content["smallMutations"]:
             match_list = [

@@ -5,9 +5,5 @@ class QueryMock:
 
     def __call__(self, *args, **kwargs):
         self.index += 1
-        ret_val = (
-            self.return_values[self.index]
-            if self.index < len(self.return_values)
-            else []
-        )
+        ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
         return ret_val

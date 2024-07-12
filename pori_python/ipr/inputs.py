@@ -430,9 +430,7 @@ def check_variant_links(
     for variant in expression_variants:
         gene = variant["gene"]
         if not gene:
-            logger.error(
-                "expression_variant data cannot be applied to an empty genename"
-            )
+            logger.error("expression_variant data cannot be applied to an empty genename")
         elif variant["variant"]:
             genes_with_variants.add(gene)
 
@@ -478,14 +476,14 @@ def check_variant_links(
     if missing_information_genes:
         for err_msg in sorted(missing_information_errors):
             logger.debug(err_msg)
-        link_err_msg = f"Missing information variant links on {len(missing_information_genes)} genes"
+        link_err_msg = (
+            f"Missing information variant links on {len(missing_information_genes)} genes"
+        )
         logger.warning(link_err_msg)
     return genes_with_variants
 
 
-def check_comparators(
-    content: Dict, expresssionVariants: List[IprExprVariant] = []
-) -> None:
+def check_comparators(content: Dict, expresssionVariants: List[IprExprVariant] = []) -> None:
     """
     Given the optional content dictionary, check that based on the analyses present the
     correct/sufficient comparators have also been specified
@@ -573,9 +571,7 @@ def extend_with_default(validator_class):
     type_checker = validator_class.TYPE_CHECKER.redefine("null", check_null)
 
     return jsonschema.validators.extend(
-        validator_class,
-        validators={"properties": set_defaults},
-        type_checker=type_checker,
+        validator_class, validators={"properties": set_defaults}, type_checker=type_checker
     )
 
 

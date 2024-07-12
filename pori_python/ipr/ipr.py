@@ -10,14 +10,7 @@ from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
 
 from .constants import GERMLINE_BASE_TERMS, VARIANT_CLASSES
-from .types import (
-    GkbStatement,
-    ImageDefinition,
-    IprFusionVariant,
-    IprGene,
-    IprVariant,
-    KbMatch,
-)
+from .types import GkbStatement, ImageDefinition, IprFusionVariant, IprGene, IprVariant, KbMatch
 from .util import find_variant, logger
 
 
@@ -40,13 +33,9 @@ def filter_structural_variants(
     Filter structural variants to remove non-high quality events unless they are matched/annotated or
     they involve a gene that is a known fusion partner
     """
-    matched_svs = {
-        match["variant"] for match in kb_matches if match["variantType"] == "sv"
-    }
+    matched_svs = {match["variant"] for match in kb_matches if match["variantType"] == "sv"}
     fusion_genes = {
-        gene["name"]
-        for gene in gene_annotations
-        if gene.get("knownFusionPartner", False)
+        gene["name"] for gene in gene_annotations if gene.get("knownFusionPartner", False)
     }
 
     result = []
@@ -84,15 +73,11 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
 
     # Filter IPR EvidenceLevel and map each outgoing CrossReferenceOf to displayName
     ipr_source_rid = graphkb_conn.get_source("ipr")["@rid"]
-    ipr_evidence_levels = filter(
-        lambda d: d.get("source") == ipr_source_rid, evidence_levels
-    )
+    ipr_evidence_levels = filter(lambda d: d.get("source") == ipr_source_rid, evidence_levels)
     cross_references_mapping: Dict[str, str] = dict()
     ipr_rids_to_displayname = dict()
     for level in ipr_evidence_levels:
-        d = map(
-            lambda i: (i, level["displayName"]), level.get("out_CrossReferenceOf", [])
-        )
+        d = map(lambda i: (i, level["displayName"]), level.get("out_CrossReferenceOf", []))
         cross_references_mapping.update(d)
         ipr_rids_to_displayname[level["@rid"]] = level["displayName"]
 
@@ -136,9 +121,7 @@ def convert_statements_to_alterations(
     """
     disease_matches = {
         r["@rid"]
-        for r in gkb_vocab.get_term_tree(
-            graphkb_conn, disease_name, ontology_class="Disease"
-        )
+        for r in gkb_vocab.get_term_tree(graphkb_conn, disease_name, ontology_class="Disease")
     }
 
     if not disease_matches:
@@ -151,9 +134,7 @@ def convert_statements_to_alterations(
 
     # get the recruitment status for any trial associated with a statement
     clinical_trials = [
-        s["subject"]["@rid"]
-        for s in statements
-        if s["subject"]["@class"] == "ClinicalTrial"
+        s["subject"]["@rid"] for s in statements if s["subject"]["@class"] == "ClinicalTrial"
     ]
     recruitment_statuses = {}
     if clinical_trials:
@@ -169,9 +150,7 @@ def convert_statements_to_alterations(
                 recruitment_statuses[rid] = query_result[0]["recruitmentStatus"]
 
     for statement in statements:
-        variants = [
-            c for c in statement["conditions"] if c["@class"] in VARIANT_CLASSES
-        ]
+        variants = [c for c in statement["conditions"] if c["@class"] in VARIANT_CLASSES]
         diseases = [c for c in statement["conditions"] if c["@class"] == "Disease"]
         disease_match = len(diseases) == 1 and diseases[0]["@rid"] in disease_matches
         pmid = ";".join([e["displayName"] for e in statement["evidence"]])
@@ -191,12 +170,8 @@ def convert_statements_to_alterations(
 
         evidence_level_str = display_evidence_levels(statement)
         evidence_levels = statement.get("evidenceLevel") or []
-        ipr_evidence_levels = [
-            ev_map[el.get("@rid", "")] for el in evidence_levels if el
-        ]
-        ipr_evidence_levels_str = ";".join(
-            sorted(set([el for el in ipr_evidence_levels]))
-        )
+        ipr_evidence_levels = [ev_map[el.get("@rid", "")] for el in evidence_levels if el]
+        ipr_evidence_levels_str = ";".join(sorted(set([el for el in ipr_evidence_levels])))
 
         for variant in variants:
             if variant["@rid"] not in variant_matches:
@@ -206,13 +181,9 @@ def convert_statements_to_alterations(
                     "approvedTherapy": approved_therapy,
                     "category": ipr_section or "unknown",
                     "context": (
-                        statement["subject"]["displayName"]
-                        if statement["subject"]
-                        else None
+                        statement["subject"]["displayName"] if statement["subject"] else None
                     ),
-                    "kbContextId": (
-                        statement["subject"]["@rid"] if statement["subject"] else None
-                    ),
+                    "kbContextId": (statement["subject"]["@rid"] if statement["subject"] else None),
                     "disease": ";".join(sorted(d["displayName"] for d in diseases)),
                     "evidenceLevel": evidence_level_str,
                     "iprEvidenceLevel": ipr_evidence_levels_str,
@@ -273,9 +244,7 @@ def select_expression_plots(
         gene = str(variant.get("gene", ""))
         hist = str(variant.get("histogramImage", ""))
         if hist:
-            images_by_gene[gene] = ImageDefinition(
-                {"key": f"expDensity.{gene}", "path": hist}
-            )
+            images_by_gene[gene] = ImageDefinition({"key": f"expDensity.{gene}", "path": hist})
     return [images_by_gene[gene] for gene in selected_genes if gene in images_by_gene]
 
 
@@ -318,9 +287,7 @@ def create_key_alterations(
         counts[type_mapping[variant_type]].add(variant_key)
 
         if variant_type == "exp":
-            alterations.append(
-                f'{variant.get("gene","")} ({variant.get("expressionState")})'
-            )
+            alterations.append(f'{variant.get("gene","")} ({variant.get("expressionState")})')
         elif variant_type == "cnv":
             alterations.append(f'{variant.get("gene","")} ({variant.get("cnvState")})')
         # only show germline if relevant
@@ -344,9 +311,7 @@ def create_key_alterations(
 
 
 def germline_kb_matches(
-    kb_matches: List[KbMatch],
-    all_variants: Sequence[IprVariant],
-    assume_somatic: bool = True,
+    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant], assume_somatic: bool = True
 ) -> List[KbMatch]:
     """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
 
@@ -397,9 +362,7 @@ def germline_kb_matches(
         # Remove any matches to germline events
         for alt in somatic_alts:
             var_list = [v for v in all_variants if v["key"] == alt["variant"]]
-            somatic_var_list = [
-                v for v in var_list if not v.get("germline", not assume_somatic)
-            ]
+            somatic_var_list = [v for v in var_list if not v.get("germline", not assume_somatic)]
             if var_list and not somatic_var_list:
                 logger.debug(
                     f"Dropping germline match to somatic statement kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
@@ -407,8 +370,6 @@ def germline_kb_matches(
             elif somatic_var_list:
                 ret_list.append(alt)  # match to somatic variant
             else:
-                ret_list.append(
-                    alt
-                )  # alteration not in any specific keys matches to check.
+                ret_list.append(alt)  # alteration not in any specific keys matches to check.
 
     return ret_list

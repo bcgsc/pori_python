@@ -1,11 +1,7 @@
 from typing import List, cast
 
 from . import GraphKBConnection
-from .constants import (
-    FAILED_REVIEW_STATUS,
-    RELEVANCE_BASE_TERMS,
-    STATEMENT_RETURN_PROPERTIES,
-)
+from .constants import FAILED_REVIEW_STATUS, RELEVANCE_BASE_TERMS, STATEMENT_RETURN_PROPERTIES
 from .types import CategoryBaseTermMapping, Statement, Variant
 from .util import convert_to_rid_list
 from .vocab import get_terms_set
@@ -27,9 +23,7 @@ def categorize_relevance(
 
 
 def get_statements_from_variants(
-    graphkb_conn: GraphKBConnection,
-    variants: List[Variant],
-    failed_review: bool = False,
+    graphkb_conn: GraphKBConnection, variants: List[Variant], failed_review: bool = False
 ) -> List[Statement]:
     """Given a list of variant records from GraphKB, return related statements.
 
@@ -44,15 +38,10 @@ def get_statements_from_variants(
     statements = graphkb_conn.query(
         {
             "target": "Statement",
-            "filters": {
-                "conditions": convert_to_rid_list(variants),
-                "operator": "CONTAINSANY",
-            },
+            "filters": {"conditions": convert_to_rid_list(variants), "operator": "CONTAINSANY"},
             "returnProperties": STATEMENT_RETURN_PROPERTIES,
         }
     )
     if not failed_review:
-        statements = [
-            s for s in statements if s.get("reviewStatus") != FAILED_REVIEW_STATUS
-        ]
+        statements = [s for s in statements if s.get("reviewStatus") != FAILED_REVIEW_STATUS]
     return [cast(Statement, s) for s in statements]

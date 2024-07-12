@@ -15,14 +15,7 @@ from .constants import (
     STRUCTURAL_VARIANT_TYPES,
     VARIANT_RETURN_PROPERTIES,
 )
-from .types import (
-    BasicPosition,
-    Ontology,
-    ParsedVariant,
-    PositionalVariant,
-    Record,
-    Variant,
-)
+from .types import BasicPosition, Ontology, ParsedVariant, PositionalVariant, Record, Variant
 from .util import (
     FeatureNotFoundError,
     convert_to_rid_list,
@@ -70,8 +63,7 @@ def get_equivalent_features(
         return cast(
             List[Ontology],
             conn.query(
-                {"target": [gene_name], "queryType": "similarTo"},
-                ignore_cache=ignore_cache,
+                {"target": [gene_name], "queryType": "similarTo"}, ignore_cache=ignore_cache
             ),
         )
 
@@ -90,16 +82,9 @@ def get_equivalent_features(
         filters.append({"sourceId": gene_name})
         if source_id_version:
             filters.append(
-                {
-                    "OR": [
-                        {"sourceIdVersion": source_id_version},
-                        {"sourceIdVersion": None},
-                    ]
-                }
+                {"OR": [{"sourceIdVersion": source_id_version}, {"sourceIdVersion": None}]}
             )
-    elif (
-        FEATURES_CACHE and gene_name.lower() not in FEATURES_CACHE and not ignore_cache
-    ):
+    elif FEATURES_CACHE and gene_name.lower() not in FEATURES_CACHE and not ignore_cache:
         return []
     else:
         filters.append({"OR": [{"sourceId": gene_name}, {"name": gene_name}]})
@@ -107,10 +92,7 @@ def get_equivalent_features(
     return cast(
         List[Ontology],
         conn.query(
-            {
-                "target": {"target": "Feature", "filters": filters},
-                "queryType": "similarTo",
-            },
+            {"target": {"target": "Feature", "filters": filters}, "queryType": "similarTo"},
             ignore_cache=ignore_cache,
         ),
     )
@@ -123,13 +105,7 @@ def cache_missing_features(conn: GraphKBConnection) -> None:
     """
     genes = cast(
         List[Ontology],
-        conn.query(
-            {
-                "target": "Feature",
-                "returnProperties": ["name", "sourceId"],
-                "neighbors": 0,
-            }
-        ),
+        conn.query({"target": "Feature", "returnProperties": ["name", "sourceId"], "neighbors": 0}),
     )
     for gene in genes:
         if gene["name"]:
@@ -184,9 +160,7 @@ def match_category_variant(
     )
 
     if not terms:
-        raise ValueError(
-            f"unable to find the term/category ({category}) or any equivalent"
-        )
+        raise ValueError(f"unable to find the term/category ({category}) or any equivalent")
 
     # find the variant list
     return cast(
@@ -201,12 +175,7 @@ def match_category_variant(
                     ],
                 },
                 "queryType": "similarTo",
-                "edges": [
-                    "AliasOf",
-                    "DeprecatedBy",
-                    "CrossReferenceOf",
-                    "GeneralizationOf",
-                ],
+                "edges": ["AliasOf", "DeprecatedBy", "CrossReferenceOf", "GeneralizationOf"],
                 "treeEdges": ["Infers"],
                 "returnProperties": VARIANT_RETURN_PROPERTIES,
             },
@@ -216,11 +185,7 @@ def match_category_variant(
 
 
 def match_copy_variant(
-    conn: GraphKBConnection,
-    gene_name: str,
-    category: str,
-    drop_homozygous: bool = False,
-    **kwargs,
+    conn: GraphKBConnection, gene_name: str, category: str, drop_homozygous: bool = False, **kwargs
 ) -> List[Variant]:
     """
     Returns a list of variants matching the input variant
@@ -261,9 +226,7 @@ def match_expression_variant(
 
 
 def positions_overlap(
-    pos_record: BasicPosition,
-    range_start: BasicPosition,
-    range_end: Optional[BasicPosition] = None,
+    pos_record: BasicPosition, range_start: BasicPosition, range_end: Optional[BasicPosition] = None
 ) -> bool:
     """
     Check if 2 Position records from GraphKB indicate an overlap
@@ -387,14 +350,9 @@ def compare_positional_variants(
                 reference_variant["untemplatedSeq"] not in AMBIGUOUS_AA
                 and variant["untemplatedSeq"] not in AMBIGUOUS_AA
             ):
-                if (
-                    reference_variant["untemplatedSeq"].lower()
-                    != variant["untemplatedSeq"].lower()
-                ):
+                if reference_variant["untemplatedSeq"].lower() != variant["untemplatedSeq"].lower():
                     return False
-            elif len(variant["untemplatedSeq"]) != len(
-                reference_variant["untemplatedSeq"]
-            ):
+            elif len(variant["untemplatedSeq"]) != len(reference_variant["untemplatedSeq"]):
                 return False
 
     # If both variants have a reference sequence,
@@ -478,9 +436,7 @@ def type_screening(
     if parsed.get("reference2", None):
         return parsed["type"]
     prefix = parsed.get("prefix", "g")
-    if (
-        prefix == "y"
-    ):  # Assuming all variations using cytoband coordiantes meet the size threshold
+    if prefix == "y":  # Assuming all variations using cytoband coordiantes meet the size threshold
         return parsed["type"]
 
     # When size cannot be determined: exonic and intronic coordinates
@@ -575,11 +531,7 @@ def match_positional_variant(
         gene1 = parsed["reference1"]
 
     gene1_features = get_equivalent_features(
-        conn,
-        gene1,
-        source=gene_source,
-        is_source_id=gene_is_source_id,
-        ignore_cache=ignore_cache,
+        conn, gene1, source=gene_source, is_source_id=gene_is_source_id, ignore_cache=ignore_cache
     )
     features = convert_to_rid_list(gene1_features)
 
@@ -630,15 +582,12 @@ def match_positional_variant(
     ]
 
     filtered_similarOnly: List[Record] = []  # For post filter match use
-    filtered_similarAndGeneric: List[Record] = (
-        []
-    )  # To be added to the matches at the very end
+    filtered_similarAndGeneric: List[Record] = []  # To be added to the matches at the very end
 
     for row in cast(
         List[Record],
         conn.query(
-            {"target": "PositionalVariant", "filters": query_filters},
-            ignore_cache=ignore_cache,
+            {"target": "PositionalVariant", "filters": query_filters}, ignore_cache=ignore_cache
         ),
     ):
         # TODO: Check if variant and reference_variant should be interchanged
@@ -661,12 +610,7 @@ def match_positional_variant(
                 {
                     "target": convert_to_rid_list(filtered_similarOnly),
                     "queryType": "similarTo",
-                    "edges": [
-                        "AliasOf",
-                        "DeprecatedBy",
-                        "CrossReferenceOf",
-                        "GeneralizationOf",
-                    ],
+                    "edges": ["AliasOf", "DeprecatedBy", "CrossReferenceOf", "GeneralizationOf"],
                     "treeEdges": ["Infers"],
                     "returnProperties": POS_VARIANT_RETURN_PROPERTIES,
                 },

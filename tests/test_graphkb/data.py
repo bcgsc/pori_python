@@ -48,31 +48,19 @@ structuralVariants = {
     # ambiguous structural variations -> non-structural
     "FGFR3:c.1200dup": {
         "matches": {"displayName": ["FGFR3 mutation"], "type": ["mutation"]},
-        "does_not_matches": {
-            "displayName": ["FGFR3 rearrangement"],
-            "type": ["rearrangement"],
-        },
+        "does_not_matches": {"displayName": ["FGFR3 rearrangement"], "type": ["rearrangement"]},
     },
     "FGFR3:c.1200_1201insA": {
         "matches": {"displayName": ["FGFR3 mutation"], "type": ["mutation"]},
-        "does_not_matches": {
-            "displayName": ["FGFR3 rearrangement"],
-            "type": ["rearrangement"],
-        },
+        "does_not_matches": {"displayName": ["FGFR3 rearrangement"], "type": ["rearrangement"]},
     },
     "FGFR3:g.5000del": {
         "matches": {"displayName": ["FGFR3 mutation"], "type": ["mutation"]},
-        "does_not_matches": {
-            "displayName": ["FGFR3 rearrangement"],
-            "type": ["rearrangement"],
-        },
+        "does_not_matches": {"displayName": ["FGFR3 rearrangement"], "type": ["rearrangement"]},
     },
     "FGFR3:c.1200delinsA": {
         "matches": {"displayName": ["FGFR3 mutation"], "type": ["mutation"]},
-        "does_not_matches": {
-            "displayName": ["FGFR3 rearrangement"],
-            "type": ["rearrangement"],
-        },
+        "does_not_matches": {"displayName": ["FGFR3 rearrangement"], "type": ["rearrangement"]},
     },
     "STK11:e.1_100del": {
         "matches": {"displayName": ["STK11 mutation"], "type": ["mutation"]},
@@ -85,9 +73,6 @@ structuralVariants = {
     # non-structural variations
     "FGFR3:c.1200C>A": {
         "matches": {"displayName": ["FGFR3 mutation"], "type": ["mutation"]},
-        "does_not_matches": {
-            "displayName": ["FGFR3 rearrangement"],
-            "type": ["rearrangement"],
-        },
+        "does_not_matches": {"displayName": ["FGFR3 rearrangement"], "type": ["rearrangement"]},
     },
 }

@@ -37,10 +37,7 @@ def report_upload_content(tmp_path_factory) -> Dict:
                     {"analysisRole": "expression (disease)", "name": "1"},
                     {"analysisRole": "expression (primary site)", "name": "2"},
                     {"analysisRole": "expression (biopsy site)", "name": "3"},
-                    {
-                        "analysisRole": "expression (internal pancancer cohort)",
-                        "name": "4",
-                    },
+                    {"analysisRole": "expression (internal pancancer cohort)", "name": "4"},
                 ],
                 "patientId": "PATIENT001",
                 "project": "TEST",
@@ -53,9 +50,9 @@ def report_upload_content(tmp_path_factory) -> Dict:
                 "copyVariants": pd.read_csv(
                     get_test_file("copy_variants.short.tab"), sep="\t"
                 ).to_dict("records"),
-                "structuralVariants": pd.read_csv(
-                    get_test_file("fusions.tab"), sep="\t"
-                ).to_dict("records"),
+                "structuralVariants": pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_dict(
+                    "records"
+                ),
                 "kbDiseaseMatch": "colorectal cancer",
             }
         )
@@ -86,9 +83,7 @@ def report_upload_content(tmp_path_factory) -> Dict:
     return report_content
 
 
-@pytest.mark.skipif(
-    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
-)
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestCreateReport:
     def test_main_sections_present(self, report_upload_content: Dict) -> None:
         sections = set(report_upload_content.keys())
@@ -104,10 +99,7 @@ class TestCreateReport:
             assert section in sections
 
     def test_kept_low_quality_fusion(self, report_upload_content: Dict) -> None:
-        fusions = [
-            (sv["gene1"], sv["gene2"])
-            for sv in report_upload_content["structuralVariants"]
-        ]
+        fusions = [(sv["gene1"], sv["gene2"]) for sv in report_upload_content["structuralVariants"]]
         assert ("SARM1", "SUZ12") in fusions
 
     def test_pass_through_content_added(self, report_upload_content: Dict) -> None:
@@ -133,8 +125,6 @@ class TestCreateReport:
         genes = report_upload_content["genes"]
         assert any([g.get("kbStatementRelated", False) for g in genes])
 
-    def test_found_cancer_gene_list_match_gene(
-        self, report_upload_content: Dict
-    ) -> None:
+    def test_found_cancer_gene_list_match_gene(self, report_upload_content: Dict) -> None:
         genes = report_upload_content["genes"]
         assert any([g.get("cancerGeneListMatch", False) for g in genes])
