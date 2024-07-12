@@ -10,11 +10,13 @@ from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import (
     get_cancer_genes,
     get_cancer_predisposition_info,
+    get_gene_linked_cancer_predisposition_info,
     get_gene_information,
     get_genes_from_variant_types,
     get_oncokb_oncogenes,
     get_oncokb_tumour_supressors,
     get_pharmacogenomic_info,
+    get_gene_linked_pharmacogenomic_info,
     get_preferred_gene_name,
     get_therapeutic_associated_genes,
 )
@@ -141,8 +143,6 @@ def test_cancer_genes(conn):
     for gene in CANONICAL_ONCOGENES:
         assert gene not in names
 
-
-@pytest.mark.skip(reason="DEVSU-2348")
 @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))")
 def test_get_pharmacogenomic_info(conn):
     genes, matches = get_pharmacogenomic_info(conn)
@@ -152,6 +152,21 @@ def test_get_pharmacogenomic_info(conn):
             if variant_display.startswith(gene):
                 break
         else:  # no break called
+            # failing on this version of the func; addressed in 'new' version
+            if gene == 'ACYP2':
+                continue
+            assert False, f"No rid found for a pharmacogenomic with {gene}"
+
+
+def test_get_gene_linked_pharmacogenomic_info(conn):
+    genes, matches = get_gene_linked_pharmacogenomic_info(conn)
+    for gene in PHARMACOGENOMIC_INITIAL_GENES:
+        assert gene in genes, f"{gene} not found in get_pharmacogenomic_info"
+        for rid, variant_info in matches.items():
+            variant_gene_assoc = variant_info[1]
+            if gene in variant_gene_assoc:
+                break
+        else:  # no break called
             assert False, f"No rid found for a pharmacogenomic with {gene}"
 
 
@@ -159,6 +174,13 @@ def test_get_pharmacogenomic_info(conn):
 @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))")
 def test_get_cancer_predisposition_info(conn):
     genes, matches = get_cancer_predisposition_info(conn)
+    for gene in CANCER_PREDISP_INITIAL_GENES:
+        assert gene in genes, f"{gene} not found in get_cancer_predisposition_info"
+
+
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+def test_get_gene_linked_cancer_predisposition_info(conn):
+    genes, matches = get_gene_linked_cancer_predisposition_info(conn)
     for gene in CANCER_PREDISP_INITIAL_GENES:
         assert gene in genes, f"{gene} not found in get_cancer_predisposition_info"
 

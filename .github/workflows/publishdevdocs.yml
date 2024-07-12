@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.8]
+        python-version: [3.9]
     steps:
     - name: checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
     - name: install and build
@@ -23,7 +23,7 @@ jobs:
         python -m pip install --upgrade pip setuptools
         pip install .[docs]
         pip install markdown_refdocs mkdocs mkdocs-material
-        markdown_refdocs ipr -o docs/reference --link
+        markdown_refdocs pori_python -o docs/reference --link
         mkdocs build
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3

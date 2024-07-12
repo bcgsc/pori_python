@@ -9,9 +9,9 @@ from .constants import (
     CHROMOSOMES,
     FAILED_REVIEW_STATUS,
     GENE_RETURN_PROPERTIES,
+    GSC_PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST,
     ONCOGENE,
     ONCOKB_SOURCE_NAME,
-    PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST,
     PREFERRED_GENE_SOURCE,
     PREFERRED_GENE_SOURCE_NAME,
     RELEVANCE_BASE_TERMS,
@@ -25,10 +25,7 @@ from .vocab import get_terms_set
 
 
 def _get_tumourigenesis_genes_list(
-    conn: GraphKBConnection,
-    relevance: str,
-    sources: List[str],
-    ignore_cache: bool = False,
+    conn: GraphKBConnection, relevance: str, sources: List[str], ignore_cache: bool = False
 ) -> List[Ontology]:
     statements = cast(
         List[Statement],
@@ -245,10 +242,19 @@ def get_preferred_gene_name(
     return gene_names[0]
 
 
-# DEVSU-2348 - relate the genes to the variants
 def get_cancer_predisposition_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, str]]:
+    newval = get_gene_linked_cancer_predisposition_info(conn, source)
+    genes = newval[0]
+    allvardata = newval[1]
+    variants = {key: allvardata[key][0] for key in allvardata.keys()}
+    return newval[0], variants
+
+
+def get_gene_linked_cancer_predisposition_info(
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+) -> Tuple[List[str], Dict[str, Tuple[str, List[str]]]]:
     """
     Return two lists from GraphKB, one of cancer predisposition genes and one of associated variants.
 
@@ -260,6 +266,8 @@ def get_cancer_predisposition_info(
     * gene is gotten from any associated 'PositionalVariant' records
 
     Example: https://graphkb.bcgsc.ca/view/Statement/155:11616
+
+
 
     Returns:
         genes: list of cancer predisposition genes
@@ -283,12 +291,10 @@ def get_cancer_predisposition_info(
                         "evidence": {
                             "target": "Source",
                             "filters": {"@rid": get_rid(conn, "Source", "CGL")},
-                        },
+                        }
                     },
-                    {
-                        "relevance": {"target": "Vocabulary", "filters": {"@rid": relevance_rids}},
-                    },
-                ],
+                    {"relevance": {"target": "Vocabulary", "filters": {"@rid": relevance_rids}}},
+                ]
             },
             "returnProperties": [
                 "conditions.@class",
@@ -304,21 +310,24 @@ def get_cancer_predisposition_info(
     ):
         for condition in record["conditions"]:  # type: ignore
             if condition["@class"] == "PositionalVariant":
-                variants[condition["@rid"]] = condition["displayName"]
+                assoc_gene_list = []
                 for reference in ["reference1", "reference2"]:
                     name = (condition.get(reference) or {}).get("displayName", "")
                     biotype = (condition.get(reference) or {}).get("biotype", "")
                     if name and biotype == "gene":
                         genes.add(name)
+                        assoc_gene_list.append(name)
                     elif name:
                         gene = get_preferred_gene_name(conn, name, source_rid)
                         if gene:
                             infer_genes.add((gene, name, biotype))
+                            assoc_gene_list.append(gene)
                         else:
                             non_genes.add((name, biotype))
                             logger.error(
                                 f"Non-gene cancer predisposition {biotype}: {name} for {condition['displayName']}"
                             )
+                variants[condition["@rid"]] = [condition["displayName"], assoc_gene_list]
 
     for gene, name, biotype in infer_genes:
         logger.debug(f"Found gene '{gene}' for '{name}' ({biotype})")
@@ -330,10 +339,19 @@ def get_cancer_predisposition_info(
     return sorted(genes), variants
 
 
-# DEVSU-2348 - relate the genes to the variants
 def get_pharmacogenomic_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, str]]:
+    newval = get_gene_linked_pharmacogenomic_info(conn, source)
+    genes = newval[0]
+    allvardata = newval[1]
+    variants = {key: allvardata[key][0] for key in allvardata.keys()}
+    return newval[0], variants
+
+
+def get_gene_linked_pharmacogenomic_info(
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+) -> Tuple[List[str], Dict[str, Tuple[str, List[str]]]]:
     """
     Return two lists from GraphKB, one of pharmacogenomic genes and one of associated variants.
 
@@ -378,27 +396,29 @@ def get_pharmacogenomic_info(
         ignore_cache=False,
     ):
         if record["source"]:  # type: ignore
-            if record["source"]["name"].lower() in PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST:  # type: ignore
+            if record["source"]["name"].lower() in GSC_PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST:  # type: ignore
                 continue
 
         for condition in record["conditions"]:  # type: ignore
             if condition["@class"] == "PositionalVariant":
-                variants[condition["@rid"]] = condition["displayName"]
+                assoc_gene_list = []
                 for reference in ["reference1", "reference2"]:
                     name = (condition.get(reference) or {}).get("displayName", "")
                     biotype = (condition.get(reference) or {}).get("biotype", "")
                     if name and biotype == "gene":
                         genes.add(name)
+                        assoc_gene_list.append(name)
                     elif name:
                         gene = get_preferred_gene_name(conn, name, source_rid)
                         if gene:
                             infer_genes.add((gene, name, biotype))
+                            assoc_gene_list.append(gene)
                         else:
                             non_genes.add((name, biotype))
                             logger.error(
                                 f"Non-gene pharmacogenomic {biotype}: {name} for {condition['displayName']}"
                             )
-
+                variants[condition["@rid"]] = [condition["displayName"], assoc_gene_list]
     for gene, name, biotype in infer_genes:
         logger.debug(f"Found gene '{gene}' for '{name}' ({biotype})")
         genes.add(gene)
