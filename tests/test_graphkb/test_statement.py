@@ -1,7 +1,6 @@
 import os
-from unittest.mock import Mock
-
 import pytest
+from unittest.mock import Mock
 
 from pori_python.graphkb import statement
 
@@ -86,9 +85,17 @@ class TestCategorizeRelevance:
         assert category == "blargh"
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+)
 class TestStatementMatch:
-    def test_truncating_categories(self, conn):  # noqa - pytest fixture, not redefinition
-        variant = {"@class": "CategoryVariant", "@rid": "#161:429", "displayName": "RB1 truncating"}
+    def test_truncating_categories(
+        self, conn
+    ):  # noqa - pytest fixture, not redefinition
+        variant = {
+            "@class": "CategoryVariant",
+            "@rid": "#161:429",
+            "displayName": "RB1 truncating",
+        }
         statements = statement.get_statements_from_variants(conn, [variant])
         assert statements

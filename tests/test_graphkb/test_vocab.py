@@ -3,7 +3,6 @@ Tests here depend on specific data in GraphKB which can change. To avoid this, e
 """
 
 import os
-
 import pytest
 
 from pori_python.graphkb import GraphKBConnection, genes, vocab

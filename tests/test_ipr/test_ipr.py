@@ -1,8 +1,8 @@
 import pytest
-from pori_python.graphkb import statement as gkb_statement
-from pori_python.graphkb import vocab as gkb_vocab
 from unittest.mock import Mock, patch
 
+from pori_python.graphkb import statement as gkb_statement
+from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.ipr.ipr import convert_statements_to_alterations, germline_kb_matches
 from pori_python.ipr.types import GkbStatement
 
@@ -154,7 +154,11 @@ def graphkb_conn():
 
         def __call__(self, *args, **kwargs):
             self.index += 1
-            ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
+            ret_val = (
+                self.return_values[self.index]
+                if self.index < len(self.return_values)
+                else []
+            )
             return ret_val
 
     def mock_get_source(source):
@@ -171,7 +175,11 @@ def base_graphkb_statement(
     statement = GkbStatement(  # type: ignore
         {
             "conditions": [
-                {"@class": "Disease", "@rid": disease_id, "displayName": "disease_display_name"},
+                {
+                    "@class": "Disease",
+                    "@rid": disease_id,
+                    "displayName": "disease_display_name",
+                },
                 {
                     "@class": "CategoryVariant",
                     "@rid": "variant_rid",
@@ -180,9 +188,9 @@ def base_graphkb_statement(
             ],
             "evidence": [],
             "subject": {
-                "@class": 'dummy_value',
+                "@class": "dummy_value",
                 "@rid": "101:010",
-                "displayName": 'dummy_display_name',
+                "displayName": "dummy_display_name",
             },
             "source": None,
             "sourceId": None,
@@ -294,7 +302,9 @@ class TestConvertStatementsToAlterations:
         assert row["category"] == "diagnostic"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
-    def test_unapproved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
+    def test_unapproved_therapeutic(
+        self, mock_get_evidencelevel_mapping, graphkb_conn
+    ) -> None:
         mock_get_evidencelevel_mapping.return_value = {"other": "test"}
 
         statement = base_graphkb_statement()
@@ -309,8 +319,12 @@ class TestConvertStatementsToAlterations:
         assert row["category"] == "therapeutic"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
-    def test_approved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
-        mock_get_evidencelevel_mapping.return_value = {APPROVED_EVIDENCE_RIDS[0]: "test"}
+    def test_approved_therapeutic(
+        self, mock_get_evidencelevel_mapping, graphkb_conn
+    ) -> None:
+        mock_get_evidencelevel_mapping.return_value = {
+            APPROVED_EVIDENCE_RIDS[0]: "test"
+        }
 
         statement = base_graphkb_statement()
         statement["relevance"]["@rid"] = "therapeutic"

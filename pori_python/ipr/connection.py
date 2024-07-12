@@ -2,9 +2,10 @@ import requests
 
 import json
 import os
+import time
 import zlib
 from typing import Dict, List
-import time
+
 from .constants import DEFAULT_URL
 from .util import logger
 
@@ -137,7 +138,9 @@ class IprConnection:
             data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
         )
 
-    def post_images(self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}) -> None:
+    def post_images(
+        self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}
+    ) -> None:
         """
         Post images to the report
         """
@@ -168,7 +171,9 @@ class IprConnection:
                     handler.close()
             start_index += IMAGE_MAX
         if image_errors:
-            raise ValueError(f'Error uploading images ({", ".join(sorted(list(image_errors)))})')
+            raise ValueError(
+                f'Error uploading images ({", ".join(sorted(list(image_errors)))})'
+            )
 
     def get_spec(self) -> Dict:
         """

@@ -1,9 +1,8 @@
 import os
+import pytest
 import re
 from typing import List
 from unittest.mock import MagicMock
-
-import pytest
 
 import pori_python.graphkb
 from pori_python.graphkb import GraphKBConnection, match
@@ -77,7 +76,11 @@ class TestGetEquivalentFeatures:
         kras = [
             f["displayName"]
             for f in match.get_equivalent_features(
-                conn, "nm_033360", source="refseq", source_id_version="4", is_source_id=True
+                conn,
+                "nm_033360",
+                source="refseq",
+                source_id_version="4",
+                is_source_id=True,
             )
         ]
         assert "KRAS" in kras
@@ -90,10 +93,14 @@ class TestMatchCopyVariant:
 
     def test_bad_gene_name(self, conn):
         with pytest.raises(FeatureNotFoundError):
-            match.match_copy_variant(conn, "not a real gene name", match.INPUT_COPY_CATEGORIES.AMP)
+            match.match_copy_variant(
+                conn, "not a real gene name", match.INPUT_COPY_CATEGORIES.AMP
+            )
 
     def test_known_loss(self, conn):
-        matches = match.match_copy_variant(conn, "CDKN2A", match.INPUT_COPY_CATEGORIES.ANY_LOSS)
+        matches = match.match_copy_variant(
+            conn, "CDKN2A", match.INPUT_COPY_CATEGORIES.ANY_LOSS
+        )
         assert matches
 
         types_selected = {record["type"]["name"] for record in matches}
@@ -143,7 +150,9 @@ class TestMatchCopyVariant:
         EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
     )
     def test_low_gain_excludes_amplification(self, conn):
-        matches = match.match_copy_variant(conn, "KRAS", match.INPUT_COPY_CATEGORIES.GAIN)
+        matches = match.match_copy_variant(
+            conn, "KRAS", match.INPUT_COPY_CATEGORIES.GAIN
+        )
 
         types_selected = {record["type"]["name"] for record in matches}
 
@@ -155,9 +164,13 @@ class TestMatchCopyVariant:
             assert not has_prefix(variant_type, DECREASE_PREFIXES)
 
 
-@pytest.mark.parametrize("pos1,pos2_start,pos2_end", [[3, 2, 5], [2, None, 5], [3, 2, None]])
+@pytest.mark.parametrize(
+    "pos1,pos2_start,pos2_end", [[3, 2, 5], [2, None, 5], [3, 2, None]]
+)
 def test_range_overlap(pos1, pos2_start, pos2_end):
-    assert match.positions_overlap({"pos": pos1}, {"pos": pos2_start}, {"pos": pos2_end})
+    assert match.positions_overlap(
+        {"pos": pos1}, {"pos": pos2_start}, {"pos": pos2_end}
+    )
 
 
 @pytest.mark.parametrize(
@@ -165,7 +178,9 @@ def test_range_overlap(pos1, pos2_start, pos2_end):
     [[2, 4, 5], [5, 2, 3], [10, None, 9], [10, 11, None], [1, 2, 2], [2, 1, 1]],
 )
 def test_range_not_overlap(pos1, pos2_start, pos2_end):
-    assert not match.positions_overlap({"pos": pos1}, {"pos": pos2_start}, {"pos": pos2_end})
+    assert not match.positions_overlap(
+        {"pos": pos1}, {"pos": pos2_start}, {"pos": pos2_end}
+    )
 
 
 @pytest.mark.parametrize("pos1", [None, 1])
@@ -203,7 +218,9 @@ class TestMatchExpressionVariant:
             assert not has_prefix(variant_type, INCREASE_PREFIXES)
 
     def test_known_reduced_expression_gene_id(self, conn):
-        gene_id = conn.query({"target": "Feature", "filters": [{"name": "PTEN"}]})[0]["@rid"]
+        gene_id = conn.query({"target": "Feature", "filters": [{"name": "PTEN"}]})[0][
+            "@rid"
+        ]
         matches = match.match_expression_variant(
             conn, gene_id, match.INPUT_EXPRESSION_CATEGORIES.DOWN
         )
@@ -221,7 +238,9 @@ class TestMatchExpressionVariant:
         EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
     )
     def test_known_increased_expression(self, conn):
-        matches = match.match_expression_variant(conn, "CA9", match.INPUT_EXPRESSION_CATEGORIES.UP)
+        matches = match.match_expression_variant(
+            conn, "CA9", match.INPUT_EXPRESSION_CATEGORIES.UP
+        )
         assert matches
 
         types_selected = {record["type"]["name"] for record in matches}
@@ -240,10 +259,12 @@ class TestComparePositionalVariants:
         )
         # null matches anything
         assert match.compare_positional_variants(
-            {"break1Start": {"pos": 1}, "untemplatedSeq": "T"}, {"break1Start": {"pos": 1}}
+            {"break1Start": {"pos": 1}, "untemplatedSeq": "T"},
+            {"break1Start": {"pos": 1}},
         )
         assert match.compare_positional_variants(
-            {"break1Start": {"pos": 1}}, {"break1Start": {"pos": 1}, "untemplatedSeq": "T"}
+            {"break1Start": {"pos": 1}},
+            {"break1Start": {"pos": 1}, "untemplatedSeq": "T"},
         )
 
     @pytest.mark.parametrize("seq1", ["T", "X", "?"])
@@ -279,15 +300,18 @@ class TestComparePositionalVariants:
     def test_ambiguous_refseq(self, seq1, seq2):
         # ambiguous AA matches anything the same length
         assert match.compare_positional_variants(
-            {"break1Start": {"pos": 1}, "refSeq": seq1}, {"break1Start": {"pos": 1}, "refSeq": seq2}
+            {"break1Start": {"pos": 1}, "refSeq": seq1},
+            {"break1Start": {"pos": 1}, "refSeq": seq2},
         )
 
     def test_refseq_length_mismatch(self):
         assert not match.compare_positional_variants(
-            {"break1Start": {"pos": 1}, "refSeq": "??"}, {"break1Start": {"pos": 1}, "refSeq": "T"}
+            {"break1Start": {"pos": 1}, "refSeq": "??"},
+            {"break1Start": {"pos": 1}, "refSeq": "T"},
         )
         assert not match.compare_positional_variants(
-            {"break1Start": {"pos": 1}, "refSeq": "?"}, {"break1Start": {"pos": 1}, "refSeq": "TT"}
+            {"break1Start": {"pos": 1}, "refSeq": "?"},
+            {"break1Start": {"pos": 1}, "refSeq": "TT"},
         )
 
     def test_diff_altseq(self):
@@ -304,12 +328,14 @@ class TestComparePositionalVariants:
 
     def test_diff_refseq(self):
         assert not match.compare_positional_variants(
-            {"break1Start": {"pos": 1}, "refSeq": "M"}, {"break1Start": {"pos": 1}, "refSeq": "R"}
+            {"break1Start": {"pos": 1}, "refSeq": "M"},
+            {"break1Start": {"pos": 1}, "refSeq": "R"},
         )
 
     def test_same_refseq_matches(self):
         assert match.compare_positional_variants(
-            {"break1Start": {"pos": 1}, "refSeq": "R"}, {"break1Start": {"pos": 1}, "refSeq": "R"}
+            {"break1Start": {"pos": 1}, "refSeq": "R"},
+            {"break1Start": {"pos": 1}, "refSeq": "R"},
         )
 
     def test_range_vs_sub(self):
@@ -363,7 +389,9 @@ class TestMatchPositionalVariant:
             match.match_positional_variant(conn, "(BCR,ME-AS-A-GENE):fusion(e.13,e.3)")
 
     def test_match_explicit_reference1(self, conn):
-        reference1 = conn.query({"target": "Feature", "filters": {"name": "KRAS"}})[0]["@rid"]
+        reference1 = conn.query({"target": "Feature", "filters": {"name": "KRAS"}})[0][
+            "@rid"
+        ]
         matches = match.match_positional_variant(conn, "p.G12D", reference1=reference1)
         assert matches
 
@@ -371,8 +399,12 @@ class TestMatchPositionalVariant:
         EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
     )
     def test_match_explicit_references(self, conn):
-        reference1 = conn.query({"target": "Feature", "filters": {"name": "BCR"}})[0]["@rid"]
-        reference2 = conn.query({"target": "Feature", "filters": {"name": "ABL1"}})[0]["@rid"]
+        reference1 = conn.query({"target": "Feature", "filters": {"name": "BCR"}})[0][
+            "@rid"
+        ]
+        reference2 = conn.query({"target": "Feature", "filters": {"name": "ABL1"}})[0][
+            "@rid"
+        ]
         matches = match.match_positional_variant(
             conn, "fusion(e.13,e.3)", reference1=reference1, reference2=reference2
         )
@@ -390,7 +422,9 @@ class TestMatchPositionalVariant:
             ["EGFR:p.E746_S752delinsI", ["EGFR mutation"], ["EGFR copy variant"]],
         ],
     )
-    def test_known_variants(self, conn, known_variant, related_variants, unrelated_variants):
+    def test_known_variants(
+        self, conn, known_variant, related_variants, unrelated_variants
+    ):
         matches = match.match_positional_variant(conn, known_variant)
         names = {m["displayName"] for m in matches}
         assert matches
@@ -404,7 +438,10 @@ class TestMatchPositionalVariant:
         "known_variant,related_variants",
         [
             ["(BCR,ABL1):fusion(e.13,e.3)", ["BCR and ABL1 fusion"]],
-            ["(ATP1B1,NRG1):fusion(e.2,e.2)", ["NRG1 fusion", "ATP1B1 and NRG1 fusion"]],
+            [
+                "(ATP1B1,NRG1):fusion(e.2,e.2)",
+                ["NRG1 fusion", "ATP1B1 and NRG1 fusion"],
+            ],
         ],
     )
     def test_known_fusions(self, conn, known_variant, related_variants):
@@ -445,7 +482,8 @@ class TestMatchPositionalVariant:
         assert match.match_positional_variant(conn, "TERT:c.-124C>T")
 
     @pytest.mark.skipif(
-        True, reason="GERO-303 - technically incorrect notation for GSC backwards compatibility."
+        True,
+        reason="GERO-303 - technically incorrect notation for GSC backwards compatibility.",
     )
     def test_tert_promoter_leading_one_alt_notation(self, conn):
         # GERO-303 - technically this format is incorrect.
@@ -474,18 +512,18 @@ class TestMatchPositionalVariant:
             MatchingTypes = [el["type"]["name"] for el in m]
 
             # Match
-            for displayName in expected.get('matches', {}).get("displayName", []):
+            for displayName in expected.get("matches", {}).get("displayName", []):
                 assert displayName in MatchingDisplayNames
-            for type in expected.get('matches', {}).get("type", []):
+            for type in expected.get("matches", {}).get("type", []):
                 assert type in MatchingTypes
 
             # Does not match
             for displayName in MatchingDisplayNames:
-                assert displayName not in expected.get('does_not_matches', {}).get(
+                assert displayName not in expected.get("does_not_matches", {}).get(
                     "displayName", []
                 )
             for type in MatchingTypes:
-                assert type not in expected.get('does_not_matches', {}).get("type", [])
+                assert type not in expected.get("does_not_matches", {}).get("type", [])
 
 
 class TestCacheMissingFeatures:
@@ -508,16 +546,8 @@ class TestTypeScreening:
     # Types as class variables
     default_type = DEFAULT_NON_STRUCTURAL_VARIANT_TYPE
     threshold = STRUCTURAL_VARIANT_SIZE_THRESHOLD
-    unambiguous_structural = [
-        "fusion",
-        "translocation",
-    ]
-    ambiguous_structural = [
-        "duplication",
-        "deletion",
-        "insertion",
-        "indel",
-    ]
+    unambiguous_structural = ["fusion", "translocation"]
+    ambiguous_structural = ["duplication", "deletion", "insertion", "indel"]
     non_structural = [
         "substitution",
         "missense",
@@ -533,11 +563,15 @@ class TestTypeScreening:
             called = True
             return set()
 
-        monkeypatch.setattr("pori_python.graphkb.match.get_terms_set", mock_get_terms_set)
+        monkeypatch.setattr(
+            "pori_python.graphkb.match.get_terms_set", mock_get_terms_set
+        )
 
         # Assert get_terms_set() has been called
         called = False
-        pori_python.graphkb.match.type_screening(conn, {"type": ""}, updateStructuralTypes=True)
+        pori_python.graphkb.match.type_screening(
+            conn, {"type": ""}, updateStructuralTypes=True
+        )
         assert called
 
         # Assert get_terms_set() has not been called (default behavior)
@@ -556,14 +590,17 @@ class TestTypeScreening:
             assert match.type_screening(conn, {"type": type}) == type
         for type in TestTypeScreening.ambiguous_structural:
             # w/ reference2
-            assert match.type_screening(conn, {"type": type, "reference2": "#123:45"}) == type
+            assert (
+                match.type_screening(conn, {"type": type, "reference2": "#123:45"})
+                == type
+            )
             # w/ cytoband coordinates
             assert match.type_screening(conn, {"type": type, "prefix": "y"}) == type
 
     def test_type_screening_structural_ambiguous_size(self, conn):
         for type in TestTypeScreening.ambiguous_structural:
             # coordinate system with ambiguous size
-            for prefix in ['e', 'i']:
+            for prefix in ["e", "i"]:
                 assert (
                     match.type_screening(
                         conn,
@@ -593,10 +630,7 @@ class TestTypeScreening:
             assert (
                 match.type_screening(
                     conn,
-                    {
-                        "type": type,
-                        "untemplatedSeqSize": TestTypeScreening.threshold,
-                    },
+                    {"type": type, "untemplatedSeqSize": TestTypeScreening.threshold},
                 )
                 == type
             )
@@ -606,11 +640,26 @@ class TestTypeScreening:
             # Variation length too small (< threshold)
             for opt in [
                 {"break2Start": {"pos": TestTypeScreening.threshold - 1}},
-                {"break2Start": {"pos": TestTypeScreening.threshold - 1}, "prefix": "c"},
-                {"break2Start": {"pos": TestTypeScreening.threshold - 1}, "prefix": "g"},
-                {"break2Start": {"pos": TestTypeScreening.threshold - 1}, "prefix": "n"},
-                {"break2Start": {"pos": TestTypeScreening.threshold - 1}, "prefix": "r"},
-                {"break2Start": {"pos": int(TestTypeScreening.threshold / 3) - 1}, "prefix": "p"},
+                {
+                    "break2Start": {"pos": TestTypeScreening.threshold - 1},
+                    "prefix": "c",
+                },
+                {
+                    "break2Start": {"pos": TestTypeScreening.threshold - 1},
+                    "prefix": "g",
+                },
+                {
+                    "break2Start": {"pos": TestTypeScreening.threshold - 1},
+                    "prefix": "n",
+                },
+                {
+                    "break2Start": {"pos": TestTypeScreening.threshold - 1},
+                    "prefix": "r",
+                },
+                {
+                    "break2Start": {"pos": int(TestTypeScreening.threshold / 3) - 1},
+                    "prefix": "p",
+                },
                 {
                     "break1Start": {"pos": 1 + 99},
                     "break2Start": {"pos": TestTypeScreening.threshold + 99 - 1},
@@ -627,7 +676,10 @@ class TestTypeScreening:
                 {"break2Start": {"pos": TestTypeScreening.threshold}, "prefix": "g"},
                 {"break2Start": {"pos": TestTypeScreening.threshold}, "prefix": "n"},
                 {"break2Start": {"pos": TestTypeScreening.threshold}, "prefix": "r"},
-                {"break2Start": {"pos": int(TestTypeScreening.threshold / 3) + 1}, "prefix": "p"},
+                {
+                    "break2Start": {"pos": int(TestTypeScreening.threshold / 3) + 1},
+                    "prefix": "p",
+                },
                 {
                     "break1Start": {"pos": 1 + 99},
                     "break2Start": {"pos": TestTypeScreening.threshold + 99},

@@ -1,3 +1,7 @@
+import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
+
 import hashlib
 import json
 import logging
@@ -5,10 +9,6 @@ import re
 import time
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
-
-import requests
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 
 from .constants import DEFAULT_LIMIT, DEFAULT_URL, TYPES_TO_NOTATION, AA_3to1_MAPPING
 from .types import OntologyTerm, ParsedVariant, PositionalVariant, Record
@@ -113,7 +113,10 @@ class GraphKBConnection:
         self.url = url
         self.username = username
         self.password = password
-        self.headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        self.headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
         self.cache: Dict[Any, Any] = {} if not use_global_cache else QUERY_CACHE
         self.request_count = 0
         self.first_request: Optional[datetime] = None
@@ -125,7 +128,9 @@ class GraphKBConnection:
     def load(self) -> Optional[float]:
         if self.first_request and self.last_request:
             return (
-                self.request_count * 1000 / millis_interval(self.first_request, self.last_request)
+                self.request_count
+                * 1000
+                / millis_interval(self.first_request, self.last_request)
             )
         return None
 
@@ -266,7 +271,9 @@ class GraphKBConnection:
                 return self.cache[hash_code]
 
         while True:
-            content = self.post("query", data={**request_body, "limit": limit, "skip": len(result)})
+            content = self.post(
+                "query", data={**request_body, "limit": limit, "skip": len(result)}
+            )
             records = content["result"]
             result.extend(records)
             if len(records) < limit or not paginate:
@@ -358,7 +365,9 @@ def stripRefSeq(breakRepr: str) -> str:
     return breakRepr
 
 
-def stripDisplayName(displayName: str, withRef: bool = True, withRefSeq: bool = True) -> str:
+def stripDisplayName(
+    displayName: str, withRef: bool = True, withRefSeq: bool = True
+) -> str:
     match: object = re.search(r"^(.*)(\:)(.*)$", displayName)
     if match and not withRef:
         if withRefSeq:
@@ -376,7 +385,9 @@ def stripDisplayName(displayName: str, withRef: bool = True, withRefSeq: bool = 
         while new_matches:
             new_matches = re.search(r"(.*)([A-Z]|\?)([0-9]+)(.*)", rest)
             if new_matches:
-                rest = new_matches.group(1) + new_matches.group(3) + new_matches.group(4)
+                rest = (
+                    new_matches.group(1) + new_matches.group(3) + new_matches.group(4)
+                )
 
         # refSeq before '>'
         new_matches = re.search(r"^([0-9]*)([A-Z]*|\?)(\>)(.*)$", rest)
@@ -392,7 +403,9 @@ def stripDisplayName(displayName: str, withRef: bool = True, withRefSeq: bool = 
 
 
 def stringifyVariant(
-    variant: Union[PositionalVariant, ParsedVariant], withRef: bool = True, withRefSeq: bool = True
+    variant: Union[PositionalVariant, ParsedVariant],
+    withRef: bool = True,
+    withRefSeq: bool = True,
 ) -> str:
     """
     Convert variant record to a string representation (displayName/hgvs)
@@ -458,8 +471,12 @@ def stringifyVariant(
             break2Repr_noParentheses = stripParentheses(break2Repr)
             result.append(f"({break1Repr_noParentheses},{break2Repr_noParentheses})")
         else:
-            break1Repr_noParentheses_noRefSeq = stripRefSeq(stripParentheses(break1Repr))
-            break2Repr_noParentheses_noRefSeq = stripRefSeq(stripParentheses(break2Repr))
+            break1Repr_noParentheses_noRefSeq = stripRefSeq(
+                stripParentheses(break1Repr)
+            )
+            break2Repr_noParentheses_noRefSeq = stripRefSeq(
+                stripParentheses(break2Repr)
+            )
             result.append(
                 f"({break1Repr_noParentheses_noRefSeq},{break2Repr_noParentheses_noRefSeq})"
             )

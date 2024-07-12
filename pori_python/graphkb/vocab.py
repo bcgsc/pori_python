@@ -24,7 +24,9 @@ def get_equivalent_terms(
         base_term_name: the name to get superclasses of
         root_exclude_term: the parent term to exlcude along with all of its parent terms
     """
-    base_records = convert_to_rid_list(conn.query(build_base_query(ontology_class, base_term_name)))
+    base_records = convert_to_rid_list(
+        conn.query(build_base_query(ontology_class, base_term_name))
+    )
     if not base_records:
         return []
     base_term_parents = cast(
@@ -34,7 +36,13 @@ def get_equivalent_terms(
                 "target": {"target": base_records, "queryType": "descendants"},
                 "queryType": "similarTo",
                 "treeEdges": [],
-                "returnProperties": ["sourceId", "sourceIdVersion", "deprecated", "name", "@rid"],
+                "returnProperties": [
+                    "sourceId",
+                    "sourceIdVersion",
+                    "deprecated",
+                    "name",
+                    "@rid",
+                ],
             },
             ignore_cache=ignore_cache,
         ),
@@ -94,7 +102,9 @@ def get_term_tree(
     Note: this must be done in 2 calls to avoid going up and down the tree in a single query (exclude adjacent siblings)
     """
     # get all child terms of the subclass tree and disambiguate them
-    base_records = convert_to_rid_list(conn.query(build_base_query(ontology_class, base_term_name)))
+    base_records = convert_to_rid_list(
+        conn.query(build_base_query(ontology_class, base_term_name))
+    )
     if not base_records:
         return []
     child_terms = cast(
@@ -104,7 +114,13 @@ def get_term_tree(
                 "target": {"target": base_records, "queryType": "ancestors"},
                 "queryType": "similarTo",
                 "treeEdges": [],
-                "returnProperties": ["sourceId", "sourceIdVersion", "deprecated", "name", "@rid"],
+                "returnProperties": [
+                    "sourceId",
+                    "sourceIdVersion",
+                    "deprecated",
+                    "name",
+                    "@rid",
+                ],
             },
             ignore_cache=ignore_cache,
         ),
@@ -176,7 +192,9 @@ def get_term_by_name(
 
 
 def get_terms_set(
-    graphkb_conn: GraphKBConnection, base_terms: Iterable[str], ignore_cache: bool = False
+    graphkb_conn: GraphKBConnection,
+    base_terms: Iterable[str],
+    ignore_cache: bool = False,
 ) -> Set[str]:
     """Get a set of vocabulary rids given some base/parent term names."""
     base_terms = [base_terms] if isinstance(base_terms, str) else base_terms
@@ -188,7 +206,10 @@ def get_terms_set(
         terms.update(
             convert_to_rid_list(
                 get_term_tree(
-                    graphkb_conn, base_term, include_superclasses=False, ignore_cache=ignore_cache
+                    graphkb_conn,
+                    base_term,
+                    include_superclasses=False,
+                    ignore_cache=ignore_cache,
                 )
             )
         )

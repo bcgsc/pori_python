@@ -3,20 +3,19 @@ Tests here depend on specific data in GraphKB which can change. To avoid this, e
 """
 
 import os
-
 import pytest
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import (
     get_cancer_genes,
     get_cancer_predisposition_info,
-    get_gene_linked_cancer_predisposition_info,
     get_gene_information,
+    get_gene_linked_cancer_predisposition_info,
+    get_gene_linked_pharmacogenomic_info,
     get_genes_from_variant_types,
     get_oncokb_oncogenes,
     get_oncokb_tumour_supressors,
     get_pharmacogenomic_info,
-    get_gene_linked_pharmacogenomic_info,
     get_preferred_gene_name,
     get_therapeutic_associated_genes,
 )
@@ -152,7 +151,7 @@ def test_get_pharmacogenomic_info(conn):
                 break
         else:  # no break called
             # failing on this version of the func; addressed in 'new' version
-            if gene == 'ACYP2':
+            if gene == "ACYP2":
                 continue
             assert False, f"No rid found for a pharmacogenomic with {gene}"
 
@@ -169,14 +168,18 @@ def test_get_gene_linked_pharmacogenomic_info(conn):
             assert False, f"No rid found for a pharmacogenomic with {gene}"
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+)
 def test_get_cancer_predisposition_info(conn):
     genes, matches = get_cancer_predisposition_info(conn)
     for gene in CANCER_PREDISP_INITIAL_GENES:
         assert gene in genes, f"{gene} not found in get_cancer_predisposition_info"
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+)
 def test_get_gene_linked_cancer_predisposition_info(conn):
     genes, matches = get_gene_linked_cancer_predisposition_info(conn)
     for gene in CANCER_PREDISP_INITIAL_GENES:
@@ -193,7 +196,9 @@ def test_get_preferred_gene_name_kras(alt_rep, conn):
     ), f"Expected KRAS as preferred gene name for {alt_rep}, not '{gene_name}'"
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+)
 def test_find_genes_by_variant_type_structural_variant(conn):
     result = get_genes_from_variant_types(conn, ["structural variant"])
     names = {row["name"] for row in result}
@@ -201,7 +206,9 @@ def test_find_genes_by_variant_type_structural_variant(conn):
         assert gene in names, f"{gene} was not identified as a structural variant gene."
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+)
 def test_find_no_genes_by_variant_type_with_nonmatching_source_record_id(conn):
     refseq_id = get_rid(conn, target="source", name="refseq")
     result = get_genes_from_variant_types(
@@ -210,7 +217,9 @@ def test_find_no_genes_by_variant_type_with_nonmatching_source_record_id(conn):
     assert not result
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+)
 def test_get_therapeutic_associated_genes(conn):
     gene_list = get_therapeutic_associated_genes(graphkb_conn=conn)
     assert gene_list, "No get_therapeutic_associated_genes found"
@@ -222,7 +231,9 @@ def test_get_therapeutic_associated_genes(conn):
         assert gene in names, f"{gene} not found by get_therapeutic_associated_genes"
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+)
 def test_get_gene_information(conn):
     gene_info = get_gene_information(
         conn,
