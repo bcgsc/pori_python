@@ -18,14 +18,14 @@ class IprConnection:
         self.username = username
         self.password = password
         self.headers = {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Content-Encoding': 'deflate',
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Content-Encoding": "deflate",
         }
         self.cache: Dict[str, List[Dict]] = {}
         self.request_count = 0
 
-    def request(self, endpoint: str, method: str = 'GET', **kwargs) -> Dict:
+    def request(self, endpoint: str, method: str = "GET", **kwargs) -> Dict:
         """Request wrapper to handle adding common headers and logging
 
         Args:
@@ -35,9 +35,9 @@ class IprConnection:
         Returns:
             dict: the json response as a python dict
         """
-        url = f'{self.url}/{endpoint}'
+        url = f"{self.url}/{endpoint}"
         self.request_count += 1
-        headers = kwargs.pop('headers', self.headers)
+        headers = kwargs.pop("headers", self.headers)
         resp = requests.request(
             method, url, headers=headers, auth=(self.username, self.password), **kwargs
         )
@@ -47,7 +47,7 @@ class IprConnection:
             # try to get more error details
             message = str(err)
             try:
-                message += ' ' + resp.json()['error']['message']
+                message += " " + resp.json()["error"]["message"]
             except Exception:
                 pass
 
@@ -58,8 +58,8 @@ class IprConnection:
         """Convenience method for making post requests"""
         return self.request(
             uri,
-            method='POST',
-            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
+            method="POST",
+            data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
             **kwargs,
         )
 
@@ -67,8 +67,8 @@ class IprConnection:
         """Convenience method for making get requests"""
         return self.request(
             uri,
-            method='GET',
-            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
+            method="GET",
+            data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
             **kwargs,
         )
 
@@ -76,48 +76,52 @@ class IprConnection:
         self, content: Dict, mins_to_wait: int = 5, async_upload: bool = False
     ) -> Dict:
         if async_upload:
-            initial_result = self.post('reports-async', content)
+            initial_result = self.post("reports-async", content)
+
             report_id = initial_result["ident"]
 
             def check_status(interval: int = 5, num_attempts: int = 5):
                 for i in range(num_attempts):
-                    logger.info(f'checking report loading status in {interval} seconds')
+                    logger.info(f"checking report loading status in {interval} seconds")
                     time.sleep(interval)
-                    current_status = self.get(f'reports-async/{report_id}')
-                    if current_status['state'] not in [
-                        'active',
-                        'ready',
-                        'waiting',
-                        'completed',
-                        'failed',
+                    current_status = self.get(f"reports-async/{report_id}")
+
+                    if current_status.get("ident", False):
+                        return current_status
+
+                    if current_status["state"] == "failed":
+                        raise Exception(
+                            f'async report upload failed with reason: {current_status["failedReason"]}'
+                        )
+
+                    if current_status["state"] not in [
+                        "active",
+                        "ready",
+                        "waiting",
+                        "completed",
                     ]:
                         raise Exception(
-                            f'async report upload in unexpected state: {current_status}'
+                            f"async report upload in unexpected state: {current_status}"
                         )
-                    if current_status['state'] == 'failed':
-                        raise Exception(
-                            f'report upload failed with reason: {current_status["failedReason"]}'
-                        )
-                    if current_status['state'] in ['ready', 'completed']:
-                        return current_status
+
                 return current_status
 
             current_status = check_status()
 
-            if current_status['state'] in ['active', 'waiting']:
+            if current_status["state"] in ["active", "waiting"]:
                 current_status = check_status(interval=30)
 
-            if current_status['state'] in ['active', 'waiting']:
+            if current_status["state"] in ["active", "waiting"]:
                 current_status = check_status(interval=60, num_attempts=mins_to_wait)
 
-            if current_status['state'] in ['active', 'waiting']:
+            if current_status["state"] in ["active", "waiting"]:
                 raise Exception(
-                    f'async report upload taking longer than expected: {current_status}'
+                    f"async report upload taking longer than expected: {current_status}"
                 )
 
             return current_status
         else:
-            return self.post('reports', content)
+            return self.post("reports", content)
 
     def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
         """
@@ -128,9 +132,9 @@ class IprConnection:
             Pending: https://www.bcgsc.ca/jira/browse/DEVSU-1177
         """
         return self.request(
-            f'/reports/{report_id}/summary/analyst-comments',
-            method='PUT',
-            data=zlib.compress(json.dumps(data, allow_nan=False).encode('utf-8')),
+            f"/reports/{report_id}/summary/analyst-comments",
+            method="PUT",
+            data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
         )
 
     def post_images(self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}) -> None:
@@ -147,18 +151,18 @@ class IprConnection:
                 if not os.path.exists(path):
                     raise FileNotFoundError(path)
                 current_files[key] = path
-            open_files = {k: open(f, 'rb') for (k, f) in current_files.items()}
+            open_files = {k: open(f, "rb") for (k, f) in current_files.items()}
             try:
                 resp = self.request(
-                    f'reports/{report_id}/image',
-                    method='POST',
+                    f"reports/{report_id}/image",
+                    method="POST",
                     data=data,
                     files=open_files,
                     headers={},
                 )
                 for status in resp:
-                    if status.get('upload') != 'successful':
-                        image_errors.add(status['key'])
+                    if status.get("upload") != "successful":
+                        image_errors.add(status["key"])
             finally:
                 for handler in open_files.values():
                     handler.close()
@@ -170,4 +174,4 @@ class IprConnection:
         """
         Get the current IPR spec, for the purposes of current report upload fields
         """
-        return self.request('/spec.json', method='GET')
+        return self.request("/spec.json", method="GET")
