@@ -12,6 +12,8 @@ from pori_python.ipr.types import IprGene
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
 
+EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
+EXCLUDE_ONCOKB_TESTS = os.environ.get("EXCLUDE_ONCOKB_TESTS") == "1"
 
 def get_test_spec():
     ipr_spec = {'components': {'schemas': {'genesCreate': {'properties': {}}}}}
@@ -41,20 +43,20 @@ def report_upload_content(tmp_path_factory) -> Dict:
                 ],
                 'patientId': 'PATIENT001',
                 'project': 'TEST',
-                'expressionVariants': pd.read_csv(
+                'expressionVariants': json.loads(pd.read_csv(
                     get_test_file('expression.short.tab'), sep='\t'
-                ).to_dict('records'),
-                'smallMutations': pd.read_csv(
+                ).to_json(orient='records')),
+                'smallMutations': json.loads(pd.read_csv(
                     get_test_file('small_mutations.short.tab'), sep='\t'
-                ).to_dict('records'),
-                'copyVariants': pd.read_csv(
+                ).to_json(orient='records')),
+                'copyVariants': json.loads(pd.read_csv(
                     get_test_file('copy_variants.short.tab'), sep='\t'
-                ).to_dict('records'),
-                'structuralVariants': pd.read_csv(get_test_file('fusions.tab'), sep='\t').to_dict(
-                    'records'
-                ),
+                ).to_json(orient='records')),
+                'structuralVariants': json.loads(pd.read_csv(get_test_file('fusions.tab'), sep='\t').to_json(
+                    orient='records'
+                )),
                 'kbDiseaseMatch': 'colorectal cancer',
-            }
+            }, allow_nan=False
         )
     )
     with patch.object(
@@ -68,6 +70,12 @@ def report_upload_content(tmp_path_factory) -> Dict:
             os.environ['IPR_PASS'],
             '--ipr_url',
             'http://fake.url.ca',
+            '--graphkb_username',
+            os.environ.get('GRAPHKB_USER', os.environ['USER']),
+            '--graphkb_password',
+            os.environ.get('GRAPHKB_PASS', os.environ['IPR_PASS']),
+            '--graphkb_url',
+            os.environ.get('GRAPHKB_URL', False),
             '--content',
             str(json_file),
             '--therapeutics',
@@ -100,7 +108,10 @@ class TestCreateReport:
 
     def test_kept_low_quality_fusion(self, report_upload_content: Dict) -> None:
         fusions = [(sv['gene1'], sv['gene2']) for sv in report_upload_content['structuralVariants']]
-        assert ('SARM1', 'SUZ12') in fusions
+        if EXCLUDE_BCGSC_TESTS:  # may be missing statements assoc with SUZ12 if no access to bcgsc data
+            assert ('SARM1', 'CDKL2') in fusions        
+        else:
+            assert ('SARM1', 'SUZ12') in fusions
 
     def test_pass_through_content_added(self, report_upload_content: Dict) -> None:
         # check the passthorough content was added
@@ -111,11 +122,13 @@ class TestCreateReport:
         # eg, A1BG
         assert any([g.get('knownFusionPartner', False) for g in genes])
 
+    @pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data")
     def test_found_oncogene(self, report_upload_content: Dict) -> None:
         genes = report_upload_content['genes']
         # eg, ZBTB20
         assert any([g.get('oncogene', False) for g in genes])
 
+    @pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data)")
     def test_found_tumour_supressor(self, report_upload_content: Dict) -> None:
         genes = report_upload_content['genes']
         # eg, ZNRF3
@@ -125,6 +138,7 @@ class TestCreateReport:
         genes = report_upload_content['genes']
         assert any([g.get('kbStatementRelated', False) for g in genes])
 
+    @pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data")
     def test_found_cancer_gene_list_match_gene(self, report_upload_content: Dict) -> None:
         genes = report_upload_content['genes']
         assert any([g.get('cancerGeneListMatch', False) for g in genes])
