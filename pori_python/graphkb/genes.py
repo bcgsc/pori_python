@@ -182,7 +182,6 @@ def get_genes_from_variant_types(
             ignore_cache=ignore_cache,
         ),
     )
-    import pdb; pdb.set_trace()
     return result
 
 

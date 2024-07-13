@@ -70,6 +70,8 @@ def command_interface() -> None:
         '-c', '--content', required=True, type=file_path, help="Report Content as JSON"
     )
     parser.add_argument('--ipr_url', default=os.environ.get("IPR_URL", DEFAULT_URL))
+    parser.add_argument('--graphkb_username', help='username to use connecting to graphkb if different from ipr')
+    parser.add_argument('--graphkb_password', help='password to use connecting to graphkb if different from ipr')
     parser.add_argument('--graphkb_url', default=os.environ.get("GRAPHKB_URL", None))
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument(
@@ -113,6 +115,8 @@ def command_interface() -> None:
         password=args.password,
         content=content,
         ipr_url=args.ipr_url,
+        graphkb_username=args.graphkb_username,
+        graphkb_password=args.graphkb_password,
         graphkb_url=args.graphkb_url,
         log_level=args.log_level,
         output_json_path=args.output_json_path,
@@ -225,6 +229,8 @@ def ipr_report(
     always_write_output_json: bool = False,
     ipr_upload: bool = True,
     interactive: bool = False,
+    graphkb_username: str = None,
+    graphkb_password: str = None,
     graphkb_url: str = '',
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
@@ -246,6 +252,9 @@ def ipr_report(
         ipr_upload: upload report to ipr
         interactive: progressbars for interactive users
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
+        graphkb_username: the username for connecting to GraphKB if diff from IPR
+        graphkb_password: the password for connecting to GraphKB if diff from IPR
+        graphkb_url: the graphkb url to use if not default
         generate_therapeutics: create therapeutic options for upload with the report
         generate_comments: create the analyst comments section for upload with the report
         match_germline: match only germline statements to germline events and non-germline statements to non-germline events.
@@ -292,7 +301,11 @@ def ipr_report(
         graphkb_conn = GraphKBConnection(graphkb_url)
     else:
         graphkb_conn = GraphKBConnection()
-    graphkb_conn.login(username, password)
+
+    gkb_user = graphkb_username if graphkb_username else username
+    gkb_pass = graphkb_password if graphkb_password else password
+
+    graphkb_conn.login(gkb_user, gkb_pass)
 
     gkb_matches: List[KbMatch] = []
 

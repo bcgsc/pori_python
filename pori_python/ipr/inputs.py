@@ -177,7 +177,6 @@ def validate_variant_rows(
     keys = set()
 
     header_validated = False
-
     for row in rows:
         if not header_validated:
             for req_col in required:
