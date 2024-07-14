@@ -25,7 +25,7 @@ class IprConnection:
         self.cache: Dict[str, List[Dict]] = {}
         self.request_count = 0
 
-    def request(self, endpoint: str, method: str = "GET", **kwargs) -> Dict:
+    def request(self, endpoint: str, method: str = "GET", custom_headers: Dict = None, **kwargs) -> Dict:
         """Request wrapper to handle adding common headers and logging
 
         Args:
@@ -37,10 +37,16 @@ class IprConnection:
         """
         url = f"{self.url}/{endpoint}"
         self.request_count += 1
-        headers = kwargs.pop("headers", self.headers)
+        if custom_headers:
+            headers = custom_headers
+        else:
+            headers = self.headers
+        print('headers:', headers)
+        print('url:', url)
         resp = requests.request(
             method, url, headers=headers, auth=(self.username, self.password), **kwargs
         )
+        print(resp.status_code)
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as err:
@@ -52,6 +58,8 @@ class IprConnection:
                 pass
 
             raise requests.exceptions.HTTPError(message)
+        if resp.status_code == 204: # TODO: address this in api
+            return {'status_code': 204}
         return resp.json()
 
     def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
@@ -68,6 +76,16 @@ class IprConnection:
         return self.request(
             uri,
             method="GET",
+            data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
+            **kwargs,
+        )
+
+    def delete(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
+        """Convenience method for making delete requests"""
+        return self.request(
+            uri,
+            method="DELETE",
+            custom_headers={'Accept': '*/*'},
             data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
             **kwargs,
         )

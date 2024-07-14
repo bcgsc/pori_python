@@ -125,7 +125,7 @@ def test_load_structural_variants() -> None:
         pd.read_csv(os.path.join(DATA_DIR, 'fusions.tab'), sep='\t').to_dict('records')
     )
     assert records
-    assert len(records) == 5
+    assert len(records) == 7
     assert records[0]['variantType'] == 'sv'
     assert 'variant' in records[0]
 
