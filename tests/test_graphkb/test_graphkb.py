@@ -1,7 +1,6 @@
 import os
-from unittest import mock
-
 import pytest
+from unittest import mock
 
 from pori_python.graphkb import GraphKBConnection
 

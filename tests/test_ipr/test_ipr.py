@@ -1,8 +1,8 @@
 import pytest
-from pori_python.graphkb import statement as gkb_statement
-from pori_python.graphkb import vocab as gkb_vocab
 from unittest.mock import Mock, patch
 
+from pori_python.graphkb import statement as gkb_statement
+from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.ipr.ipr import convert_statements_to_alterations, germline_kb_matches
 from pori_python.ipr.types import GkbStatement
 
@@ -180,9 +180,9 @@ def base_graphkb_statement(
             ],
             "evidence": [],
             "subject": {
-                "@class": 'dummy_value',
+                "@class": "dummy_value",
                 "@rid": "101:010",
-                "displayName": 'dummy_display_name',
+                "displayName": "dummy_display_name",
             },
             "source": None,
             "sourceId": None,

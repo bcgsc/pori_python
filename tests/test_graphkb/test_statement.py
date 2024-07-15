@@ -1,7 +1,6 @@
 import os
-from unittest.mock import Mock
-
 import pytest
+from unittest.mock import Mock
 
 from pori_python.graphkb import statement
 

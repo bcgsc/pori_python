@@ -2,9 +2,10 @@ import requests
 
 import json
 import os
+import time
 import zlib
 from typing import Dict, List
-import time
+
 from .constants import DEFAULT_URL
 from .util import logger
 
@@ -94,12 +95,7 @@ class IprConnection:
                             f'async report upload failed with reason: {current_status["failedReason"]}'
                         )
 
-                    if current_status["state"] not in [
-                        "active",
-                        "ready",
-                        "waiting",
-                        "completed",
-                    ]:
+                    if current_status["state"] not in ["active", "ready", "waiting", "completed"]:
                         raise Exception(
                             f"async report upload in unexpected state: {current_status}"
                         )

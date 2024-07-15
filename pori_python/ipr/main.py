@@ -5,9 +5,10 @@ import jsonschema.exceptions
 import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from typing import Dict, List, Sequence
+
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
-from typing import Dict, List, Sequence
 
 from .annotate import (
     annotate_copy_variants,
@@ -41,71 +42,71 @@ from .util import LOG_LEVELS, logger, trim_empty_values
 CACHE_GENE_MINIMUM = 5000
 RENAMED_GENE_PROPERTIES = {
     # old_name: new_name
-    'cancerRelated': 'kbStatementRelated',
-    'cancerGene': 'cancerGeneListMatch',
+    "cancerRelated": "kbStatementRelated",
+    "cancerGene": "cancerGeneListMatch",
 }
 
 
 def file_path(path: str) -> str:
     if not os.path.exists(path):
-        raise argparse.ArgumentTypeError(f'{repr(path)} is not a valid filename. does not exist')
+        raise argparse.ArgumentTypeError(f"{repr(path)} is not a valid filename. does not exist")
     return path
 
 
 def timestamp() -> str:
-    return datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    return datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
 
 def command_interface() -> None:
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    req = parser.add_argument_group('required arguments')
-    (req if not os.environ.get('USER') else parser).add_argument(
-        '--username',
-        required=not os.environ.get('USER'),
-        default=os.environ.get('USER'),
-        help='username to use connecting to graphkb/ipr',
+    req = parser.add_argument_group("required arguments")
+    (req if not os.environ.get("USER") else parser).add_argument(
+        "--username",
+        required=not os.environ.get("USER"),
+        default=os.environ.get("USER"),
+        help="username to use connecting to graphkb/ipr",
     )
-    req.add_argument('--password', required=True, help='password to use connecting to graphkb/ipr')
+    req.add_argument("--password", required=True, help="password to use connecting to graphkb/ipr")
     req.add_argument(
-        '-c', '--content', required=True, type=file_path, help="Report Content as JSON"
+        "-c", "--content", required=True, type=file_path, help="Report Content as JSON"
     )
-    parser.add_argument('--ipr_url', default=DEFAULT_URL)
-    parser.add_argument('--graphkb_url', default=None)
-    parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
+    parser.add_argument("--ipr_url", default=DEFAULT_URL)
+    parser.add_argument("--graphkb_url", default=None)
+    parser.add_argument("--log_level", default="info", choices=LOG_LEVELS.keys())
     parser.add_argument(
-        '--therapeutics', default=False, help='Generate therapeutic options', action='store_true'
+        "--therapeutics", default=False, help="Generate therapeutic options", action="store_true"
     )
     parser.add_argument(
-        '--skip_comments',
+        "--skip_comments",
         default=False,
-        action='store_true',
-        help='Turn off generating the analyst comments section of the report',
-    )
-    parser.add_argument(
-        '-o', '--output_json_path', help='path to a JSON to output the report upload body'
-    )
-    parser.add_argument(
-        '-w',
-        '--always_write_output_json',
         action="store_true",
-        help='Write to output_json_path on successful IPR uploads instead of just when the upload fails',
+        help="Turn off generating the analyst comments section of the report",
     )
     parser.add_argument(
-        '--async_upload',
+        "-o", "--output_json_path", help="path to a JSON to output the report upload body"
+    )
+    parser.add_argument(
+        "-w",
+        "--always_write_output_json",
+        action="store_true",
+        help="Write to output_json_path on successful IPR uploads instead of just when the upload fails",
+    )
+    parser.add_argument(
+        "--async_upload",
         default=False,
-        action='store_true',
-        help='True if reports-async ipr endpoint should be used instead of basic reports',
+        action="store_true",
+        help="True if reports-async ipr endpoint should be used instead of basic reports",
     )
     parser.add_argument(
-        '--mins_to_wait',
+        "--mins_to_wait",
         default=5,
-        action='store',
-        help='is using reports-async, number of minutes to wait before throwing error',
+        action="store",
+        help="is using reports-async, number of minutes to wait before throwing error",
     )
 
     args = parser.parse_args()
 
-    with open(args.content, 'r') as fh:
+    with open(args.content, "r") as fh:
         content = json.load(fh)
 
     create_report(
@@ -132,12 +133,12 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
     """
     if (
         ipr_spec
-        and 'components' in ipr_spec.keys()
-        and 'schemas' in ipr_spec['components'].keys()
-        and 'genesCreate' in ipr_spec['components']['schemas'].keys()
-        and 'properties' in ipr_spec['components']['schemas']['genesCreate'].keys()
+        and "components" in ipr_spec.keys()
+        and "schemas" in ipr_spec["components"].keys()
+        and "genesCreate" in ipr_spec["components"]["schemas"].keys()
+        and "properties" in ipr_spec["components"]["schemas"]["genesCreate"].keys()
     ):
-        genes_spec = ipr_spec['components']['schemas']['genesCreate']['properties'].keys()
+        genes_spec = ipr_spec["components"]["schemas"]["genesCreate"]["properties"].keys()
 
         # check what ipr report upload expects and adjust contents to match
         for old_name, new_name in RENAMED_GENE_PROPERTIES.items():
@@ -145,13 +146,13 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
                 logger.warning(
                     f"Legacy IPR - Renaming property {new_name} to {old_name} for compatibility to ipr_spec"
                 )
-                for gene in upload_content['genes']:
+                for gene in upload_content["genes"]:
                     if new_name in gene:
                         gene[old_name] = gene[new_name]
                         gene.pop(new_name)
             else:
                 outdate_properties = 0
-                for gene in upload_content['genes']:
+                for gene in upload_content["genes"]:
                     if old_name in gene:
                         gene[new_name] = gene[old_name]
                         gene.pop(old_name)
@@ -163,7 +164,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
 
         # remove any unhandled incompatible keys
         removed_keys: Dict[str, int] = {}
-        for gene in upload_content['genes']:
+        for gene in upload_content["genes"]:
             unsupported_keys = [key for key in gene.keys() if key not in genes_spec]
             for key in unsupported_keys:
                 if key in removed_keys:
@@ -174,23 +175,23 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         for key, count in removed_keys.items():
             logger.warning(f"IPR unsupported property '{key}' removed from {count} genes.")
 
-    drop_columns = ['variant', 'variantType', 'histogramImage']
+    drop_columns = ["variant", "variantType", "histogramImage"]
     # DEVSU-2034 - use a 'displayName'
     VARIANT_LIST_KEYS = [
-        'expressionVariants',
-        'smallMutations',
-        'copyVariants',
-        'structuralVariants',
-        'probeResults',
-        'msi',
+        "expressionVariants",
+        "smallMutations",
+        "copyVariants",
+        "structuralVariants",
+        "probeResults",
+        "msi",
     ]
     for variant_list_section in VARIANT_LIST_KEYS:
         for variant in upload_content.get(variant_list_section, []):
-            if not variant.get('displayName'):
-                variant['displayName'] = (
-                    variant.get('variant') or variant.get('kbCategory') or variant.get('key', '')
+            if not variant.get("displayName"):
+                variant["displayName"] = (
+                    variant.get("variant") or variant.get("kbCategory") or variant.get("key", "")
                 )
-            if variant_list_section == 'probeResults':
+            if variant_list_section == "probeResults":
                 # currently probeResults will error if they do NOT have a 'variant' column.
                 # smallMutations will error if they DO have a 'variant' column.
                 continue
@@ -198,15 +199,15 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
                 if col in variant:
                     del variant[col]
     # tmburMutationBurden is a single value, not list
-    if upload_content.get('tmburMutationBurden'):
-        if not upload_content['tmburMutationBurden'].get('displayName'):
-            upload_content['tmburMutationBurden']['displayName'] = upload_content[
-                'tmburMutationBurden'
-            ].get('kbCategory', '')
+    if upload_content.get("tmburMutationBurden"):
+        if not upload_content["tmburMutationBurden"].get("displayName"):
+            upload_content["tmburMutationBurden"]["displayName"] = upload_content[
+                "tmburMutationBurden"
+            ].get("kbCategory", "")
 
-    for row in upload_content['kbMatches']:
-        del row['kbContextId']
-        del row['kbRelevanceId']
+    for row in upload_content["kbMatches"]:
+        del row["kbContextId"]
+        del row["kbRelevanceId"]
     return upload_content
 
 
@@ -220,12 +221,12 @@ def ipr_report(
     password: str,
     content: Dict,
     ipr_url: str = DEFAULT_URL,
-    log_level: str = 'info',
-    output_json_path: str = '',
+    log_level: str = "info",
+    output_json_path: str = "",
     always_write_output_json: bool = False,
     ipr_upload: bool = True,
     interactive: bool = False,
-    graphkb_url: str = '',
+    graphkb_url: str = "",
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
     match_germline: bool = False,
@@ -259,8 +260,8 @@ def ipr_report(
     # set the default logging configuration
     logging.basicConfig(
         level=LOG_LEVELS[log_level],
-        format='%(asctime)s %(name)s %(levelname)s %(message)s',
-        datefmt='%m-%d-%y %H:%M:%S',
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        datefmt="%m-%d-%y %H:%M:%S",
     )
     # validate the JSON content follows the specification
     try:
@@ -269,13 +270,13 @@ def ipr_report(
         logger.error("Failed schema check - report variants may be corrupted or unmatched.")
         logger.error(f"Failed schema check: {err}")
 
-    kb_disease_match = content['kbDiseaseMatch']
+    kb_disease_match = content["kbDiseaseMatch"]
 
     # validate the input variants
-    small_mutations = preprocess_small_mutations(content.get('smallMutations', []))
-    structural_variants = preprocess_structural_variants(content.get('structuralVariants', []))
-    copy_variants = preprocess_copy_variants(content.get('copyVariants', []))
-    expression_variants = preprocess_expression_variants(content.get('expressionVariants', []))
+    small_mutations = preprocess_small_mutations(content.get("smallMutations", []))
+    structural_variants = preprocess_structural_variants(content.get("structuralVariants", []))
+    copy_variants = preprocess_copy_variants(content.get("copyVariants", []))
+    expression_variants = preprocess_expression_variants(content.get("expressionVariants", []))
     if expression_variants:
         check_comparators(content, expression_variants)
 
@@ -288,7 +289,7 @@ def ipr_report(
     ipr_spec = ipr_conn.get_spec()
 
     if graphkb_url:
-        logger.info(f'connecting to graphkb: {graphkb_url}')
+        logger.info(f"connecting to graphkb: {graphkb_url}")
         graphkb_conn = GraphKBConnection(graphkb_url)
     else:
         graphkb_conn = GraphKBConnection()
@@ -299,61 +300,61 @@ def ipr_report(
     # Signature category variants
     tmb_variant: IprVariant = {}
     tmb_matches = []
-    if 'tmburMutationBurden' in content.keys():
+    if "tmburMutationBurden" in content.keys():
         tmb_val = 0.0
         tmb = {}
         try:
-            tmb = content.get('tmburMutationBurden', {})
-            tmb_val = tmb['genomeIndelTmb'] + tmb['genomeSnvTmb']
+            tmb = content.get("tmburMutationBurden", {})
+            tmb_val = tmb["genomeIndelTmb"] + tmb["genomeSnvTmb"]
         except Exception as err:
             logger.error(f"tmburMutationBurden parsing failure: {err}")
 
         if tmb_val >= TMB_HIGH:
             logger.warning(
-                f'GERO-296 - tmburMutationBurden high -checking graphkb matches for {TMB_HIGH_CATEGORY}'
+                f"GERO-296 - tmburMutationBurden high -checking graphkb matches for {TMB_HIGH_CATEGORY}"
             )
-            if not tmb.get('key'):
-                tmb['key'] = TMB_HIGH_CATEGORY
-            if not tmb.get('kbCategory'):
-                tmb['kbCategory'] = TMB_HIGH_CATEGORY
+            if not tmb.get("key"):
+                tmb["key"] = TMB_HIGH_CATEGORY
+            if not tmb.get("kbCategory"):
+                tmb["kbCategory"] = TMB_HIGH_CATEGORY
 
             # GERO-296 - try matching to graphkb
             tmb_matches = annotate_tmb(graphkb_conn, kb_disease_match, TMB_HIGH_CATEGORY)
             if tmb_matches:
-                tmb_variant['kbCategory'] = TMB_HIGH_CATEGORY  # type: ignore
-                tmb_variant['variant'] = TMB_HIGH_CATEGORY
-                tmb_variant['key'] = tmb['key']
-                tmb_variant['variantType'] = 'tmb'
+                tmb_variant["kbCategory"] = TMB_HIGH_CATEGORY  # type: ignore
+                tmb_variant["variant"] = TMB_HIGH_CATEGORY
+                tmb_variant["key"] = tmb["key"]
+                tmb_variant["variantType"] = "tmb"
                 logger.info(
                     f"GERO-296 '{TMB_HIGH_CATEGORY}' matches {len(tmb_matches)} statements."
                 )
                 gkb_matches.extend(tmb_matches)
                 logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
-    msi = content.get('msi', [])
+    msi = content.get("msi", [])
     msi_matches = []
     msi_variant: IprVariant = {}
     if msi:
         # only one msi variant per library
         if isinstance(msi, list):
-            msi_cat = msi[0].get('kbCategory')
+            msi_cat = msi[0].get("kbCategory")
         elif isinstance(msi, str):
             msi_cat = msi
         else:
-            msi_cat = msi.get('kbCategory')
+            msi_cat = msi.get("kbCategory")
             msi_variant = msi.copy()
-        logger.info(f'Matching GKB msi {msi_cat}')
+        logger.info(f"Matching GKB msi {msi_cat}")
         msi_matches = annotate_msi(graphkb_conn, kb_disease_match, msi_cat)
         if msi_matches:
-            msi_variant['kbCategory'] = msi_cat  # type: ignore
-            msi_variant['variant'] = msi_cat
-            msi_variant['key'] = msi_cat
-            msi_variant['variantType'] = 'msi'
+            msi_variant["kbCategory"] = msi_cat  # type: ignore
+            msi_variant["variant"] = msi_cat
+            msi_variant["key"] = msi_cat
+            msi_variant["variantType"] = "msi"
             logger.info(f"GERO-295 '{msi_cat}' matches {len(msi_matches)} msi statements.")
             gkb_matches.extend(msi_matches)
             logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
-    logger.info(f'annotating {len(small_mutations)} small mutations')
+    logger.info(f"annotating {len(small_mutations)} small mutations")
     gkb_matches.extend(
         annotate_positional_variants(
             graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
@@ -361,7 +362,7 @@ def ipr_report(
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
-    logger.info(f'annotating {len(structural_variants)} structural variants')
+    logger.info(f"annotating {len(structural_variants)} structural variants")
     gkb_matches.extend(
         annotate_positional_variants(
             graphkb_conn, structural_variants, kb_disease_match, show_progress=interactive
@@ -369,7 +370,7 @@ def ipr_report(
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
-    logger.info(f'annotating {len(copy_variants)} copy variants')
+    logger.info(f"annotating {len(copy_variants)} copy variants")
     gkb_matches.extend(
         annotate_copy_variants(
             graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
@@ -377,7 +378,7 @@ def ipr_report(
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
-    logger.info(f'annotating {len(expression_variants)} expression variants')
+    logger.info(f"annotating {len(expression_variants)} expression variants")
     gkb_matches.extend(
         annotate_expression_variants(
             graphkb_conn, expression_variants, kb_disease_match, show_progress=interactive
@@ -398,62 +399,62 @@ def ipr_report(
             logger.info(f"Removing {len(gkb_matches)} germline events without medical matches.")
 
     if custom_kb_match_filter:
-        logger.info(f'custom_kb_match_filter on {len(gkb_matches)} variants')
+        logger.info(f"custom_kb_match_filter on {len(gkb_matches)} variants")
         gkb_matches = custom_kb_match_filter(gkb_matches)
-        logger.info(f'\t custom_kb_match_filter left {len(gkb_matches)} variants')
+        logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
     key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
 
-    logger.info('fetching gene annotations')
+    logger.info("fetching gene annotations")
     gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
 
     if generate_therapeutics:
-        logger.info('generating therapeutic options')
+        logger.info("generating therapeutic options")
         targets = create_therapeutic_options(graphkb_conn, gkb_matches, all_variants)
     else:
         targets = []
 
-    logger.info('generating analyst comments')
+    logger.info("generating analyst comments")
     if generate_comments:
         comments = {
-            'comments': summarize(
+            "comments": summarize(
                 graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
             )
         }
     else:
-        comments = {'comments': ''}
+        comments = {"comments": ""}
 
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
     output.update(
         {
-            'kbMatches': [trim_empty_values(a) for a in gkb_matches],
-            'copyVariants': [
-                trim_empty_values(c) for c in copy_variants if c['gene'] in genes_with_variants
+            "kbMatches": [trim_empty_values(a) for a in gkb_matches],
+            "copyVariants": [
+                trim_empty_values(c) for c in copy_variants if c["gene"] in genes_with_variants
             ],
-            'smallMutations': [trim_empty_values(s) for s in small_mutations],
-            'expressionVariants': [
+            "smallMutations": [trim_empty_values(s) for s in small_mutations],
+            "expressionVariants": [
                 trim_empty_values(e)
                 for e in expression_variants
-                if e['gene'] in genes_with_variants
+                if e["gene"] in genes_with_variants
             ],
-            'kbDiseaseMatch': kb_disease_match,
-            'kbUrl': graphkb_conn.url,
-            'kbVersion': timestamp(),
-            'structuralVariants': [
+            "kbDiseaseMatch": kb_disease_match,
+            "kbUrl": graphkb_conn.url,
+            "kbVersion": timestamp(),
+            "structuralVariants": [
                 trim_empty_values(s)
                 for s in filter_structural_variants(
                     structural_variants, gkb_matches, gene_information
                 )
             ],
-            'genes': gene_information,
-            'genomicAlterationsIdentified': key_alterations,
-            'variantCounts': variant_counts,
-            'analystComments': comments,
-            'therapeuticTarget': targets,
+            "genes": gene_information,
+            "genomicAlterationsIdentified": key_alterations,
+            "variantCounts": variant_counts,
+            "analystComments": comments,
+            "therapeuticTarget": targets,
         }
     )
-    output.setdefault('images', []).extend(select_expression_plots(gkb_matches, all_variants))
+    output.setdefault("images", []).extend(select_expression_plots(gkb_matches, all_variants))
 
     output = clean_unsupported_content(output, ipr_spec)
     ipr_result = None
@@ -461,7 +462,7 @@ def ipr_report(
 
     if ipr_upload:
         try:
-            logger.info(f'Uploading to IPR {ipr_conn.url}')
+            logger.info(f"Uploading to IPR {ipr_conn.url}")
             ipr_result = ipr_conn.upload_report(output, async_upload, mins_to_wait)
             logger.info(ipr_result)
             output.update(ipr_result)
@@ -470,11 +471,11 @@ def ipr_report(
             logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
     if output_json_path:
         if always_write_output_json or not ipr_result:
-            logger.info(f'Writing IPR upload json to: {output_json_path}')
-            with open(output_json_path, 'w') as fh:
+            logger.info(f"Writing IPR upload json to: {output_json_path}")
+            with open(output_json_path, "w") as fh:
                 fh.write(json.dumps(output))
-    logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
-    logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
+    logger.info(f"made {graphkb_conn.request_count} requests to graphkb")
+    logger.info(f"average load {int(graphkb_conn.load or 0)} req/s")
     if upload_error:
         raise upload_error
     return output

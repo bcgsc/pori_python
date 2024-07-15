@@ -14,14 +14,14 @@ class TestGetPreferredDrugRepresentation:
                 side_effect=[
                     [],
                     [
-                        {'sourceId': '1', 'alias': False, 'source': 'source', 'name': 'name'},
-                        {'sourceId': '2', 'alias': True, 'source': 'source', 'name': 'name'},
+                        {"sourceId": "1", "alias": False, "source": "source", "name": "name"},
+                        {"sourceId": "2", "alias": True, "source": "source", "name": "name"},
                     ],
                 ]
             )
         )
-        rec = get_preferred_drug_representation(api, 'anything')
-        assert rec['sourceId'] == '1'
+        rec = get_preferred_drug_representation(api, "anything")
+        assert rec["sourceId"] == "1"
 
     def test_prefers_non_deprecated(self):
         api = MagicMock(
@@ -29,29 +29,29 @@ class TestGetPreferredDrugRepresentation:
                 side_effect=[
                     [],
                     [
-                        {'sourceId': '1', 'deprecated': True, 'source': 'source', 'name': 'name'},
-                        {'sourceId': '2', 'deprecated': False, 'source': 'source', 'name': 'name'},
+                        {"sourceId": "1", "deprecated": True, "source": "source", "name": "name"},
+                        {"sourceId": "2", "deprecated": False, "source": "source", "name": "name"},
                     ],
                 ]
             )
         )
-        rec = get_preferred_drug_representation(api, 'anything')
-        assert rec['sourceId'] == '2'
+        rec = get_preferred_drug_representation(api, "anything")
+        assert rec["sourceId"] == "2"
 
     def test_prefers_lower_sort_source(self):
         api = MagicMock(
             query=MagicMock(
                 side_effect=[
-                    [{'@rid': 'source2', 'sort': 0}, {'@rid': 'source1', 'sort': 1}],
+                    [{"@rid": "source2", "sort": 0}, {"@rid": "source1", "sort": 1}],
                     [
-                        {'sourceId': '1', 'deprecated': False, 'source': 'source1', 'name': 'name'},
-                        {'sourceId': '2', 'deprecated': False, 'source': 'source2', 'name': 'name'},
+                        {"sourceId": "1", "deprecated": False, "source": "source1", "name": "name"},
+                        {"sourceId": "2", "deprecated": False, "source": "source2", "name": "name"},
                     ],
                 ]
             )
         )
-        rec = get_preferred_drug_representation(api, 'anything')
-        assert rec['sourceId'] == '2'
+        rec = get_preferred_drug_representation(api, "anything")
+        assert rec["sourceId"] == "2"
 
     def test_prefers_newer_version(self):
         api = MagicMock(
@@ -60,46 +60,46 @@ class TestGetPreferredDrugRepresentation:
                     [],
                     [
                         {
-                            'sourceId': '2',
-                            'deprecated': True,
-                            'source': 'source',
-                            'name': 'name',
-                            'sourceIdVersion': '1',
+                            "sourceId": "2",
+                            "deprecated": True,
+                            "source": "source",
+                            "name": "name",
+                            "sourceIdVersion": "1",
                         },
                         {
-                            'sourceId': '2',
-                            'deprecated': True,
-                            'source': 'source',
-                            'name': 'name',
-                            'sourceIdVersion': '2',
+                            "sourceId": "2",
+                            "deprecated": True,
+                            "source": "source",
+                            "name": "name",
+                            "sourceIdVersion": "2",
                         },
                     ],
                 ]
             )
         )
-        rec = get_preferred_drug_representation(api, 'anything')
-        assert rec['sourceIdVersion'] == '1'
+        rec = get_preferred_drug_representation(api, "anything")
+        assert rec["sourceIdVersion"] == "1"
 
 
 class TestSubstituteSentenceTemplate:
     def test_multiple_diseases_no_matches(self):
         template = "{conditions:variant} is associated with {relevance} to {subject} in {conditions:disease} ({evidence})"
-        relevance = {'displayName': 'senitivity'}
-        disease_matches = {'1'}
+        relevance = {"displayName": "senitivity"}
+        disease_matches = {"1"}
         diseases = [
-            {'@class': 'Disease', '@rid': '2', 'displayName': 'disease 1'},
-            {'@class': 'Disease', '@rid': '3', 'displayName': 'disease 2'},
+            {"@class": "Disease", "@rid": "2", "displayName": "disease 1"},
+            {"@class": "Disease", "@rid": "3", "displayName": "disease 2"},
         ]
         variants = [
             {
-                '@class': 'CategoryVariant',
-                'displayName': 'KRAS increased RNA expression',
-                '@rid': '4',
+                "@class": "CategoryVariant",
+                "displayName": "KRAS increased RNA expression",
+                "@rid": "4",
             }
         ]
-        subjects = [{'@class': 'Therapy', 'displayName': 'some drug', '@rid': '5'}]
+        subjects = [{"@class": "Therapy", "displayName": "some drug", "@rid": "5"}]
         sentence = substitute_sentence_template(
-            template, diseases + variants, subjects, relevance, [], ['6', '7'], disease_matches
+            template, diseases + variants, subjects, relevance, [], ["6", "7"], disease_matches
         )
         assert (
             sentence
@@ -108,23 +108,23 @@ class TestSubstituteSentenceTemplate:
 
     def test_multiple_diseases_some_matches(self):
         template = "{conditions:variant} is associated with {relevance} to {subject} in {conditions:disease} ({evidence})"
-        relevance = {'displayName': 'senitivity'}
-        disease_matches = {'1'}
+        relevance = {"displayName": "senitivity"}
+        disease_matches = {"1"}
         diseases = [
-            {'@class': 'Disease', '@rid': '2', 'displayName': 'disease 2'},
-            {'@class': 'Disease', '@rid': '1', 'displayName': 'disease 1'},
-            {'@class': 'Disease', '@rid': '3', 'displayName': 'disease 3'},
+            {"@class": "Disease", "@rid": "2", "displayName": "disease 2"},
+            {"@class": "Disease", "@rid": "1", "displayName": "disease 1"},
+            {"@class": "Disease", "@rid": "3", "displayName": "disease 3"},
         ]
         variants = [
             {
-                '@class': 'CategoryVariant',
-                'displayName': 'KRAS increased RNA expression',
-                '@rid': '4',
+                "@class": "CategoryVariant",
+                "displayName": "KRAS increased RNA expression",
+                "@rid": "4",
             }
         ]
-        subjects = [{'@class': 'Therapy', 'displayName': 'some drug', '@rid': '5'}]
+        subjects = [{"@class": "Therapy", "displayName": "some drug", "@rid": "5"}]
         sentence = substitute_sentence_template(
-            template, diseases + variants, subjects, relevance, [], ['6', '7'], disease_matches
+            template, diseases + variants, subjects, relevance, [], ["6", "7"], disease_matches
         )
         assert (
             sentence
@@ -133,23 +133,23 @@ class TestSubstituteSentenceTemplate:
 
     def test_multiple_diseases_only_matches(self):
         template = "{conditions:variant} is associated with {relevance} to {subject} in {conditions:disease} ({evidence})"
-        relevance = {'displayName': 'senitivity'}
-        disease_matches = {'1', '2', '3'}
+        relevance = {"displayName": "senitivity"}
+        disease_matches = {"1", "2", "3"}
         diseases = [
-            {'@class': 'Disease', '@rid': '2', 'displayName': 'disease 2'},
-            {'@class': 'Disease', '@rid': '1', 'displayName': 'disease 1'},
-            {'@class': 'Disease', '@rid': '3', 'displayName': 'disease 3'},
+            {"@class": "Disease", "@rid": "2", "displayName": "disease 2"},
+            {"@class": "Disease", "@rid": "1", "displayName": "disease 1"},
+            {"@class": "Disease", "@rid": "3", "displayName": "disease 3"},
         ]
         variants = [
             {
-                '@class': 'CategoryVariant',
-                'displayName': 'KRAS increased RNA expression',
-                '@rid': '4',
+                "@class": "CategoryVariant",
+                "displayName": "KRAS increased RNA expression",
+                "@rid": "4",
             }
         ]
-        subjects = [{'@class': 'Therapy', 'displayName': 'some drug', '@rid': '5'}]
+        subjects = [{"@class": "Therapy", "displayName": "some drug", "@rid": "5"}]
         sentence = substitute_sentence_template(
-            template, diseases + variants, subjects, relevance, [], ['6', '7'], disease_matches
+            template, diseases + variants, subjects, relevance, [], ["6", "7"], disease_matches
         )
         assert (
             sentence

@@ -1,5 +1,4 @@
 import os
-
 import pytest
 
 from pori_python.graphkb import GraphKBConnection, util

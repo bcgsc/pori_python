@@ -3,20 +3,19 @@ Tests here depend on specific data in GraphKB which can change. To avoid this, e
 """
 
 import os
-
 import pytest
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import (
     get_cancer_genes,
     get_cancer_predisposition_info,
-    get_gene_linked_cancer_predisposition_info,
     get_gene_information,
+    get_gene_linked_cancer_predisposition_info,
+    get_gene_linked_pharmacogenomic_info,
     get_genes_from_variant_types,
     get_oncokb_oncogenes,
     get_oncokb_tumour_supressors,
     get_pharmacogenomic_info,
-    get_gene_linked_pharmacogenomic_info,
     get_preferred_gene_name,
     get_therapeutic_associated_genes,
 )
@@ -152,7 +151,7 @@ def test_get_pharmacogenomic_info(conn):
                 break
         else:  # no break called
             # failing on this version of the func; addressed in 'new' version
-            if gene == 'ACYP2':
+            if gene == "ACYP2":
                 continue
             assert False, f"No rid found for a pharmacogenomic with {gene}"
 
