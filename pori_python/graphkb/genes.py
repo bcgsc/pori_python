@@ -145,9 +145,9 @@ def get_genes_from_variant_types(
     Returns:
         List.<dict>: gene (Feature) records
     """
-    filters: List[Dict[str, Any]] = []
+    variant_filters: List[Dict[str, Any]] = []
     if types:
-        filters.append(
+        variant_filters.append(
             {"type": {"target": "Vocabulary", "filters": {"name": types, "operator": "IN"}}}
         )
 
@@ -156,7 +156,7 @@ def get_genes_from_variant_types(
         conn.query(
             {
                 "target": "Variant",
-                "filters": filters,
+                "filters": variant_filters,
                 "returnProperties": ["reference1", "reference2"],
             },
             ignore_cache=ignore_cache,
@@ -171,14 +171,18 @@ def get_genes_from_variant_types(
     if not genes:
         return []
 
-    filters: List[Dict[str, Any]] = [{"biotype": "gene"}]
+    gene_filters: List[Dict[str, Any]] = [{"biotype": "gene"}]
     if source_record_ids:
-        filters.append({"source": source_record_ids, "operator": "IN"})
+        gene_filters.append({"source": source_record_ids, "operator": "IN"})
 
     result = cast(
         List[Ontology],
         conn.query(
-            {"target": list(genes), "returnProperties": GENE_RETURN_PROPERTIES, "filters": filters},
+            {
+                "target": list(genes),
+                "returnProperties": GENE_RETURN_PROPERTIES,
+                "filters": gene_filters,
+            },
             ignore_cache=ignore_cache,
         ),
     )
