@@ -463,7 +463,7 @@ def ipr_report(
     if ipr_upload:
         try:
             logger.info(f"Uploading to IPR {ipr_conn.url}")
-            ipr_result = ipr_conn.upload_report(output, async_upload, mins_to_wait)
+            ipr_result = ipr_conn.upload_report(output, mins_to_wait, async_upload)
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
