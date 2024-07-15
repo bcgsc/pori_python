@@ -226,11 +226,9 @@ def get_preferred_gene_name(
 def get_cancer_predisposition_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
 ) -> Tuple[List[str], Dict[str, str]]:
-    newval = get_gene_linked_cancer_predisposition_info(conn, source)
-    genes = newval[0]
-    allvardata = newval[1]
+    genes, allvardata = get_gene_linked_cancer_predisposition_info(conn, source)
     variants = {key: allvardata[key][0] for key in allvardata.keys()}
-    return newval[0], variants
+    return genes, variants
 
 
 def get_gene_linked_cancer_predisposition_info(
@@ -322,11 +320,9 @@ def get_gene_linked_cancer_predisposition_info(
 def get_pharmacogenomic_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
 ) -> Tuple[List[str], Dict[str, str]]:
-    newval = get_gene_linked_pharmacogenomic_info(conn, source)
-    genes = newval[0]
-    allvardata = newval[1]
+    genes, allvardata = get_gene_linked_pharmacogenomic_info(conn, source)
     variants = {key: allvardata[key][0] for key in allvardata.keys()}
-    return newval[0], variants
+    return genes, variants
 
 
 def get_gene_linked_pharmacogenomic_info(
