@@ -1,6 +1,5 @@
 import requests
 from requests.adapters import HTTPAdapter
-from requests.packages.urllib3.util.retry import Retry
 
 import hashlib
 import json
@@ -9,6 +8,7 @@ import re
 import time
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
+from urllib3.util.retry import Retry
 
 from .constants import DEFAULT_LIMIT, DEFAULT_URL, TYPES_TO_NOTATION, AA_3to1_MAPPING
 from .types import OntologyTerm, ParsedVariant, PositionalVariant, Record
