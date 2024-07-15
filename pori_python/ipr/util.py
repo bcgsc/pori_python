@@ -6,10 +6,8 @@ from numpy import nan
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 
 from pori_python.graphkb import GraphKBConnection
-from pori_python.graphkb.types import Ontology, Record
 from pori_python.graphkb.vocab import get_term_tree
-
-from .types import IprVariant
+from pori_python.types import IprVariant, Ontology, Record
 
 GENE_NEIGHBORS_MAX = 3
 

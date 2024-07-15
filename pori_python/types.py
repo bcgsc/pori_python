@@ -1,8 +1,85 @@
-from typing import Dict, List, Optional, TypedDict, Union
-
-from pori_python.graphkb.types import Ontology, Record
+from typing import Dict, List, Optional, Tuple, TypedDict, Union
 
 # TODO: Can constants in inputs.py like COPY_REQ, SMALL_MUT_REQ, just be replaced by types?
+
+CategoryBaseTermMapping = List[Tuple[str, List[str]]]
+Record = TypedDict("Record", {"@rid": str, "@class": str})
+EmbeddedRecord = TypedDict("EmbeddedRecord", {"@class": str})
+RecordLink = Union[str, Record]
+
+
+class Ontology(Record):
+    sourceId: str
+    name: str
+    source: RecordLink
+    displayName: str
+
+
+class OntologyTerm(Record):
+    name: Optional[str]
+    sourceId: Optional[str]
+    sourceIdVersion: Optional[str]
+    displayName: Optional[str]
+
+
+OntologyLink = Union[str, Ontology]
+
+
+class BasicPosition(EmbeddedRecord):
+    pos: int
+
+
+class CytobandPosition(EmbeddedRecord):
+    arm: str
+    majorBand: str
+    minorBand: str
+
+
+Position = Union[BasicPosition, CytobandPosition]
+
+
+class Variant(Record):
+    reference1: OntologyLink
+    reference2: Optional[OntologyLink]
+    type: OntologyLink
+    zygosity: str
+    germline: bool
+    displayName: str
+
+
+class PositionalVariant(Variant):
+    break1Start: Union[Position, CytobandPosition]
+    break1End: Optional[Union[Position, CytobandPosition]]
+    break2Start: Optional[Union[Position, CytobandPosition]]
+    break2End: Optional[Union[Position, CytobandPosition]]
+    refSeq: Optional[str]
+    untemplatedSeq: Optional[str]
+    untemplatedSeqSize: Optional[int]
+
+
+class ParsedVariant(TypedDict):
+    reference1: str
+    reference2: Optional[str]
+    type: str
+    zygosity: str
+    germline: bool
+    break1Start: Union[Position, CytobandPosition]
+    break1End: Optional[Union[Position, CytobandPosition]]
+    break2Start: Optional[Union[Position, CytobandPosition]]
+    break2End: Optional[Union[Position, CytobandPosition]]
+    refSeq: Optional[str]
+    untemplatedSeq: Optional[str]
+    untemplatedSeqSize: Optional[int]
+
+
+class Statement(Record):
+    relevance: OntologyLink
+    subject: OntologyLink
+    conditions: List[OntologyLink]
+    evidence: List[OntologyLink]
+    evidenceLevel: List[OntologyLink]
+    source: RecordLink
+    sourceId: str
 
 
 class KbMatch(TypedDict):

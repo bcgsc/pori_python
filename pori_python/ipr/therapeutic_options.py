@@ -6,8 +6,8 @@ import pandas
 from typing import Any, Dict, List, Sequence
 
 from pori_python.graphkb import GraphKBConnection
+from pori_python.types import IprVariant, KbMatch
 
-from .types import IprVariant, KbMatch
 from .util import (
     create_variant_name_tuple,
     find_variant,

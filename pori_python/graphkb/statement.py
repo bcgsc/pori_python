@@ -1,8 +1,9 @@
 from typing import List, cast
 
+from pori_python.types import CategoryBaseTermMapping, Statement, Variant
+
 from . import GraphKBConnection
 from .constants import FAILED_REVIEW_STATUS, RELEVANCE_BASE_TERMS, STATEMENT_RETURN_PROPERTIES
-from .types import CategoryBaseTermMapping, Statement, Variant
 from .util import convert_to_rid_list
 from .vocab import get_terms_set
 

@@ -9,6 +9,7 @@ from typing import Dict, List, Sequence
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
+from pori_python.types import IprVariant, KbMatch
 
 from .annotate import (
     annotate_copy_variants,
@@ -36,7 +37,6 @@ from .ipr import (
 )
 from .summary import summarize
 from .therapeutic_options import create_therapeutic_options
-from .types import IprVariant, KbMatch
 from .util import LOG_LEVELS, logger, trim_empty_values
 
 CACHE_GENE_MINIMUM = 5000
