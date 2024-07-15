@@ -2,15 +2,10 @@
 Type annotations used for static type checking in this module
 """
 
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, TypedDict, Union
 
-try:
-    from typing import TypedDict  # type: ignore
-except ImportError:
-    from typing_extensions import TypedDict
-
-Record: TypedDict = TypedDict("Record", {"@rid": str, "@class": str})
-EmbeddedRecord: TypedDict = TypedDict("EmbeddedRecord", {"@class": str})
+Record = TypedDict("Record", {"@rid": str, "@class": str})
+EmbeddedRecord = TypedDict("EmbeddedRecord", {"@class": str})
 
 RecordLink = Union[str, Record]
 

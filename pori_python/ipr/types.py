@@ -1,9 +1,4 @@
-from typing import Dict, List, Optional, Union
-
-try:
-    from typing import TypedDict  # type: ignore
-except ImportError:
-    from typing_extensions import TypedDict
+from typing import Dict, List, Optional, TypedDict, Union
 
 from pori_python.graphkb.types import Ontology, Record
 
