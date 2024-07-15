@@ -100,7 +100,7 @@ def generate_ontology_preference_key(record: Ontology, sources_sort: Dict[str, i
         record.get("deprecated", False),
         record.get("alias", False),
         bool(record.get("dependency", "")),
-        sources_sort.get(record["source"], 99999),
+        sources_sort.get(str(record.get("source")), 99999),
         record["sourceId"],
         record.get("sourceIdVersion", ""),
         record["name"],
