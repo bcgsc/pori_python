@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 from urllib3.util.retry import Retry
 
-from pori_python.types import OntologyTerm, ParsedVariant, PositionalVariant, Record
+from pori_python.types import Ontology, ParsedVariant, PositionalVariant, Record
 
 from .constants import DEFAULT_LIMIT, DEFAULT_URL, TYPES_TO_NOTATION, AA_3to1_MAPPING
 
@@ -328,16 +328,17 @@ def get_rid(conn: GraphKBConnection, target: str, name: str) -> str:
     return result[0]["@rid"]
 
 
-def ontologyTermRepr(term: Union[OntologyTerm, str]) -> str:
-    if type(term) is not str:
-        if getattr(term, "displayName", None) and term.displayName != "":
+def ontologyTermRepr(term: Union[Ontology, str]) -> str:
+    if isinstance(term, str):
+        return term
+    else:
+        if hasattr(term, "displayName") and term.displayName:
             return term.displayName
-        if getattr(term, "sourceId", None) and term.sourceId != "":
+        if hasattr(term, "sourceId") and term.sourceId:
             return term.sourceId
-        if getattr(term, "name", None) and term.name != "":
+        if hasattr(term, "name") and term.name:
             return term.name
-        return ""
-    return term
+    return ""
 
 
 def stripParentheses(breakRepr: str) -> str:
@@ -360,13 +361,13 @@ def stripRefSeq(breakRepr: str) -> str:
 
 
 def stripDisplayName(displayName: str, withRef: bool = True, withRefSeq: bool = True) -> str:
-    match: object = re.search(r"^(.*)(\:)(.*)$", displayName)
+    match = re.search(r"^(.*)(\:)(.*)$", displayName)
     if match and not withRef:
         if withRefSeq:
             return match.group(3)
         displayName = match.group(2) + match.group(3)
 
-    match: object = re.search(r"^(.*\:)([a-z]\.)(.*)$", displayName)
+    match = re.search(r"^(.*\:)([a-z]\.)(.*)$", displayName)
     if match and not withRefSeq:
         ref: str = match.group(1) if match.group(1) != ":" else ""
         prefix: str = match.group(2)

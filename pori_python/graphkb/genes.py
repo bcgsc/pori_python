@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 
-from pori_python.types import Ontology, Statement, Variant
+from pori_python.types import IprGene, Ontology, Statement, Variant
 
 from . import GraphKBConnection
 from .constants import (
@@ -411,7 +411,7 @@ def convert_to_rid_set(records: Sequence[Dict]) -> Set[str]:
 
 def get_gene_information(
     graphkb_conn: GraphKBConnection, gene_names: Sequence[str]
-) -> List[Dict[str, bool]]:
+) -> List[IprGene]:
     """Create a list of gene_info flag dicts for IPR report upload.
 
     Function is originally from pori_ipr_python::annotate.py

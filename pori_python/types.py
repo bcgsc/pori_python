@@ -5,24 +5,14 @@ from typing import Dict, List, Optional, Tuple, TypedDict, Union
 CategoryBaseTermMapping = List[Tuple[str, List[str]]]
 Record = TypedDict("Record", {"@rid": str, "@class": str})
 EmbeddedRecord = TypedDict("EmbeddedRecord", {"@class": str})
-RecordLink = Union[str, Record]
 
 
 class Ontology(Record):
     sourceId: str
-    name: str
-    source: RecordLink
-    displayName: str
-
-
-class OntologyTerm(Record):
-    name: Optional[str]
-    sourceId: Optional[str]
     sourceIdVersion: Optional[str]
-    displayName: Optional[str]
-
-
-OntologyLink = Union[str, Ontology]
+    name: str
+    source: Record
+    displayName: str
 
 
 class BasicPosition(EmbeddedRecord):
@@ -39,9 +29,9 @@ Position = Union[BasicPosition, CytobandPosition]
 
 
 class Variant(Record):
-    reference1: OntologyLink
-    reference2: Optional[OntologyLink]
-    type: OntologyLink
+    reference1: Ontology
+    reference2: Optional[Ontology]
+    type: Ontology
     zygosity: str
     germline: bool
     displayName: str
@@ -73,12 +63,12 @@ class ParsedVariant(TypedDict):
 
 
 class Statement(Record):
-    relevance: OntologyLink
-    subject: OntologyLink
-    conditions: List[OntologyLink]
-    evidence: List[OntologyLink]
-    evidenceLevel: List[OntologyLink]
-    source: RecordLink
+    relevance: Ontology
+    subject: Ontology
+    conditions: List[Ontology]
+    evidence: List[Ontology]
+    evidenceLevel: List[Ontology]
+    source: Record
     sourceId: str
 
 
