@@ -9,19 +9,19 @@ from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.types import (
-    GkbStatement,
     ImageDefinition,
     IprFusionVariant,
     IprGene,
     IprVariant,
     KbMatch,
+    Statement,
 )
 
 from .constants import GERMLINE_BASE_TERMS, VARIANT_CLASSES
 from .util import find_variant, logger
 
 
-def display_evidence_levels(statement: GkbStatement) -> str:
+def display_evidence_levels(statement: Statement) -> str:
     result = []
     for evidence_level in statement.get("evidenceLevel", []) or []:
         if isinstance(evidence_level, str):
@@ -105,7 +105,7 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
 
 def convert_statements_to_alterations(
     graphkb_conn: GraphKBConnection,
-    statements: List[GkbStatement],
+    statements: List[Statement],
     disease_name: str,
     variant_matches: Iterable[str],
 ) -> List[KbMatch]:

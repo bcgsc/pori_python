@@ -9,7 +9,7 @@ from pori_python.graphkb.statement import categorize_relevance
 from pori_python.graphkb.util import convert_to_rid_list
 from pori_python.graphkb.vocab import get_term_tree
 from pori_python.ipr.inputs import create_graphkb_sv_notation
-from pori_python.types import GkbStatement, IprVariant, KbMatch, Ontology, Record
+from pori_python.types import IprVariant, KbMatch, Ontology, Record, Statement
 
 from .util import (
     convert_to_rid_set,
@@ -137,15 +137,15 @@ def substitute_sentence_template(
 def aggregate_statements(
     graphkb_conn: GraphKBConnection,
     template: str,
-    statements: List[GkbStatement],
+    statements: List[Statement],
     disease_matches: Set[str],
 ) -> Dict[str, str]:
     """
     Group Statements that only differ in disease conditions and evidence
     """
-    hash_other: Dict[Tuple, List[GkbStatement]] = {}
+    hash_other: Dict[Tuple, List[Statement]] = {}
 
-    def generate_key(statement: GkbStatement) -> Tuple:
+    def generate_key(statement: Statement) -> Tuple:
         result = [
             cond["displayName"]
             for cond in filter_by_record_class(statement["conditions"], "Disease", exclude=True)
@@ -235,7 +235,7 @@ def create_section_html(
     graphkb_conn: GraphKBConnection,
     gene_name: str,
     sentences_by_statement_id: Dict[str, str],
-    statements: Dict[str, GkbStatement],
+    statements: Dict[str, Statement],
     exp_variants: List[IprVariant],
 ) -> str:
     """
@@ -308,7 +308,7 @@ def create_section_html(
 
 
 def section_statements_by_genes(
-    graphkb_conn: GraphKBConnection, statements: Sequence[GkbStatement]
+    graphkb_conn: GraphKBConnection, statements: Sequence[Statement]
 ) -> Dict[str, Set[str]]:
     """Create Dict of statement @rid sets indexed by preferred gene names in conditions."""
     genes: Dict[str, Set[str]] = {}
@@ -335,8 +335,8 @@ def summarize(
     variants: Sequence[IprVariant],
 ) -> str:
     """Given a list of GraphKB matches, generate a text summary to add to the report."""
-    templates: Dict[str, List[GkbStatement]] = {}
-    statements: Dict[str, GkbStatement] = {}
+    templates: Dict[str, List[Statement]] = {}
+    statements: Dict[str, Statement] = {}
     variants_by_keys = {v["key"]: v for v in variants}
     variant_keys_by_statement_ids: Dict[str, Set[str]] = {}
 

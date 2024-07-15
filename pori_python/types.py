@@ -70,6 +70,8 @@ class Statement(Record):
     evidenceLevel: List[Ontology]
     source: Record
     sourceId: str
+    reviewStatus: Optional[str]
+    displayNameTemplate: str
 
 
 class KbMatch(TypedDict):
@@ -172,20 +174,6 @@ class IprFusionVariant(IprStructVarBase):
 class ImageDefinition(TypedDict):
     key: str
     path: str
-
-
-class GkbStatement(Record):
-    """No 'links' handled."""
-
-    relevance: Ontology
-    subject: Ontology
-    conditions: List[Ontology]
-    evidence: List[Ontology]
-    evidenceLevel: List[Ontology]
-    source: Record
-    sourceId: str
-    reviewStatus: Optional[str]
-    displayNameTemplate: str
 
 
 IprStructuralVariant = Union[IprSmallMutationVariant, IprFusionVariant]

@@ -14,11 +14,11 @@ from pori_python.graphkb.match import INPUT_COPY_CATEGORIES
 from pori_python.graphkb.statement import get_statements_from_variants
 from pori_python.graphkb.util import FeatureNotFoundError
 from pori_python.types import (
-    GkbStatement,
     IprCopyVariant,
     IprExprVariant,
     IprStructuralVariant,
     KbMatch,
+    Statement,
     Variant,
 )
 
@@ -30,7 +30,7 @@ REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
 
 
 def get_second_pass_variants(
-    graphkb_conn: GraphKBConnection, statements: List[GkbStatement]
+    graphkb_conn: GraphKBConnection, statements: List[Statement]
 ) -> List[Variant]:
     """Given a list of statements that have been matched, convert these to
     new category variants to be used in a second-pass matching.
