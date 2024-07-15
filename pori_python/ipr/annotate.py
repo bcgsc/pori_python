@@ -101,7 +101,6 @@ def annotate_expression_variants(
     skipped = 0
     alterations = []
     problem_genes = set()
-
     logger.info(f"Starting annotation of {len(variants)} expression category_variants")
     iterfunc = tqdm if show_progress else iter
     for row in iterfunc(variants):
@@ -112,7 +111,6 @@ def annotate_expression_variants(
             skipped += 1
             logger.debug(f"Skipping malformed Expression {gene}: {row}")
             continue
-
         try:
             matches = gkb_match.match_expression_variant(graphkb_conn, gene, variant)
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
@@ -166,7 +164,6 @@ def annotate_copy_variants(
             skipped += 1
             logger.debug(f"Dropping {gene} copy change '{variant}' - not in REPORTED_COPY_VARIANTS")
             continue
-
         try:
             matches = gkb_match.match_copy_variant(graphkb_conn, gene, variant)
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):

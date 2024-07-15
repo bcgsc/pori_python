@@ -41,9 +41,13 @@ TP53_MUT_DICT = {
 
 @pytest.fixture(scope="module")
 def graphkb_conn():
-    username = os.environ["IPR_USER"]
-    password = os.environ["IPR_PASS"]
-    graphkb_conn = GraphKBConnection()
+    username = os.environ.get('GRAPHKB_USER', os.environ['IPR_USER'])
+    password = os.environ.get('GRAPHKB_PASS', os.environ['IPR_PASS'])
+    graphkb_url = os.environ.get('GRAPHKB_URL', False)
+    if graphkb_url:
+        graphkb_conn = GraphKBConnection(graphkb_url)
+    else:
+        graphkb_conn = GraphKBConnection()
     graphkb_conn.login(username, password)
     return graphkb_conn
 

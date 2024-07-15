@@ -13,6 +13,7 @@ from .constants import (
     ONCOGENE,
     ONCOKB_SOURCE_NAME,
     PREFERRED_GENE_SOURCE,
+    PREFERRED_GENE_SOURCE_NAME,
     RELEVANCE_BASE_TERMS,
     TSO500_SOURCE_NAME,
     TUMOUR_SUPPRESSIVE,
@@ -184,8 +185,24 @@ def get_genes_from_variant_types(
     return result
 
 
+def get_preferred_gene_source_rid(conn: GraphKBConnection, preferred_source_name=PREFERRED_GENE_SOURCE_NAME):
+    """Get the rid of the preferred gene source.
+
+    Args:
+        ignore_cache (bool, optional): bypass the cache to always force a new request
+        preferred_source_name: name of the preferred gene symbol source to look up the rid of
+    Returns:
+        rid of the source record matching the preferred source name.
+
+    """
+    result = conn.query(
+        {"target": {"target": "Source", "filters": {"name": preferred_source_name}}, "queryType": "similarTo"},
+    )[0]["@rid"]
+    return result
+
+
 def get_preferred_gene_name(
-    conn: GraphKBConnection, gene_name: str, source: str = PREFERRED_GENE_SOURCE
+    conn: GraphKBConnection, gene_name: str, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> str:
     """Preferred gene symbol of a gene or transcript.
 
@@ -200,6 +217,7 @@ def get_preferred_gene_name(
         return KRAS for get_preferred_gene_name(conn, 'NM_033360')
         return KRAS for get_preferred_gene_name(conn, 'ENSG00000133703.11')
     """
+    source_rid = get_preferred_gene_source_rid(conn, source)
     if gene_name in CHROMOSOMES:
         logger.error(f"{gene_name} assumed to be a chromosome, not gene")
         return ""
@@ -208,10 +226,10 @@ def get_preferred_gene_name(
     if not genes:
         logger.error(f"No genes found for: {gene_name}")
         return ""
-    if source:
-        source_filtered_genes = [m for m in genes if m.get("source") == source]
+    if source_rid:
+        source_filtered_genes = [m for m in genes if m.get("source") == source_rid]
         if not source_filtered_genes:
-            logger.error(f"No data from source {source} for {gene_name}")
+            logger.error(f"No data from source {source_rid} for {gene_name}")
         else:
             genes = source_filtered_genes
 
@@ -224,7 +242,7 @@ def get_preferred_gene_name(
 
 
 def get_cancer_predisposition_info(
-    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, str]]:
     newval = get_gene_linked_cancer_predisposition_info(conn, source)
     genes = newval[0]
@@ -261,6 +279,7 @@ def get_gene_linked_cancer_predisposition_info(
 
     terms: dict = {term: lst for term, lst in RELEVANCE_BASE_TERMS}
     relevance_rids = list(get_terms_set(conn, terms.get("cancer predisposition", [])))
+    source_rid = get_preferred_gene_source_rid(conn, source)
 
     for record in conn.query(
         {
@@ -298,7 +317,7 @@ def get_gene_linked_cancer_predisposition_info(
                         genes.add(name)
                         assoc_gene_list.append(name)
                     elif name:
-                        gene = get_preferred_gene_name(conn, name, source)
+                        gene = get_preferred_gene_name(conn, name, source_rid)
                         if gene:
                             infer_genes.add((gene, name, biotype))
                             assoc_gene_list.append(gene)
@@ -320,7 +339,7 @@ def get_gene_linked_cancer_predisposition_info(
 
 
 def get_pharmacogenomic_info(
-    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, str]]:
     newval = get_gene_linked_pharmacogenomic_info(conn, source)
     genes = newval[0]
@@ -354,6 +373,7 @@ def get_gene_linked_pharmacogenomic_info(
     variants = {}
 
     relevance_rids = list(get_terms_set(conn, "pharmacogenomic"))
+    source_rid = get_preferred_gene_source_rid(conn, source)
 
     for record in conn.query(
         {
@@ -388,7 +408,7 @@ def get_gene_linked_pharmacogenomic_info(
                         genes.add(name)
                         assoc_gene_list.append(name)
                     elif name:
-                        gene = get_preferred_gene_name(conn, name, source)
+                        gene = get_preferred_gene_name(conn, name, source_rid)
                         if gene:
                             infer_genes.add((gene, name, biotype))
                             assoc_gene_list.append(gene)

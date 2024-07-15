@@ -3,6 +3,7 @@
     "kbDiseaseMatch": "colorectal cancer",
     "project": "TEST",
     "template": "genomic",
+    "comparator": "cholangiocarinoma",
     "smallMutations": [
         {
             "gene": "APC",
