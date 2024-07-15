@@ -56,7 +56,9 @@ class TestCreateReport:
     def test_found_probe_small_mutations(self, probe_upload_content: Dict) -> None:
         assert probe_upload_content["smallMutations"]
 
-    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding tests that depend on BCGSC-specific data")
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS, reason="excluding tests that depend on BCGSC-specific data"
+    )
     def test_found_probe_small_mutations_match(self, probe_upload_content: Dict) -> None:
         # verify each probe had a KB match
         for sm_probe in probe_upload_content["smallMutations"]:

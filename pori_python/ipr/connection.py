@@ -13,7 +13,9 @@ IMAGE_MAX = 20  # cannot upload more than 20 images at a time
 
 
 class IprConnection:
-    def __init__(self, username: str, password: str, url: str = os.environ.get("IPR_URL", DEFAULT_URL)):
+    def __init__(
+        self, username: str, password: str, url: str = os.environ.get("IPR_URL", DEFAULT_URL)
+    ):
         self.token = None
         self.url = url
         self.username = username
@@ -26,7 +28,9 @@ class IprConnection:
         self.cache: Dict[str, List[Dict]] = {}
         self.request_count = 0
 
-    def request(self, endpoint: str, method: str = "GET", custom_headers: Dict = None, **kwargs) -> Dict:
+    def request(
+        self, endpoint: str, method: str = "GET", custom_headers: Dict = None, **kwargs
+    ) -> Dict:
         """Request wrapper to handle adding common headers and logging
 
         Args:
@@ -59,7 +63,7 @@ class IprConnection:
                 pass
 
             raise requests.exceptions.HTTPError(message)
-        if resp.status_code == 204: # TODO: address this in api
+        if resp.status_code == 204:  # TODO: address this in api
             return {'status_code': 204}
         return resp.json()
 

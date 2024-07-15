@@ -15,6 +15,7 @@ from .constants import EXCLUDE_INTEGRATION_TESTS
 EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
 EXCLUDE_ONCOKB_TESTS = os.environ.get("EXCLUDE_ONCOKB_TESTS") == "1"
 
+
 def get_test_spec():
     ipr_spec = {"components": {"schemas": {"genesCreate": {"properties": {}}}}}
     ipr_gene_keys = IprGene.__required_keys__ | IprGene.__optional_keys__
@@ -43,20 +44,27 @@ def report_upload_content(tmp_path_factory) -> Dict:
                 ],
                 'patientId': 'PATIENT001',
                 'project': 'TEST',
-                'expressionVariants': json.loads(pd.read_csv(
-                    get_test_file('expression.short.tab'), sep='\t'
-                ).to_json(orient='records')),
-                'smallMutations': json.loads(pd.read_csv(
-                    get_test_file('small_mutations.short.tab'), sep='\t'
-                ).to_json(orient='records')),
-                'copyVariants': json.loads(pd.read_csv(
-                    get_test_file('copy_variants.short.tab'), sep='\t'
-                ).to_json(orient='records')),
-                'structuralVariants': json.loads(pd.read_csv(get_test_file('fusions.tab'), sep='\t').to_json(
-                    orient='records'
-                )),
+                'expressionVariants': json.loads(
+                    pd.read_csv(get_test_file('expression.short.tab'), sep='\t').to_json(
+                        orient='records'
+                    )
+                ),
+                'smallMutations': json.loads(
+                    pd.read_csv(get_test_file('small_mutations.short.tab'), sep='\t').to_json(
+                        orient='records'
+                    )
+                ),
+                'copyVariants': json.loads(
+                    pd.read_csv(get_test_file('copy_variants.short.tab'), sep='\t').to_json(
+                        orient='records'
+                    )
+                ),
+                'structuralVariants': json.loads(
+                    pd.read_csv(get_test_file('fusions.tab'), sep='\t').to_json(orient='records')
+                ),
                 'kbDiseaseMatch': 'colorectal cancer',
-            }, allow_nan=False
+            },
+            allow_nan=False,
         )
     )
     with patch.object(
@@ -108,7 +116,9 @@ class TestCreateReport:
 
     def test_kept_low_quality_fusion(self, report_upload_content: Dict) -> None:
         fusions = [(sv['gene1'], sv['gene2']) for sv in report_upload_content['structuralVariants']]
-        if EXCLUDE_BCGSC_TESTS:  # may be missing statements assoc with SUZ12 if no access to bcgsc data
+        if (
+            EXCLUDE_BCGSC_TESTS
+        ):  # may be missing statements assoc with SUZ12 if no access to bcgsc data
             assert ('SARM1', 'CDKL2') in fusions
         else:
             assert ('SARM1', 'SUZ12') in fusions

@@ -185,7 +185,9 @@ def get_genes_from_variant_types(
     return result
 
 
-def get_preferred_gene_source_rid(conn: GraphKBConnection, preferred_source_name=PREFERRED_GENE_SOURCE_NAME):
+def get_preferred_gene_source_rid(
+    conn: GraphKBConnection, preferred_source_name=PREFERRED_GENE_SOURCE_NAME
+):
     """Get the rid of the preferred gene source.
 
     Args:
@@ -196,7 +198,10 @@ def get_preferred_gene_source_rid(conn: GraphKBConnection, preferred_source_name
 
     """
     result = conn.query(
-        {"target": {"target": "Source", "filters": {"name": preferred_source_name}}, "queryType": "similarTo"},
+        {
+            "target": {"target": "Source", "filters": {"name": preferred_source_name}},
+            "queryType": "similarTo",
+        },
     )[0]["@rid"]
     return result
 

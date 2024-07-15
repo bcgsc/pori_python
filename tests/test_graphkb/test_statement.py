@@ -85,7 +85,10 @@ class TestCategorizeRelevance:
         )
         assert category == "blargh"
 
-@pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason='db-specific rid; requires Inferred Functional Annotation source')
+
+@pytest.mark.skipif(
+    EXCLUDE_BCGSC_TESTS, reason='db-specific rid; requires Inferred Functional Annotation source'
+)
 @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestStatementMatch:
     def test_truncating_categories(self, conn):  # noqa - pytest fixture, not redefinition

@@ -72,8 +72,12 @@ def command_interface() -> None:
     )
 
     parser.add_argument('--ipr_url', default=os.environ.get("IPR_URL", DEFAULT_URL))
-    parser.add_argument('--graphkb_username', help='username to use connecting to graphkb if different from ipr')
-    parser.add_argument('--graphkb_password', help='password to use connecting to graphkb if different from ipr')
+    parser.add_argument(
+        '--graphkb_username', help='username to use connecting to graphkb if different from ipr'
+    )
+    parser.add_argument(
+        '--graphkb_password', help='password to use connecting to graphkb if different from ipr'
+    )
     parser.add_argument('--graphkb_url', default=os.environ.get("GRAPHKB_URL", None))
     parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument(

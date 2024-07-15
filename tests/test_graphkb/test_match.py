@@ -41,11 +41,13 @@ def conn() -> GraphKBConnection:
 def kras(conn):
     return [f["displayName"] for f in match.get_equivalent_features(conn, "kras")]
 
+
 """ 
 version found in the db for ENSG00000133703 will vary depending on which
 version of ensembl was loaded. checking for any . version
  """
 kras_ensg_version = r'ENSG00000133703\..*'
+
 
 class TestGetEquivalentFeatures:
     def test_kras_has_self(self, kras):
@@ -109,7 +111,10 @@ class TestMatchCopyVariant:
         with pytest.raises(FeatureNotFoundError):
             match.match_copy_variant(conn, "not a real gene name", match.INPUT_COPY_CATEGORIES.AMP)
 
-    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests - no copy loss variants in other data")
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS,
+        reason="excluding BCGSC-specific tests - no copy loss variants in other data",
+    )
     def test_known_loss(self, conn):
         matches = match.match_copy_variant(conn, "CDKN2A", match.INPUT_COPY_CATEGORIES.ANY_LOSS)
         assert matches
@@ -126,7 +131,10 @@ class TestMatchCopyVariant:
         for variant_type in types_selected:
             assert not has_prefix(variant_type, INCREASE_PREFIXES)
 
-    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests - no copy loss variants in other data")
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS,
+        reason="excluding BCGSC-specific tests - no copy loss variants in other data",
+    )
     def test_known_loss_zygosity_filtered(self, conn):
         matches = match.match_copy_variant(
             conn, "CDKN2A", match.INPUT_COPY_CATEGORIES.ANY_LOSS, True
@@ -224,7 +232,9 @@ class TestMatchExpressionVariant:
         for variant_type in types_selected:
             assert not has_prefix(variant_type, INCREASE_PREFIXES)
 
-    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests - no applicable variants")
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests - no applicable variants"
+    )
     def test_known_reduced_expression_gene_id(self, conn):
         gene_id = conn.query({"target": "Feature", "filters": [{"name": "PTEN"}]})[0]["@rid"]
         matches = match.match_expression_variant(
@@ -413,7 +423,9 @@ class TestMatchPositionalVariant:
             ["EGFR:p.E746_S752delinsI", ["EGFR mutation"], ["EGFR copy variant"]],
         ],
     )
-    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason='TODO: fix loader for vars ending in X, p.?, copy variant')
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS, reason='TODO: fix loader for vars ending in X, p.?, copy variant'
+    )
     def test_known_variants(self, conn, known_variant, related_variants, unrelated_variants):
         matches = match.match_positional_variant(conn, known_variant)
         names = {m["displayName"] for m in matches}
@@ -424,7 +436,9 @@ class TestMatchPositionalVariant:
         for variant in unrelated_variants:
             assert variant not in names
 
-    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="TODO: add nonIPRKB fusion tests; source for these is IPRKB")
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS, reason="TODO: add nonIPRKB fusion tests; source for these is IPRKB"
+    )
     @pytest.mark.parametrize(
         "known_variant,related_variants",
         [
