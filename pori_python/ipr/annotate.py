@@ -217,7 +217,7 @@ def annotate_positional_variants(
     """
     VARIANT_KEYS = ("variant", "hgvsProtein", "hgvsCds", "hgvsGenomic")
     errors = 0
-    alterations = []
+    alterations: List[KbMatch] = []
     problem_genes = set()
 
     iterfunc = tqdm if show_progress else iter
@@ -286,7 +286,7 @@ def annotate_positional_variants(
         logger.error(f"skipped {errors} positional variants due to errors")
 
     # drop duplicates
-    alterations: List[KbMatch] = list(set(alterations))
+    alterations = list(set(alterations))
 
     variant_types = ", ".join(sorted(set([alt["variantType"] for alt in alterations])))
     logger.info(
