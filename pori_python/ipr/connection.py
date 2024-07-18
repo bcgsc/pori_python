@@ -14,7 +14,10 @@ IMAGE_MAX = 20  # cannot upload more than 20 images at a time
 
 class IprConnection:
     def __init__(
-        self, username: str, password: str, url: str = os.environ.get("IPR_URL", DEFAULT_URL)
+        self,
+        username: str,
+        password: str,
+        url: str = os.environ.get("IPR_URL", DEFAULT_URL),
     ):
         self.token = None
         self.url = url
@@ -42,16 +45,19 @@ class IprConnection:
         """
         url = f"{self.url}/{endpoint}"
         self.request_count += 1
-        if custom_headers:
+        kwargs_header = kwargs.pop("header", None)
+        if kwargs_header:
+            headers = kwargs_header
+        elif custom_headers:
             headers = custom_headers
         else:
             headers = self.headers
-        print('headers:', headers)
-        print('url:', url)
+        kwargs_header = kwargs.pop("header", None)
+        if kwargs_header:
+            headers = kwargs_header
         resp = requests.request(
             method, url, headers=headers, auth=(self.username, self.password), **kwargs
         )
-        print(resp.status_code)
         try:
             resp.raise_for_status()
         except requests.exceptions.HTTPError as err:
@@ -64,7 +70,7 @@ class IprConnection:
 
             raise requests.exceptions.HTTPError(message)
         if resp.status_code == 204:  # TODO: address this in api
-            return {'status_code': 204}
+            return {"status_code": 204}
         return resp.json()
 
     def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
@@ -90,7 +96,7 @@ class IprConnection:
         return self.request(
             uri,
             method="DELETE",
-            custom_headers={'Accept': '*/*'},
+            custom_headers={"Accept": "*/*"},
             data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
             **kwargs,
         )
@@ -109,30 +115,52 @@ class IprConnection:
                     time.sleep(interval)
                     current_status = self.get(f"reports-async/{report_id}")
 
-                    if current_status.get("ident", False):
+                    if current_status.get("report", False):
                         return current_status
 
-                    if current_status["state"] == "failed":
+                    job_status = current_status.get("jobStatus", False)
+                    if not job_status:
+                        raise Exception(
+                            f"async report uploaded terminated with no report or jobstatus"
+                        )
+
+                    if job_status == "failed":
                         raise Exception(
                             f'async report upload failed with reason: {current_status["failedReason"]}'
                         )
 
-                    if current_status["state"] not in ["active", "ready", "waiting", "completed"]:
+                    if job_status not in ["active", "ready", "waiting", "completed"]:
                         raise Exception(
-                            f"async report upload in unexpected state: {current_status}"
+                            f"async report upload in unexpected state: {job_status}"
                         )
 
                 return current_status
 
             current_status = check_status()
+            job_status = current_status.get("jobStatus", False)
+            if not job_status:
+                if current_status.get("report", False):
+                    return current_status
+                raise Exception(
+                    f"async-report upload finished with no jobStatus or report"
+                )
 
-            if current_status["state"] in ["active", "waiting"]:
+            if current_status.get("jobStatus", "job status not found") in [
+                "active",
+                "waiting",
+            ]:
                 current_status = check_status(interval=30)
 
-            if current_status["state"] in ["active", "waiting"]:
+            if current_status.get("jobStatus", "job status not found") in [
+                "active",
+                "waiting",
+            ]:
                 current_status = check_status(interval=60, num_attempts=mins_to_wait)
 
-            if current_status["state"] in ["active", "waiting"]:
+            if current_status.get("jobStatus", "job status not found") in [
+                "active",
+                "waiting",
+            ]:
                 raise Exception(
                     f"async report upload taking longer than expected: {current_status}"
                 )
@@ -155,10 +183,14 @@ class IprConnection:
             data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
         )
 
-    def post_images(self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}) -> None:
+    def post_images(
+        self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}
+    ) -> None:
         """
         Post images to the report
         """
+        print(data)
+        print(files)
         file_keys = list(files.keys())
         start_index = 0
         image_errors = set()
@@ -176,7 +208,7 @@ class IprConnection:
                     method="POST",
                     data=data,
                     files=open_files,
-                    headers={},
+                    custom_headers={},
                 )
                 for status in resp:
                     if status.get("upload") != "successful":
@@ -186,7 +218,9 @@ class IprConnection:
                     handler.close()
             start_index += IMAGE_MAX
         if image_errors:
-            raise ValueError(f'Error uploading images ({", ".join(sorted(list(image_errors)))})')
+            raise ValueError(
+                f'Error uploading images ({", ".join(sorted(list(image_errors)))})'
+            )
 
     def get_spec(self) -> Dict:
         """
