@@ -90,7 +90,7 @@ class IprConnection:
                 if result.get("jobStatus", False) and result["jobStatus"].get("state", False):
                     return result["jobStatus"]["state"]
                 raise Exception(
-                    f"async report get returned with no report or jobStatus, or unexpected jobStatus type"
+                    "async report get returned with no report or jobStatus, or unexpected jobStatus type"
                 )
 
             def check_status(interval: int = 5, num_attempts: int = 5):
