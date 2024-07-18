@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 import sys
 import uuid
-from typing import Dict, Tuple, List
+from typing import Dict, List, Tuple
 from unittest.mock import MagicMock, patch
 
 from pori_python.ipr.connection import IprConnection
@@ -42,10 +42,7 @@ def loaded_report(tmp_path_factory) -> Dict:
                     {"analysisRole": "expression (disease)", "name": "1"},
                     {"analysisRole": "expression (primary site)", "name": "2"},
                     {"analysisRole": "expression (biopsy site)", "name": "3"},
-                    {
-                        "analysisRole": "expression (internal pancancer cohort)",
-                        "name": "4",
-                    },
+                    {"analysisRole": "expression (internal pancancer cohort)", "name": "4"},
                 ],
                 "patientId": patient_id,
                 "project": "TEST",

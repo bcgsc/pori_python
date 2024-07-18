@@ -109,12 +109,7 @@ class IprConnection:
                             f'async report upload failed with reason: {current_status["failedReason"]}'
                         )
 
-                    if check_result not in [
-                        "active",
-                        "ready",
-                        "waiting",
-                        "completed",
-                    ]:
+                    if check_result not in ["active", "ready", "waiting", "completed"]:
                         raise Exception(
                             f"async report upload in unexpected state: {current_status}"
                         )
