@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 import sys
 import uuid
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 from unittest.mock import MagicMock, patch
 
 from pori_python.ipr.connection import IprConnection
