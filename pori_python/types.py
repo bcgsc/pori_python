@@ -3,14 +3,13 @@ from typing import Dict, List, Optional, Tuple, TypedDict, Union
 # TODO: Can constants in inputs.py like COPY_REQ, SMALL_MUT_REQ, just be replaced by types?
 
 CategoryBaseTermMapping = List[Tuple[str, List[str]]]
-Record = TypedDict("Record", {"@rid": str, "@class": str})
+Record = TypedDict("Record", {"@rid": str, "@class": str, "name": str})
 EmbeddedRecord = TypedDict("EmbeddedRecord", {"@class": str})
 
 
 class Ontology(Record):
     sourceId: str
     sourceIdVersion: Optional[str]
-    name: str
     source: Record
     displayName: str
 
