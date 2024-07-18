@@ -50,24 +50,22 @@ def loaded_report(tmp_path_factory) -> Dict:
                 "patientId": patient_id,
                 "project": "TEST",
                 "expressionVariants": json.loads(
-                    pd.read_csv(
-                        get_test_file("expression.short.tab"), sep="\t"
-                    ).to_json(orient="records")
-                ),
-                "smallMutations": json.loads(
-                    pd.read_csv(
-                        get_test_file("small_mutations.short.tab"), sep="\t"
-                    ).to_json(orient="records")
-                ),
-                "copyVariants": json.loads(
-                    pd.read_csv(
-                        get_test_file("copy_variants.short.tab"), sep="\t"
-                    ).to_json(orient="records")
-                ),
-                "structuralVariants": json.loads(
-                    pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(
+                    pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(
                         orient="records"
                     )
+                ),
+                "smallMutations": json.loads(
+                    pd.read_csv(get_test_file("small_mutations.short.tab"), sep="\t").to_json(
+                        orient="records"
+                    )
+                ),
+                "copyVariants": json.loads(
+                    pd.read_csv(get_test_file("copy_variants.short.tab"), sep="\t").to_json(
+                        orient="records"
+                    )
+                ),
+                "structuralVariants": json.loads(
+                    pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(orient="records")
                 ),
                 "kbDiseaseMatch": "colorectal cancer",
             },
@@ -117,9 +115,7 @@ def get_section(loaded_report, section_name):
 @pytest.mark.skipif(
     not INCLUDE_UPLOAD_TESTS, reason="excluding tests of upload to live ipr instance"
 )
-@pytest.mark.skipif(
-    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
-)
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestCreateReport:
     def test_patient_id_loaded_once(self, loaded_report: Tuple) -> None:
         patient_id = loaded_report[0]
