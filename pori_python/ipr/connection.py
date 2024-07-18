@@ -77,9 +77,23 @@ class IprConnection:
         self, content: Dict, mins_to_wait: int = 5, async_upload: bool = False
     ) -> Dict:
         if async_upload:
+            # if async is used, the response for reports-async contains either 'jobStatus'
+            # or 'report'. jobStatus is no longer available once the report is successfully
+            # uploaded.
             initial_result = self.post("reports-async", content)
 
             report_id = initial_result["ident"]
+
+            def check_status_result(result):
+                if result.get("report", False):
+                    return "upload complete"
+                if result.get("jobStatus", False) and result["jobStatus"].get(
+                    "state", False
+                ):
+                    return result["jobStatus"]["state"]
+                raise Exception(
+                    f"async report get returned with no report or jobStatus, or unexpected jobStatus type"
+                )
 
             def check_status(interval: int = 5, num_attempts: int = 5):
                 for i in range(num_attempts):
@@ -87,15 +101,22 @@ class IprConnection:
                     time.sleep(interval)
                     current_status = self.get(f"reports-async/{report_id}")
 
-                    if current_status.get("ident", False):
+                    check_result = check_status_result(current_status)
+
+                    if check_result == "upload complete":
                         return current_status
 
-                    if current_status["state"] == "failed":
+                    if check_result == "failed":
                         raise Exception(
                             f'async report upload failed with reason: {current_status["failedReason"]}'
                         )
 
-                    if current_status["state"] not in ["active", "ready", "waiting", "completed"]:
+                    if check_result not in [
+                        "active",
+                        "ready",
+                        "waiting",
+                        "completed",
+                    ]:
                         raise Exception(
                             f"async report upload in unexpected state: {current_status}"
                         )
@@ -103,14 +124,17 @@ class IprConnection:
                 return current_status
 
             current_status = check_status()
+            check_result = check_status_result(current_status)
 
-            if current_status["state"] in ["active", "waiting"]:
+            if check_result in ["active", "waiting"]:
                 current_status = check_status(interval=30)
+                check_result = check_status_result(current_status)
 
-            if current_status["state"] in ["active", "waiting"]:
+            if check_result in ["active", "waiting"]:
                 current_status = check_status(interval=60, num_attempts=mins_to_wait)
+                check_result = check_status_result(current_status)
 
-            if current_status["state"] in ["active", "waiting"]:
+            if check_result in ["active", "waiting"]:
                 raise Exception(
                     f"async report upload taking longer than expected: {current_status}"
                 )
@@ -133,7 +157,9 @@ class IprConnection:
             data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
         )
 
-    def post_images(self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}) -> None:
+    def post_images(
+        self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}
+    ) -> None:
         """
         Post images to the report
         """
@@ -164,7 +190,9 @@ class IprConnection:
                     handler.close()
             start_index += IMAGE_MAX
         if image_errors:
-            raise ValueError(f'Error uploading images ({", ".join(sorted(list(image_errors)))})')
+            raise ValueError(
+                f'Error uploading images ({", ".join(sorted(list(image_errors)))})'
+            )
 
     def get_spec(self) -> Dict:
         """
