@@ -1,1 +1,1 @@
-from . import graphkb, ipr
+from . import graphkb, ipr  # noqa: F401
