@@ -4,6 +4,15 @@ Functions which return Variants from GraphKB which match some input variant defi
 
 from typing import Dict, List, Optional, Set, Union, cast
 
+from pori_python.types import (
+    BasicPosition,
+    Ontology,
+    ParsedVariant,
+    PositionalVariant,
+    Record,
+    Variant,
+)
+
 from . import GraphKBConnection
 from .constants import (
     AMBIGUOUS_AA,
@@ -15,7 +24,6 @@ from .constants import (
     STRUCTURAL_VARIANT_TYPES,
     VARIANT_RETURN_PROPERTIES,
 )
-from .types import BasicPosition, Ontology, ParsedVariant, PositionalVariant, Record, Variant
 from .util import (
     FeatureNotFoundError,
     convert_to_rid_list,
