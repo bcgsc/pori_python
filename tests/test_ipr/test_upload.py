@@ -4,8 +4,8 @@ import pandas as pd
 import pytest
 import sys
 import uuid
-from typing import Dict, Tuple
-from unittest.mock import MagicMock, patch
+from typing import Dict
+from unittest.mock import patch
 
 from pori_python.ipr.connection import IprConnection
 from pori_python.ipr.main import command_interface
@@ -41,10 +41,7 @@ def loaded_reports(tmp_path_factory) -> Dict:
             {"analysisRole": "expression (disease)", "name": "1"},
             {"analysisRole": "expression (primary site)", "name": "2"},
             {"analysisRole": "expression (biopsy site)", "name": "3"},
-            {
-                "analysisRole": "expression (internal pancancer cohort)",
-                "name": "4",
-            },
+            {"analysisRole": "expression (internal pancancer cohort)", "name": "4"},
         ],
         "patientId": patient_id,
         "project": "TEST",
@@ -66,20 +63,10 @@ def loaded_reports(tmp_path_factory) -> Dict:
         ),
         "kbDiseaseMatch": "colorectal cancer",
     }
-    json_file.write_text(
-        json.dumps(
-            json_contents,
-            allow_nan=False,
-        )
-    )
+    json_file.write_text(json.dumps(json_contents, allow_nan=False))
 
     json_contents["patientId"] = async_patient_id
-    async_json_file.write_text(
-        json.dumps(
-            json_contents,
-            allow_nan=False,
-        )
-    )
+    async_json_file.write_text(json.dumps(json_contents, allow_nan=False))
 
     argslist = [
         "ipr",
@@ -114,10 +101,7 @@ def loaded_reports(tmp_path_factory) -> Dict:
     loaded_report = ipr_conn.get(uri=f"reports?searchText={patient_id}")
     async_loaded_report = ipr_conn.get(uri=f"reports?searchText={async_patient_id}")
 
-    return {
-        "sync": (patient_id, loaded_report),
-        "async": (async_patient_id, async_loaded_report),
-    }
+    return {"sync": (patient_id, loaded_report), "async": (async_patient_id, async_loaded_report)}
 
 
 def get_section(loaded_report, section_name):
