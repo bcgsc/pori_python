@@ -3,11 +3,11 @@ upload variant and report information to IPR
 """
 
 import pandas
-from typing import Dict, List, Sequence
+from typing import Any, Dict, List, Sequence
 
 from pori_python.graphkb import GraphKBConnection
+from pori_python.types import IprVariant, KbMatch
 
-from .types import IprVariant, KbMatch
 from .util import (
     create_variant_name_tuple,
     find_variant,
@@ -22,7 +22,7 @@ def create_therapeutic_options(
     """
     Generate therapeutic options summary from the list of kb-matches
     """
-    options = []
+    options: List[Dict[str, Any]] = []
     resistance_markers = get_terms_set(graphkb_conn, ["no sensitivity"])
 
     for match in kb_matches:

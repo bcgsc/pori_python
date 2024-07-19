@@ -10,8 +10,9 @@ from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 from urllib3.util.retry import Retry
 
+from pori_python.types import OntologyTerm, ParsedVariant, PositionalVariant, Record
+
 from .constants import DEFAULT_LIMIT, DEFAULT_URL, TYPES_TO_NOTATION, AA_3to1_MAPPING
-from .types import OntologyTerm, ParsedVariant, PositionalVariant, Record
 
 QUERY_CACHE: Dict[Any, Any] = {}
 

@@ -8,9 +8,16 @@ from typing import Dict, Iterable, List, Sequence, Set, Tuple
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
+from pori_python.types import (
+    GkbStatement,
+    ImageDefinition,
+    IprFusionVariant,
+    IprGene,
+    IprVariant,
+    KbMatch,
+)
 
 from .constants import GERMLINE_BASE_TERMS, VARIANT_CLASSES
-from .types import GkbStatement, ImageDefinition, IprFusionVariant, IprGene, IprVariant, KbMatch
 from .util import find_variant, logger
 
 

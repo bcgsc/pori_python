@@ -6,12 +6,11 @@ from urllib.parse import urlencode
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.constants import RELEVANCE_BASE_TERMS
 from pori_python.graphkb.statement import categorize_relevance
-from pori_python.graphkb.types import Ontology, Record
 from pori_python.graphkb.util import convert_to_rid_list
 from pori_python.graphkb.vocab import get_term_tree
 from pori_python.ipr.inputs import create_graphkb_sv_notation
+from pori_python.types import GkbStatement, IprVariant, KbMatch, Ontology, Record
 
-from .types import GkbStatement, IprVariant, KbMatch
 from .util import (
     convert_to_rid_set,
     generate_ontology_preference_key,

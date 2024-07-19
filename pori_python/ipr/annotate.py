@@ -12,12 +12,18 @@ from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import match as gkb_match
 from pori_python.graphkb.match import INPUT_COPY_CATEGORIES
 from pori_python.graphkb.statement import get_statements_from_variants
-from pori_python.graphkb.types import Variant
 from pori_python.graphkb.util import FeatureNotFoundError
+from pori_python.types import (
+    GkbStatement,
+    IprCopyVariant,
+    IprExprVariant,
+    IprStructuralVariant,
+    KbMatch,
+    Variant,
+)
 
 from .constants import TMB_HIGH_CATEGORY
 from .ipr import convert_statements_to_alterations
-from .types import GkbStatement, IprCopyVariant, IprExprVariant, IprStructuralVariant, KbMatch
 from .util import Hashabledict, convert_to_rid_set, logger
 
 REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
