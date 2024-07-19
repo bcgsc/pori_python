@@ -5,8 +5,6 @@ name: quick-tests
 
 on:
   push:
-    branches:
-      - '*'
 
 jobs:
   build:
