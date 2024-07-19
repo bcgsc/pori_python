@@ -74,7 +74,10 @@ def command_interface() -> None:
     parser.add_argument("--graphkb_url", default=None)
     parser.add_argument("--log_level", default="info", choices=LOG_LEVELS.keys())
     parser.add_argument(
-        "--therapeutics", default=False, help="Generate therapeutic options", action="store_true"
+        "--therapeutics",
+        default=False,
+        help="Generate therapeutic options",
+        action="store_true",
     )
     parser.add_argument(
         "--skip_comments",
@@ -83,7 +86,9 @@ def command_interface() -> None:
         help="Turn off generating the analyst comments section of the report",
     )
     parser.add_argument(
-        "-o", "--output_json_path", help="path to a JSON to output the report upload body"
+        "-o",
+        "--output_json_path",
+        help="path to a JSON to output the report upload body",
     )
     parser.add_argument(
         "-w",
@@ -365,7 +370,10 @@ def ipr_report(
     logger.info(f"annotating {len(structural_variants)} structural variants")
     gkb_matches.extend(
         annotate_positional_variants(
-            graphkb_conn, structural_variants, kb_disease_match, show_progress=interactive
+            graphkb_conn,
+            structural_variants,
+            kb_disease_match,
+            show_progress=interactive,
         )
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
@@ -381,7 +389,10 @@ def ipr_report(
     logger.info(f"annotating {len(expression_variants)} expression variants")
     gkb_matches.extend(
         annotate_expression_variants(
-            graphkb_conn, expression_variants, kb_disease_match, show_progress=interactive
+            graphkb_conn,
+            expression_variants,
+            kb_disease_match,
+            show_progress=interactive,
         )
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
@@ -418,7 +429,10 @@ def ipr_report(
     if generate_comments:
         comments = {
             "comments": summarize(
-                graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
+                graphkb_conn,
+                gkb_matches,
+                disease_name=kb_disease_match,
+                variants=all_variants,
             )
         }
     else:
