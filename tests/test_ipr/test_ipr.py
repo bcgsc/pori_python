@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.ipr.ipr import convert_statements_to_alterations, germline_kb_matches
-from pori_python.ipr.types import GkbStatement
+from pori_python.types import GkbStatement
 
 DISEASE_RIDS = ["#138:12", "#138:13"]
 APPROVED_EVIDENCE_RIDS = ["approved1", "approved2"]

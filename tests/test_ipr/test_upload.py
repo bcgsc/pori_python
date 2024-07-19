@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 from pori_python.ipr.connection import IprConnection
 from pori_python.ipr.main import command_interface
-from pori_python.ipr.types import IprGene
+from pori_python.types import IprGene
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
 

@@ -2,6 +2,8 @@
 
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 
+from pori_python.types import Ontology, Statement, Variant
+
 from . import GraphKBConnection
 from .constants import (
     BASE_THERAPEUTIC_TERMS,
@@ -18,7 +20,6 @@ from .constants import (
     TUMOUR_SUPPRESSIVE,
 )
 from .match import get_equivalent_features
-from .types import Ontology, Statement, Variant
 from .util import get_rid, logger
 from .vocab import get_terms_set
 
