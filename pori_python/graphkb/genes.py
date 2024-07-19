@@ -110,6 +110,7 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> List[On
     )
     genes: List[Ontology] = []
     for statement in statements:
+        statement = cast(Statement, statement)
         if statement["reviewStatus"] == "failed":
             continue
         for condition in statement["conditions"]:
@@ -459,6 +460,7 @@ def get_gene_information(
     }
 
     for statement in statements:
+        statement = cast(Statement, statement)
         for condition in statement["conditions"]:
             if not condition.get("reference1"):
                 continue

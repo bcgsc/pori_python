@@ -395,7 +395,7 @@ def stringifyVariant(
         str: The string representation
     """
 
-    displayName: str = variant.get("displayName", "")
+    displayName: str = variant.get("displayName") or ""
 
     # If variant is a PositionalVariant (i.e. variant with a displayName) and
     # we already have the appropriate string representation,
@@ -413,7 +413,7 @@ def stringifyVariant(
     # the following will return a stringify representation (displayName/hgvs) of that variant
     # based on: https://github.com/bcgsc/pori_graphkb_parser/blob/ae3738842a4c208ab30f58c08ae987594d632504/src/variant.ts#L206-L292
 
-    parsed: ParsedVariant = variant
+    parsed = variant
     result: List[str] = []
 
     # Extracting parsed values into individual variables
@@ -422,8 +422,18 @@ def stringifyVariant(
     multiFeature: bool = bool(parsed.get("multiFeature"))
     noFeatures: bool = bool(parsed.get("noFeatures"))
     notationType: str = str(parsed.get("notationType", ""))
-    reference1: str = parsed.get("reference1") or ""
-    reference2: str = parsed.get("reference2") or ""
+    reference1: str = ""
+    if ref1 := parsed.get("reference1"):
+        if isinstance(ref1, str):
+            reference1 = ref1
+        else:
+            reference1 = ref1.get("displayName", str(ref1))
+    reference2: str = ""
+    if ref2 := parsed.get("reference2"):
+        if isinstance(ref2, str):
+            reference2 = ref2
+        else:
+            reference2 = ref2.get("displayName", str(ref2))
     refSeq: str = parsed.get("refSeq") or ""
     truncation: int = parsed.get("truncation") or 0
     variantType: str = parsed.get("type", "")
