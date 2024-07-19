@@ -4,7 +4,11 @@
 name: quick-tests
 
 on:
-  - push
+  push:
+    branches:
+      - '*'
+      - '!main'
+      - '!develop'
 
 jobs:
   build:
@@ -13,7 +17,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.11']
 
     steps:
     - uses: actions/checkout@v3
@@ -43,3 +47,4 @@ jobs:
         GRAPHKB_PASS: ${{ secrets.GKB_TEST_PASS }}
         EXCLUDE_INTEGRATION_TESTS: 1
         # EXCLUDE_INTEGRATION_TESTS: ${{ matrix.python-version != '3.11' }}
+      if: github.event_name != 'pull_request'
