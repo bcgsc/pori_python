@@ -106,7 +106,7 @@ class IprConnection:
 
                     if check_result == "failed":
                         raise Exception(
-                            f'async report upload failed with reason: {current_status["failedReason"]}'
+                            f"async report upload failed with reason: {current_status.get('jobStatus', {}).get('failedReason', 'Unknown')}"
                         )
 
                     if check_result not in ["active", "ready", "waiting", "completed"]:
