@@ -49,9 +49,7 @@ def loaded_reports(tmp_path_factory) -> Dict:
         "patientId": patient_id,
         "project": "TEST",
         "expressionVariants": json.loads(
-            pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(
-                orient="records"
-            )
+            pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(orient="records")
         ),
         "smallMutations": json.loads(
             pd.read_csv(get_test_file("small_mutations.short.tab"), sep="\t").to_json(
@@ -64,9 +62,7 @@ def loaded_reports(tmp_path_factory) -> Dict:
             )
         ),
         "structuralVariants": json.loads(
-            pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(
-                orient="records"
-            )
+            pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(orient="records")
         ),
         "kbDiseaseMatch": "colorectal cancer",
     }
@@ -137,9 +133,7 @@ def get_section(loaded_report, section_name):
 @pytest.mark.skipif(
     not INCLUDE_UPLOAD_TESTS, reason="excluding tests of upload to live ipr instance"
 )
-@pytest.mark.skipif(
-    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
-)
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestCreateReport:
     def test_patient_id_loaded_once(self, loaded_reports) -> None:
         sync_patient_id = loaded_reports["sync"][0]
