@@ -453,7 +453,7 @@ def type_screening(
         return default_type
 
     # When size is given
-    if parsed.get("untemplatedSeqSize") or 0 >= threshold:
+    if (parsed.get("untemplatedSeqSize") or 0) >= threshold:
         return parsed["type"]
 
     # When size needs to be computed from positions
