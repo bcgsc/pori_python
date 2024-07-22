@@ -395,7 +395,7 @@ def stringifyVariant(
         str: The string representation
     """
 
-    displayName: str = variant.get("displayName") or ""
+    displayName: str = variant.get("displayName") or ""  # type: ignore
 
     # If variant is a PositionalVariant (i.e. variant with a displayName) and
     # we already have the appropriate string representation,
@@ -435,7 +435,7 @@ def stringifyVariant(
         else:
             reference2 = ref2.get("displayName", str(ref2))
     refSeq: str = parsed.get("refSeq") or ""
-    truncation: int = parsed.get("truncation") or 0
+    truncation: int = parsed.get("truncation") or 0  # type: ignore
     variantType: str = parsed.get("type", "")
     untemplatedSeq: str = parsed.get("untemplatedSeq") or ""
     untemplatedSeqSize: int = parsed.get("untemplatedSeqSize") or 0

@@ -120,7 +120,7 @@ def get_preferred_drug_representation(
     """
 
     source_preference = {
-        r["@rid"]: r["sort"]
+        r["@rid"]: r["sort"]  # type: ignore
         for r in graphkb_conn.query({"target": "Source", "returnProperties": ["sort", "@rid"]})
     }
     drugs = sorted(

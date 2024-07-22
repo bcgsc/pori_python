@@ -60,7 +60,7 @@ class Statement(Record):
     evidenceLevel: List[Ontology]
     source: Record
     sourceId: str
-    reviewStatus: Optional[str]
+    reviewStatus: str
     displayNameTemplate: str
 
 
@@ -84,7 +84,7 @@ class KbMatch(TypedDict):
     externalSource: str
     externalStatementId: str
     reviewStatus: str
-    kbData: Optional[Dict]
+    kbData: Dict
 
 
 class IprVariantBase(TypedDict):

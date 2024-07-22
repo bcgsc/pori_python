@@ -298,7 +298,7 @@ def ipr_report(
     gkb_matches: List[KbMatch] = []
 
     # Signature category variants
-    tmb_variant: IprVariant = {}
+    tmb_variant: IprVariant = {}  # type: ignore
     tmb_matches = []
     if "tmburMutationBurden" in content.keys():
         tmb_val = 0.0
@@ -333,7 +333,7 @@ def ipr_report(
 
     msi = content.get("msi", [])
     msi_matches = []
-    msi_variant: IprVariant = {}
+    msi_variant: IprVariant = {}  # type: ignore
     if msi:
         # only one msi variant per library
         if isinstance(msi, list):
@@ -428,7 +428,7 @@ def ipr_report(
     output = json.loads(json.dumps(content))
     output.update(
         {
-            "kbMatches": [trim_empty_values(a) for a in gkb_matches],
+            "kbMatches": [trim_empty_values(a) for a in gkb_matches],  # type: ignore
             "copyVariants": [
                 trim_empty_values(c) for c in copy_variants if c["gene"] in genes_with_variants
             ],

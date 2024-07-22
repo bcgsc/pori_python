@@ -261,38 +261,47 @@ def get_gene_linked_cancer_predisposition_info(
     genes = set()
     non_genes = set()
     infer_genes = set()
-    variants = {}
+    variants: Dict[str, Tuple[str, List[str]]] = {}
 
     terms: dict = {term: lst for term, lst in RELEVANCE_BASE_TERMS}
     relevance_rids = list(get_terms_set(conn, terms.get("cancer predisposition", [])))
 
-    for record in conn.query(
-        {
-            "target": "Statement",
-            "filters": {
-                "AND": [
-                    {
-                        "evidence": {
-                            "target": "Source",
-                            "filters": {"@rid": get_rid(conn, "Source", "CGL")},
-                        }
-                    },
-                    {"relevance": {"target": "Vocabulary", "filters": {"@rid": relevance_rids}}},
-                ]
+    predisp_statements = [
+        cast(Statement, record)
+        for record in conn.query(
+            {
+                "target": "Statement",
+                "filters": {
+                    "AND": [
+                        {
+                            "evidence": {
+                                "target": "Source",
+                                "filters": {"@rid": get_rid(conn, "Source", "CGL")},
+                            }
+                        },
+                        {
+                            "relevance": {
+                                "target": "Vocabulary",
+                                "filters": {"@rid": relevance_rids},
+                            }
+                        },
+                    ]
+                },
+                "returnProperties": [
+                    "conditions.@class",
+                    "conditions.@rid",
+                    "conditions.displayName",
+                    "conditions.reference1.biotype",
+                    "conditions.reference1.displayName",
+                    "conditions.reference2.biotype",
+                    "conditions.reference2.displayName",
+                ],
             },
-            "returnProperties": [
-                "conditions.@class",
-                "conditions.@rid",
-                "conditions.displayName",
-                "conditions.reference1.biotype",
-                "conditions.reference1.displayName",
-                "conditions.reference2.biotype",
-                "conditions.reference2.displayName",
-            ],
-        },
-        ignore_cache=False,
-    ):
-        for condition in record["conditions"]:  # type: ignore
+            ignore_cache=False,
+        )
+    ]
+    for record in predisp_statements:
+        for condition in record["conditions"]:
             if condition["@class"] == "PositionalVariant":
                 assoc_gene_list = []
                 for reference in ["reference1", "reference2"]:
