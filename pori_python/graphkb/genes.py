@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 
-from pori_python.types import IprGene, Ontology, Statement, Variant
+from pori_python.types import IprGene, Ontology, Record, Statement, Variant
 
 from . import GraphKBConnection
 from .constants import (
@@ -303,10 +303,10 @@ def get_gene_linked_cancer_predisposition_info(
     for record in predisp_statements:
         for condition in record["conditions"]:
             if condition["@class"] == "PositionalVariant":
-                assoc_gene_list = []
+                assoc_gene_list: List[str] = []
                 for reference in ["reference1", "reference2"]:
-                    name = (condition.get(reference) or {}).get("displayName", "")
-                    biotype = (condition.get(reference) or {}).get("biotype", "")
+                    name = (condition.get(reference) or {}).get("displayName", "")  # type: ignore
+                    biotype = (condition.get(reference) or {}).get("biotype", "")  # type: ignore
                     if name and biotype == "gene":
                         genes.add(name)
                         assoc_gene_list.append(name)
@@ -320,7 +320,7 @@ def get_gene_linked_cancer_predisposition_info(
                             logger.error(
                                 f"Non-gene cancer predisposition {biotype}: {name} for {condition['displayName']}"
                             )
-                variants[condition["@rid"]] = [condition["displayName"], assoc_gene_list]
+                variants[condition["@rid"]] = (condition["displayName"], assoc_gene_list)
 
     for gene, name, biotype in infer_genes:
         logger.debug(f"Found gene '{gene}' for '{name}' ({biotype})")
@@ -362,7 +362,7 @@ def get_gene_linked_pharmacogenomic_info(
     genes = set()
     non_genes = set()
     infer_genes = set()
-    variants = {}
+    variants: Dict[str, Tuple] = {}
 
     relevance_rids = list(get_terms_set(conn, "pharmacogenomic"))
 
@@ -408,7 +408,7 @@ def get_gene_linked_pharmacogenomic_info(
                             logger.error(
                                 f"Non-gene pharmacogenomic {biotype}: {name} for {condition['displayName']}"
                             )
-                variants[condition["@rid"]] = [condition["displayName"], assoc_gene_list]
+                variants[condition["@rid"]] = (condition["displayName"], assoc_gene_list)
     for gene, name, biotype in infer_genes:
         logger.debug(f"Found gene '{gene}' for '{name}' ({biotype})")
         genes.add(gene)
@@ -419,7 +419,7 @@ def get_gene_linked_pharmacogenomic_info(
     return sorted(genes), variants
 
 
-def convert_to_rid_set(records: Sequence[Dict]) -> Set[str]:
+def convert_to_rid_set(records: List[Record] | List[Ontology]) -> Set[str]:
     return {r["@rid"] for r in records}
 
 
@@ -471,15 +471,17 @@ def get_gene_information(
     for statement in statements:
         statement = cast(Statement, statement)
         for condition in statement["conditions"]:
-            if not condition.get("reference1"):
-                continue
-            gene_flags["kbStatementRelated"].add(condition["reference1"])
-            if condition["reference2"]:
-                gene_flags["kbStatementRelated"].add(condition["reference2"])
-                gene_flags["knownFusionPartner"].add(condition["reference1"])
-                gene_flags["knownFusionPartner"].add(condition["reference2"])
-            elif condition["@class"] == "PositionalVariant":
-                gene_flags["knownSmallMutation"].add(condition["reference1"])
+            # ignore types, as there can be various types of conditions
+            if condition.get("reference1"):
+                gene_flags["kbStatementRelated"].add(condition["reference1"])  # type: ignore
+                if condition.get("reference2"):
+                    # Having a reference2 implies the event is a fusion
+                    gene_flags["kbStatementRelated"].add(condition["reference2"])  # type: ignore
+                    gene_flags["knownFusionPartner"].add(condition["reference1"])  # type: ignore
+                    gene_flags["knownFusionPartner"].add(condition["reference2"])  # type: ignore
+                elif condition["@class"] == "PositionalVariant":
+                    # PositionalVariant without a reference2 implies a smallMutation type
+                    gene_flags["knownSmallMutation"].add(condition["reference1"])  # type: ignore
 
     logger.info("fetching oncogenes list")
     gene_flags["oncogene"] = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
@@ -494,16 +496,16 @@ def get_gene_information(
     )
 
     logger.info(f"Setting gene_info flags on {len(gene_names)} genes")
-    result = []
+    result: List[IprGene] = []
     for gene_name in gene_names:
         equivalent = convert_to_rid_set(get_equivalent_features(graphkb_conn, gene_name))
-        row = {"name": gene_name}
+        row: Dict[str, str | bool] = {"name": gene_name}
         flagged = False
         for flag in gene_flags:
             # make smaller JSON to upload since all default to false already
             if equivalent.intersection(gene_flags[flag]):
                 row[flag] = flagged = True
         if flagged:
-            result.append(row)
+            result.append(cast(IprGene, row))
 
     return result
