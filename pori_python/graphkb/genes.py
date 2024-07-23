@@ -1,5 +1,7 @@
 """Methods for retrieving gene annotation lists from GraphKB."""
 
+from __future__ import annotations
+
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 
 from pori_python.types import IprGene, Ontology, Record, Statement, Variant

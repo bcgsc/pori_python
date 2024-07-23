@@ -2,6 +2,8 @@
 Read/Validate the variant input files
 """
 
+from __future__ import annotations
+
 import json
 import jsonschema
 import os

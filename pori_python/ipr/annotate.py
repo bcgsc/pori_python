@@ -2,6 +2,8 @@
 handles annotating variants with annotation information from graphkb
 """
 
+from __future__ import annotations
+
 from requests.exceptions import HTTPError
 
 from pandas import isnull

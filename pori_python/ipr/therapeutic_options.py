@@ -2,6 +2,8 @@
 upload variant and report information to IPR
 """
 
+from __future__ import annotations
+
 import pandas
 from typing import Any, Dict, List, Sequence
 

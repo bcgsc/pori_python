@@ -3,6 +3,8 @@ Contains functions specific to formatting reports for IPR that are unlikely to b
 by other reporting systems
 """
 
+from __future__ import annotations
+
 from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
 
 from pori_python.graphkb import GraphKBConnection
