@@ -46,7 +46,7 @@ def natural_join(word_list: List[str]) -> str:
 
 
 def get_displayname(rec: Record) -> str:
-    ret_val = rec.get("displayname", rec["@rid"])
+    ret_val = rec.get("displayName", rec["@rid"])
     return str(ret_val)
 
 
@@ -67,6 +67,21 @@ def create_graphkb_link(record_ids: List[str], record_class: str = "Statement") 
     complex_param = base64.b64encode(json.dumps({"target": record_ids}).encode("utf-8"))
     search_params = {"complex": complex_param, "@class": record_class}
     return f"{GRAPHKB_GUI}/data/table?{urlencode(search_params)}"
+
+
+def merge_diseases(
+    diseases: List[Ontology] | List[Record], disease_matches: Set[str] = set()
+) -> str:
+    if len(convert_to_rid_set(diseases) - disease_matches) >= 2 and all(
+        [d["@class"] == "Disease" for d in diseases]
+    ):
+        words = sorted(
+            list(set([get_displayname(s) for s in diseases if s["@rid"] in disease_matches]))
+        )
+        words.append(OTHER_DISEASES)
+        return natural_join(words)
+    else:
+        return natural_join_records(diseases)
 
 
 def substitute_sentence_template(
@@ -95,18 +110,6 @@ def substitute_sentence_template(
     )
     result = template.replace(r"{relevance}", relevance["displayName"])
 
-    def merge_diseases(diseases: List[Ontology] | List[Record]) -> str:
-        if len(convert_to_rid_set(diseases) - disease_matches) >= 2 and all(
-            [d["@class"] == "Disease" for d in diseases]
-        ):
-            words = sorted(
-                list(set([get_displayname(s) for s in diseases if s["@rid"] in disease_matches]))
-            )
-            words.append(OTHER_DISEASES)
-            return natural_join(words)
-        else:
-            return natural_join_records(diseases)
-
     if r"{subject}" in template:
         # remove subject from the conditions replacements
         subjects_ids = convert_to_rid_set(subjects)
@@ -118,10 +121,12 @@ def substitute_sentence_template(
         ]
         other_conditions = [d for d in other_conditions if d["@rid"] not in subjects_ids]
 
-        result = result.replace(r"{subject}", merge_diseases(subjects))
+        result = result.replace(r"{subject}", merge_diseases(subjects, disease_matches))
 
     if r"{conditions:disease}" in template:
-        result = result.replace(r"{conditions:disease}", merge_diseases(disease_conditions))
+        result = result.replace(
+            r"{conditions:disease}", merge_diseases(disease_conditions, disease_matches)
+        )
     else:
         other_conditions.extend(disease_conditions)
 
