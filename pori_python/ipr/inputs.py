@@ -328,8 +328,8 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprExprVariant]
         row["variantType"] = "exp"
 
         for col in float_columns:
-            if row[col] in ["inf", "+inf", "-inf"]:
-                row[col] = row[col].replace("inf", "Infinity")
+            if row.get(col) in ["inf", "+inf", "-inf"]:
+                row[col] = row[col].replace("inf", "Infinity")  # type: ignore
 
         # check images exist
         if row["histogramImage"] and not os.path.exists(row["histogramImage"]):
@@ -412,8 +412,8 @@ def check_variant_links(
     copy_variant_genes = {variant["gene"] for variant in copy_variants}
     expression_variant_genes = {variant["gene"] for variant in expression_variants}
     genes_with_variants = set()  # filter excess copy variants
+    variant: IprCopyVariant | IprExprVariant | IprFusionVariant | IprSmallMutationVariant
 
-    variant = IprVariant  # to silence type errors
     for variant in copy_variants:
         gene = variant["gene"]
         if not gene:
