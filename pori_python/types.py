@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, List, Optional, Tuple, TypedDict, Union
 
 # TODO: Can constants in inputs.py like COPY_REQ, SMALL_MUT_REQ, just be replaced by types?
