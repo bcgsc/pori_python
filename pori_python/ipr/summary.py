@@ -1,6 +1,6 @@
 import base64
 import json
-from typing import Callable, Dict, List, Sequence, Set, Tuple
+from typing import Callable, Dict, List, Sequence, Set, Tuple, cast
 from urllib.parse import urlencode
 
 from pori_python.graphkb import GraphKBConnection
@@ -45,8 +45,13 @@ def natural_join(word_list: List[str]) -> str:
     return "".join(word_list)
 
 
+def get_displayname(rec: Record) -> str:
+    ret_val = rec.get("displayname", rec["@rid"])
+    return str(ret_val)
+
+
 def natural_join_records(
-    records: Sequence[Record], covert_to_word: Callable[[Dict], str] = lambda x: x["displayName"]
+    records: Sequence[Record], covert_to_word: Callable[[Record], str] = get_displayname
 ) -> str:
     word_list = sorted(list({covert_to_word(rec) for rec in records}))
     return natural_join(word_list)
@@ -90,12 +95,12 @@ def substitute_sentence_template(
     )
     result = template.replace(r"{relevance}", relevance["displayName"])
 
-    def merge_diseases(diseases: List[Ontology]) -> str:
+    def merge_diseases(diseases: List[Ontology] | List[Record]) -> str:
         if len(convert_to_rid_set(diseases) - disease_matches) >= 2 and all(
             [d["@class"] == "Disease" for d in diseases]
         ):
             words = sorted(
-                list(set([s["displayName"] for s in diseases if s["@rid"] in disease_matches]))
+                list(set([get_displayname(s) for s in diseases if s["@rid"] in disease_matches]))
             )
             words.append(OTHER_DISEASES)
             return natural_join(words)
@@ -105,8 +110,12 @@ def substitute_sentence_template(
     if r"{subject}" in template:
         # remove subject from the conditions replacements
         subjects_ids = convert_to_rid_set(subjects)
-        disease_conditions = [d for d in disease_conditions if d["@rid"] not in subjects_ids]
-        variant_conditions = [d for d in variant_conditions if d["@rid"] not in subjects_ids]
+        disease_conditions = [
+            cast(Ontology, d) for d in disease_conditions if d["@rid"] not in subjects_ids
+        ]
+        variant_conditions = [
+            cast(Ontology, d) for d in variant_conditions if d["@rid"] not in subjects_ids
+        ]
         other_conditions = [d for d in other_conditions if d["@rid"] not in subjects_ids]
 
         result = result.replace(r"{subject}", merge_diseases(subjects))
@@ -147,7 +156,7 @@ def aggregate_statements(
 
     def generate_key(statement: Statement) -> Tuple:
         result = [
-            cond["displayName"]
+            cond.get("displayName", cond["@rid"])
             for cond in filter_by_record_class(statement["conditions"], "Disease", exclude=True)
             if cond["@rid"] != statement["subject"]["@rid"]
         ]
@@ -214,7 +223,7 @@ def display_variant(variant: IprVariant) -> str:
     if gene and hgvs:
         return f"{gene}:{hgvs}"
     elif variant.get("variant"):
-        return variant.get("variant")
+        return str(variant.get("variant"))
 
     raise ValueError(f"Unable to form display_variant of {variant}")
 
@@ -252,22 +261,20 @@ def create_section_html(
         )
         sentence_categories[sentence] = category
 
-    # get the entrez gene description
-    genes = sorted(
-        graphkb_conn.query(
-            {
-                "target": "Feature",
-                "filters": {
-                    "AND": [
-                        {"source": {"target": "Source", "filters": {"name": "entrez gene"}}},
-                        {"name": gene_name},
-                        {"biotype": "gene"},
-                    ]
-                },
-            }
-        ),
-        key=generate_ontology_preference_key,
+    # get the entrez gene descriptive hugo name
+    genes = graphkb_conn.query(
+        {
+            "target": "Feature",
+            "filters": {
+                "AND": [
+                    {"source": {"target": "Source", "filters": {"name": "entrez gene"}}},
+                    {"name": gene_name},
+                    {"biotype": "gene"},
+                ]
+            },
+        }
     )
+    genes = sorted(genes, key=generate_ontology_preference_key)  # type: ignore
 
     variants_text = display_variants(gene_name, exp_variants)
     if not variants_text:
