@@ -87,6 +87,11 @@ class KbMatch(TypedDict):
     kbData: Dict
 
 
+class Hashabledict(dict):
+    def __hash__(self):
+        return hash(frozenset(self))
+
+
 class IprVariantBase(TypedDict):
     """Required properties of all variants for IPR."""
 

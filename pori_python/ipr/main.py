@@ -9,7 +9,7 @@ from typing import Dict, List, Sequence
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
-from pori_python.types import IprVariant, KbMatch
+from pori_python.types import Hashabledict, IprVariant
 
 from .annotate import (
     annotate_copy_variants,
@@ -35,7 +35,7 @@ from .ipr import (
     germline_kb_matches,
     select_expression_plots,
 )
-from .summary import summarize
+from .summary import auto_analyst_comments
 from .therapeutic_options import create_therapeutic_options
 from .util import LOG_LEVELS, logger, trim_empty_values
 
@@ -295,7 +295,7 @@ def ipr_report(
         graphkb_conn = GraphKBConnection()
     graphkb_conn.login(username, password)
 
-    gkb_matches: List[KbMatch] = []
+    gkb_matches: List[Hashabledict] = []
 
     # Signature category variants
     tmb_variant: IprVariant = {}  # type: ignore
@@ -328,7 +328,7 @@ def ipr_report(
                 logger.info(
                     f"GERO-296 '{TMB_HIGH_CATEGORY}' matches {len(tmb_matches)} statements."
                 )
-                gkb_matches.extend(tmb_matches)
+                gkb_matches.extend([Hashabledict(tmb_statement) for tmb_statement in tmb_matches])
                 logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     msi = content.get("msi", [])
@@ -351,7 +351,7 @@ def ipr_report(
             msi_variant["key"] = msi_cat
             msi_variant["variantType"] = "msi"
             logger.info(f"GERO-295 '{msi_cat}' matches {len(msi_matches)} msi statements.")
-            gkb_matches.extend(msi_matches)
+            gkb_matches.extend([Hashabledict(msi) for msi in msi_matches])
             logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     logger.info(f"annotating {len(small_mutations)} small mutations")
@@ -372,17 +372,23 @@ def ipr_report(
 
     logger.info(f"annotating {len(copy_variants)} copy variants")
     gkb_matches.extend(
-        annotate_copy_variants(
-            graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
-        )
+        [
+            Hashabledict(copy_var)
+            for copy_var in annotate_copy_variants(
+                graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
+            )
+        ]
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     logger.info(f"annotating {len(expression_variants)} expression variants")
     gkb_matches.extend(
-        annotate_expression_variants(
-            graphkb_conn, expression_variants, kb_disease_match, show_progress=interactive
-        )
+        [
+            Hashabledict(exp_var)
+            for exp_var in annotate_expression_variants(
+                graphkb_conn, expression_variants, kb_disease_match, show_progress=interactive
+            )
+        ]
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
@@ -393,14 +399,19 @@ def ipr_report(
     if tmb_matches:
         all_variants.append(tmb_variant)  # type: ignore
 
-    if match_germline:  # verify germline kb statements matched germline observed variants
-        gkb_matches = germline_kb_matches(gkb_matches, all_variants)
-        if gkb_matches:
-            logger.info(f"Removing {len(gkb_matches)} germline events without medical matches.")
+    if match_germline:
+        # verify germline kb statements matched germline observed variants, not somatic variants
+        org_len = len(gkb_matches)
+        gkb_matches = [
+            Hashabledict(match) for match in germline_kb_matches(gkb_matches, all_variants)
+        ]
+        num_removed = org_len - len(gkb_matches)
+        if num_removed:
+            logger.info(f"Removing {num_removed} germline events without medical matches.")
 
     if custom_kb_match_filter:
         logger.info(f"custom_kb_match_filter on {len(gkb_matches)} variants")
-        gkb_matches = custom_kb_match_filter(gkb_matches)
+        gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
     key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
@@ -417,7 +428,7 @@ def ipr_report(
     logger.info("generating analyst comments")
     if generate_comments:
         comments = {
-            "comments": summarize(
+            "comments": auto_analyst_comments(
                 graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
             )
         }

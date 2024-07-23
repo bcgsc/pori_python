@@ -9,6 +9,7 @@ from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.types import (
+    Hashabledict,
     ImageDefinition,
     IprFusionVariant,
     IprGene,
@@ -34,7 +35,7 @@ def display_evidence_levels(statement: Statement) -> str:
 
 def filter_structural_variants(
     structural_variants: List[IprFusionVariant],
-    kb_matches: List[KbMatch],
+    kb_matches: List[KbMatch] | List[Hashabledict],
     gene_annotations: List[IprGene],
 ) -> List[IprFusionVariant]:
     """
@@ -225,7 +226,7 @@ def convert_statements_to_alterations(
 
 
 def select_expression_plots(
-    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
+    kb_matches: List[KbMatch] | List[Hashabledict], all_variants: Sequence[IprVariant]
 ) -> List[ImageDefinition]:
     """
     Given the list of expression variants, determine which expression
@@ -261,7 +262,7 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
+    kb_matches: List[Hashabledict], all_variants: Sequence[IprVariant]
 ) -> Tuple[List[Dict], Dict]:
     """Create the list of significant variants matched by the KB.
 
@@ -323,8 +324,8 @@ def create_key_alterations(
 
 
 def germline_kb_matches(
-    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant], assume_somatic: bool = True
-) -> List[KbMatch]:
+    kb_matches: List[Hashabledict], all_variants: Sequence[IprVariant], assume_somatic: bool = True
+) -> List[Hashabledict]:
     """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
 
     Statements related to pharmacogenomic toxicity or cancer predisposition are only relevant if

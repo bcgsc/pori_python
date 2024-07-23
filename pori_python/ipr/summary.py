@@ -9,7 +9,7 @@ from pori_python.graphkb.statement import categorize_relevance
 from pori_python.graphkb.util import convert_to_rid_list
 from pori_python.graphkb.vocab import get_term_tree
 from pori_python.ipr.inputs import create_graphkb_sv_notation
-from pori_python.types import IprVariant, KbMatch, Ontology, Record, Statement
+from pori_python.types import Hashabledict, IprVariant, KbMatch, Ontology, Record, Statement
 
 from .util import (
     convert_to_rid_set,
@@ -328,9 +328,9 @@ def section_statements_by_genes(
     return genes
 
 
-def summarize(
+def auto_analyst_comments(
     graphkb_conn: GraphKBConnection,
-    matches: Sequence[KbMatch],
+    matches: Sequence[KbMatch] | Sequence[Hashabledict],
     disease_name: str,
     variants: Sequence[IprVariant],
 ) -> str:

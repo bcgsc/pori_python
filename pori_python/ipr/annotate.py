@@ -14,6 +14,7 @@ from pori_python.graphkb.match import INPUT_COPY_CATEGORIES
 from pori_python.graphkb.statement import get_statements_from_variants
 from pori_python.graphkb.util import FeatureNotFoundError
 from pori_python.types import (
+    Hashabledict,
     IprCopyVariant,
     IprExprVariant,
     IprStructuralVariant,
@@ -24,7 +25,7 @@ from pori_python.types import (
 
 from .constants import TMB_HIGH_CATEGORY
 from .ipr import convert_statements_to_alterations
-from .util import Hashabledict, convert_to_rid_set, logger
+from .util import convert_to_rid_set, logger
 
 REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
 
@@ -200,7 +201,7 @@ def annotate_copy_variants(
 
 def annotate_positional_variants(
     graphkb_conn: GraphKBConnection,
-    variants: Sequence[IprStructuralVariant],
+    variants: Sequence[IprStructuralVariant] | Sequence[Hashabledict],
     disease_name: str,
     show_progress: bool = False,
 ) -> List[Hashabledict]:

@@ -21,11 +21,6 @@ LOG_LEVELS = {
 }
 
 
-class Hashabledict(dict):
-    def __hash__(self):
-        return hash(frozenset(self))
-
-
 def get_terms_set(graphkb_conn: GraphKBConnection, base_terms: List[str]) -> Set[str]:
     terms = set()
     for base_term in base_terms:
