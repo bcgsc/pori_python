@@ -1,7 +1,8 @@
 from typing import Callable, Dict, Iterable, List, Set, cast
 
+from pori_python.types import Ontology
+
 from . import GraphKBConnection
-from .types import Ontology
 from .util import convert_to_rid_list
 
 

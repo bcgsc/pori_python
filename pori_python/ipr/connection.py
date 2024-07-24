@@ -32,7 +32,7 @@ class IprConnection:
         self.request_count = 0
 
     def request(
-        self, endpoint: str, method: str = "GET", custom_headers: Dict = None, **kwargs
+        self, endpoint: str, method: str = "GET", **kwargs
     ) -> Dict:
         """Request wrapper to handle adding common headers and logging
 
@@ -45,16 +45,11 @@ class IprConnection:
         """
         url = f"{self.url}/{endpoint}"
         self.request_count += 1
-        kwargs_header = kwargs.pop("header", None)
+        kwargs_header = kwargs.pop("headers", None)
         if kwargs_header:
-            headers = kwargs_header
-        elif custom_headers:
-            headers = custom_headers
+            headers = json.loads(kwargs_header)
         else:
             headers = self.headers
-        kwargs_header = kwargs.pop("header", None)
-        if kwargs_header:
-            headers = kwargs_header
         resp = requests.request(
             method, url, headers=headers, auth=(self.username, self.password), **kwargs
         )
@@ -96,8 +91,8 @@ class IprConnection:
         return self.request(
             uri,
             method="DELETE",
-            custom_headers={"Accept": "*/*"},
             data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
+            headers=json.dumps({"Accept": "*/*"}),
             **kwargs,
         )
 
@@ -105,9 +100,21 @@ class IprConnection:
         self, content: Dict, mins_to_wait: int = 5, async_upload: bool = False
     ) -> Dict:
         if async_upload:
+            # if async is used, the response for reports-async contains either 'jobStatus'
+            # or 'report'. jobStatus is no longer available once the report is successfully
+            # uploaded.
             initial_result = self.post("reports-async", content)
 
             report_id = initial_result["ident"]
+
+            def check_status_result(result):
+                if result.get("report", False):
+                    return "upload complete"
+                if result.get("jobStatus", False) and result["jobStatus"].get("state", False):
+                    return result["jobStatus"]["state"]
+                raise Exception(
+                    f"async report get returned with no report or jobStatus, or unexpected jobStatus type"
+                )
 
             def check_status(interval: int = 5, num_attempts: int = 5):
                 for i in range(num_attempts):
@@ -115,21 +122,22 @@ class IprConnection:
                     time.sleep(interval)
                     current_status = self.get(f"reports-async/{report_id}")
 
-                    if current_status.get("report", False):
+                    check_result = check_status_result(current_status)
+
+                    if check_result == "upload complete":
                         return current_status
 
-                    job_status = current_status.get("jobStatus", False)
-                    if not job_status:
+                    if check_result == "failed":
                         raise Exception(
-                            f"async report uploaded terminated with no report or jobstatus"
+                            f"async report upload failed with reason: {current_status.get('jobStatus', {}).get('failedReason', 'Unknown')}"
                         )
 
-                    if job_status == "failed":
-                        raise Exception(
-                            f'async report upload failed with reason: {current_status["failedReason"]}'
-                        )
-
-                    if job_status not in ["active", "ready", "waiting", "completed"]:
+                    if check_result not in [
+                        "active",
+                        "ready",
+                        "waiting",
+                        "completed",
+                    ]:
                         raise Exception(
                             f"async report upload in unexpected state: {job_status}"
                         )
@@ -137,30 +145,17 @@ class IprConnection:
                 return current_status
 
             current_status = check_status()
-            job_status = current_status.get("jobStatus", False)
-            if not job_status:
-                if current_status.get("report", False):
-                    return current_status
-                raise Exception(
-                    f"async-report upload finished with no jobStatus or report"
-                )
+            check_result = check_status_result(current_status)
 
-            if current_status.get("jobStatus", "job status not found") in [
-                "active",
-                "waiting",
-            ]:
+            if check_result in ["active", "waiting"]:
                 current_status = check_status(interval=30)
+                check_result = check_status_result(current_status)
 
-            if current_status.get("jobStatus", "job status not found") in [
-                "active",
-                "waiting",
-            ]:
+            if check_result in ["active", "waiting"]:
                 current_status = check_status(interval=60, num_attempts=mins_to_wait)
+                check_result = check_status_result(current_status)
 
-            if current_status.get("jobStatus", "job status not found") in [
-                "active",
-                "waiting",
-            ]:
+            if check_result in ["active", "waiting"]:
                 raise Exception(
                     f"async report upload taking longer than expected: {current_status}"
                 )

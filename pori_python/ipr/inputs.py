@@ -10,14 +10,14 @@ from Bio.Data.IUPACData import protein_letters_3to1
 from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 
 from pori_python.graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
-
-from .types import (
+from pori_python.types import (
     IprCopyVariant,
     IprExprVariant,
     IprFusionVariant,
     IprSmallMutationVariant,
     IprVariant,
 )
+
 from .util import hash_key, logger, pandas_falsy
 from .constants import DEFAULT_URL
 

@@ -17,8 +17,8 @@ from pori_python.ipr.inputs import (
     preprocess_structural_variants,
     validate_report_content,
 )
-from pori_python.ipr.types import IprFusionVariant, IprGeneVariant
 from pori_python.ipr.util import logger
+from pori_python.types import IprFusionVariant, IprGeneVariant
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "test_data")
 NON_EMPTY_STRING_NULLS = ["", None, np.nan, pd.NA]

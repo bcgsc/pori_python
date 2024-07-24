@@ -2,6 +2,8 @@
 
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 
+from pori_python.types import Ontology, Statement, Variant
+
 from . import GraphKBConnection
 from .constants import (
     BASE_THERAPEUTIC_TERMS,
@@ -19,8 +21,7 @@ from .constants import (
     TUMOUR_SUPPRESSIVE,
 )
 from .match import get_equivalent_features
-from .types import Ontology, Statement, Variant
-from .util import get_rid, logger
+from .util import get_rid, logger, looks_like_rid
 from .vocab import get_terms_set
 
 
@@ -197,12 +198,14 @@ def get_preferred_gene_source_rid(
         rid of the source record matching the preferred source name.
 
     """
+    if looks_like_rid(preferred_source_name):
+        return preferred_source_name
     result = conn.query(
         {
             "target": {"target": "Source", "filters": {"name": preferred_source_name}},
             "queryType": "similarTo",
-        },
-    )[0]["@rid"]
+        }
+        )[0]["@rid"]
     return result
 
 
@@ -249,11 +252,9 @@ def get_preferred_gene_name(
 def get_cancer_predisposition_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, str]]:
-    newval = get_gene_linked_cancer_predisposition_info(conn, source)
-    genes = newval[0]
-    allvardata = newval[1]
+    genes, allvardata = get_gene_linked_cancer_predisposition_info(conn, source)
     variants = {key: allvardata[key][0] for key in allvardata.keys()}
-    return newval[0], variants
+    return genes, variants
 
 
 def get_gene_linked_cancer_predisposition_info(
@@ -346,11 +347,9 @@ def get_gene_linked_cancer_predisposition_info(
 def get_pharmacogenomic_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, str]]:
-    newval = get_gene_linked_pharmacogenomic_info(conn, source)
-    genes = newval[0]
-    allvardata = newval[1]
+    genes, allvardata = get_gene_linked_pharmacogenomic_info(conn, source)
     variants = {key: allvardata[key][0] for key in allvardata.keys()}
-    return newval[0], variants
+    return genes, variants
 
 
 def get_gene_linked_pharmacogenomic_info(

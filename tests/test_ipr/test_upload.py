@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 from pori_python.ipr.connection import IprConnection
 from pori_python.ipr.main import command_interface
-from pori_python.ipr.types import IprGene
+from pori_python.types import IprGene
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
 
@@ -31,71 +31,82 @@ def get_test_file(name: str) -> str:
 
 
 @pytest.fixture(scope="module")
-def loaded_report(tmp_path_factory) -> Dict:
-    mock = MagicMock()
+def loaded_reports(tmp_path_factory) -> Dict:
     json_file = tmp_path_factory.mktemp("inputs") / "content.json"
+    async_json_file = tmp_path_factory.mktemp("inputs") / "async_content.json"
     patient_id = f"TEST_{str(uuid.uuid4())}"
+    async_patient_id = f"TEST_ASYNC_{str(uuid.uuid4())}"
+    json_contents = {
+        "comparators": [
+            {"analysisRole": "expression (disease)", "name": "1"},
+            {"analysisRole": "expression (primary site)", "name": "2"},
+            {"analysisRole": "expression (biopsy site)", "name": "3"},
+            {
+                "analysisRole": "expression (internal pancancer cohort)",
+                "name": "4",
+            },
+        ],
+        "patientId": patient_id,
+        "project": "TEST",
+        "expressionVariants": json.loads(
+            pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(orient="records")
+        ),
+        "smallMutations": json.loads(
+            pd.read_csv(get_test_file("small_mutations.short.tab"), sep="\t").to_json(
+                orient="records"
+            )
+        ),
+        "copyVariants": json.loads(
+            pd.read_csv(get_test_file("copy_variants.short.tab"), sep="\t").to_json(
+                orient="records"
+            )
+        ),
+        "structuralVariants": json.loads(
+            pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(orient="records")
+        ),
+        "kbDiseaseMatch": "colorectal cancer",
+    }
     json_file.write_text(
         json.dumps(
-            {
-                "comparators": [
-                    {"analysisRole": "expression (disease)", "name": "1"},
-                    {"analysisRole": "expression (primary site)", "name": "2"},
-                    {"analysisRole": "expression (biopsy site)", "name": "3"},
-                    {
-                        "analysisRole": "expression (internal pancancer cohort)",
-                        "name": "4",
-                    },
-                ],
-                "patientId": patient_id,
-                "project": "TEST",
-                "expressionVariants": json.loads(
-                    pd.read_csv(
-                        get_test_file("expression.short.tab"), sep="\t"
-                    ).to_json(orient="records")
-                ),
-                "smallMutations": json.loads(
-                    pd.read_csv(
-                        get_test_file("small_mutations.short.tab"), sep="\t"
-                    ).to_json(orient="records")
-                ),
-                "copyVariants": json.loads(
-                    pd.read_csv(
-                        get_test_file("copy_variants.short.tab"), sep="\t"
-                    ).to_json(orient="records")
-                ),
-                "structuralVariants": json.loads(
-                    pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(
-                        orient="records"
-                    )
-                ),
-                "kbDiseaseMatch": "colorectal cancer",
-            },
+            json_contents,
             allow_nan=False,
         )
     )
-    with patch.object(
-        sys,
-        "argv",
-        [
-            "ipr",
-            "--username",
-            os.environ.get("IPR_USER", os.environ["USER"]),
-            "--password",
-            os.environ["IPR_PASS"],
-            "--ipr_url",
-            os.environ["IPR_TEST_URL"],
-            "--graphkb_username",
-            os.environ.get("GRAPHKB_USER", os.environ["USER"]),
-            "--graphkb_password",
-            os.environ.get("GRAPHKB_PASS", os.environ["IPR_PASS"]),
-            "--graphkb_url",
-            os.environ.get("GRAPHKB_URL", False),
-            "--content",
-            str(json_file),
-            "--therapeutics",
-        ],
-    ):
+
+    json_contents["patientId"] = async_patient_id
+    async_json_file.write_text(
+        json.dumps(
+            json_contents,
+            allow_nan=False,
+        )
+    )
+
+    argslist = [
+        "ipr",
+        "--username",
+        os.environ.get("IPR_USER", os.environ["USER"]),
+        "--password",
+        os.environ["IPR_PASS"],
+        "--graphkb_username",
+        os.environ.get("GRAPHKB_USER", os.environ.get("IPR_USER", os.environ["USER"])),
+        "--graphkb_password",
+        os.environ.get("GRAPHKB_PASS", os.environ["IPR_PASS"]),
+        "--ipr_url",
+        os.environ["IPR_TEST_URL"],
+        "--graphkb_url",
+        os.environ.get("GRAPHKB_URL", False),
+        "--therapeutics",
+    ]
+
+    sync_argslist = argslist.copy()
+    sync_argslist.extend(["--content", str(json_file)])
+    with patch.object(sys, "argv", sync_argslist):
+        with patch.object(IprConnection, "get_spec", return_value=get_test_spec()):
+            command_interface()
+
+    async_argslist = argslist.copy()
+    async_argslist.extend(["--content", str(async_json_file), "--async_upload"])
+    with patch.object(sys, "argv", async_argslist):
         with patch.object(IprConnection, "get_spec", return_value=get_test_spec()):
             command_interface()
 
@@ -105,11 +116,16 @@ def loaded_report(tmp_path_factory) -> Dict:
         url=os.environ["IPR_TEST_URL"],
     )
     loaded_report = ipr_conn.get(uri=f"reports?searchText={patient_id}")
-    yield (patient_id, loaded_report)
+    async_loaded_report = ipr_conn.get(uri=f"reports?searchText={async_patient_id}")
 
-    report_ident = loaded_report["reports"][0]["ident"]
-    ipr_conn.delete(uri=f"reports/{report_ident}")
+    loaded_reports = {
+        "sync": (patient_id, loaded_report),
+        "async": (async_patient_id, async_loaded_report),
+    }
+    yield loaded_reports
 
+    ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
+    ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
 
 def get_section(loaded_report, section_name):
     ident = loaded_report[1]["reports"][0]["ident"]
@@ -120,6 +136,17 @@ def get_section(loaded_report, section_name):
     )
     return ipr_conn.get(uri=f"reports/{ident}/{section_name}")
 
+def compare_sections(section1, section2):
+    for key in ('ident', 'updatedAt', 'createdAt', 'deletedAt'):
+        s1 = [item.pop(key, None) for item in section1]
+        s2 = [item.pop(key, None) for item in section2]
+        for item in section1:
+            if item['kbMatches']:
+                [subitem.pop(key, None) for subitem in item['kbMatches']]
+        for item in section2:
+            if item['kbMatches']:
+                [subitem.pop(key, None) for subitem in item['kbMatches']]
+    return str(section1) == str(section2)
 
 @pytest.mark.skipif(
     not INCLUDE_UPLOAD_TESTS, reason="excluding tests of upload to live ipr instance"
@@ -128,42 +155,49 @@ def get_section(loaded_report, section_name):
     EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
 )
 class TestCreateReport:
-    def test_patient_id_loaded_once(self, loaded_report: Tuple) -> None:
-        patient_id = loaded_report[0]
-        assert loaded_report[1]["total"] == 1
-        assert loaded_report[1]["reports"][0]["patientId"] == patient_id
+    def test_patient_id_loaded_once(self, loaded_reports) -> None:
+        sync_patient_id = loaded_reports["sync"][0]
+        assert loaded_reports["sync"][1]["total"] == 1
+        assert loaded_reports["sync"][1]["reports"][0]["patientId"] == sync_patient_id
+        async_patient_id = loaded_reports["async"][0]
+        assert loaded_reports["async"][1]["total"] == 1
+        assert loaded_reports["async"][1]["reports"][0]["patientId"] == async_patient_id
 
-    # TODO; add main section checks
-    def test_main_sections_present(self, loaded_report: Tuple) -> None:
-        return
-
-    def test_expression_variants_loaded(self, loaded_report: Tuple) -> None:
-        section = get_section(loaded_report, "expression-variants")
+    def test_expression_variants_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports['sync'], "expression-variants")
         kbmatched = [item for item in section if item["kbMatches"]]
         assert "PTP4A3" in [item["gene"]["name"] for item in kbmatched]
+        async_section = get_section(loaded_reports['async'], "expression-variants")
+        assert compare_sections(section, async_section)
 
-    def test_structural_variants_loaded(self, loaded_report: Tuple) -> None:
-        section = get_section(loaded_report, "structural-variants")
+    def test_structural_variants_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports['sync'], "structural-variants")
         kbmatched = [item for item in section if item["kbMatches"]]
         assert "(EWSR1,FLI1):fusion(e.7,e.4)" in [
             item["displayName"] for item in kbmatched
         ]
+        async_section = get_section(loaded_reports['async'], "structural-variants")
+        assert compare_sections(section, async_section)
 
-    def test_small_mutations_loaded(self, loaded_report: Tuple) -> None:
-        section = get_section(loaded_report, "small-mutations")
+    def test_small_mutations_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports['sync'], "small-mutations")
         kbmatched = [item for item in section if item["kbMatches"]]
         assert "FGFR2:p.R421C" in [item["displayName"] for item in kbmatched]
         assert "CDKN2A:p.T18M" in [item["displayName"] for item in kbmatched]
+        async_section = get_section(loaded_reports['async'], "small-mutations")
+        assert compare_sections(section, async_section)
 
-    def test_copy_variants_loaded(self, loaded_report: Tuple) -> None:
-        section = get_section(loaded_report, "copy-variants")
+    def test_copy_variants_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports['sync'], "copy-variants")
         kbmatched = [item for item in section if item["kbMatches"]]
         assert ("ERBB2", "amplification") in [
             (item["gene"]["name"], item["displayName"]) for item in kbmatched
         ]
+        async_section = get_section(loaded_reports['async'], "copy-variants")
+        assert compare_sections(section, async_section)
 
-    def test_kb_matches_loaded(self, loaded_report: Tuple) -> None:
-        section = get_section(loaded_report, "kb-matches")
+    def test_kb_matches_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports['sync'], "kb-matches")
         observed_and_matched = set(
             [(item["kbVariant"], item["variant"]["displayName"]) for item in section]
         )
@@ -175,15 +209,19 @@ class TestCreateReport:
             ("CDKN2A mutation", "CDKN2A:p.T18M"),
         ]:
             assert pair in observed_and_matched
+        async_section = get_section(loaded_reports['async'], "kb-matches")
+        assert compare_sections(section, async_section)
 
-    def test_therapeutic_targets_loaded(self, loaded_report: Tuple) -> None:
-        section = get_section(loaded_report, "therapeutic-targets")
+    def test_therapeutic_targets_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports['sync'], "therapeutic-targets")
         therapeutic_target_genes = set([item["gene"] for item in section])
         for gene in ["CDKN2A", "ERBB2", "FGFR2", "PTP4A3"]:
             assert gene in therapeutic_target_genes
+        async_section = get_section(loaded_reports['async'], "therapeutic-targets")
+        assert compare_sections(section, async_section)
 
-    def test_genomic_alterations_identified_loaded(self, loaded_report: Tuple) -> None:
-        section = get_section(loaded_report, "summary/genomic-alterations-identified")
+    def test_genomic_alterations_identified_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports['sync'], "summary/genomic-alterations-identified")
         variants = set([item["geneVariant"] for item in section])
         for variant in [
             "FGFR2:p.R421C",
@@ -193,26 +231,32 @@ class TestCreateReport:
             "CDKN2A:p.T18M",
         ]:
             assert variant in variants
+        async_section = get_section(loaded_reports['async'], "summary/genomic-alterations-identified")
+        assert compare_sections(section, async_section)
 
-    def test_analyst_comments_loaded(self, loaded_report: Tuple) -> None:
-        section = get_section(loaded_report, "summary/analyst-comments")
-        assert section["comments"]
 
-    @pytest.mark.skip("todo pending ipr-api report-sample update")
-    def test_sample_info_loaded(self, loaded_report: Tuple) -> None:
-        section = get_section(loaded_report, "reports-sample-info")
+    def test_analyst_comments_loaded(self, loaded_reports) -> None:
+        sync_section = get_section(loaded_reports["sync"], "summary/analyst-comments")
+        assert sync_section["comments"]
+        async_section = get_section(loaded_reports["async"], "summary/analyst-comments")
+        assert async_section["comments"]
+        assert sync_section["comments"] == async_section["comments"]
+
+    @pytest.mark.skip("todo")
+    def test_sample_info_loaded(self, loaded_reports) -> None:
+        pass
 
     @pytest.mark.skipif(
         EXCLUDE_BCGSC_TESTS, reason="excluding tests requiring BCGSC loaders"
     )
-    def test_pharmacogenomic_variants_loaded(self, loaded_report: Tuple) -> None:
-        section = get_section(loaded_report, "kb-matches?category=pharmacogenomic")
+    def test_pharmacogenomic_variants_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports['sync'][1], "kb-matches?category=pharmacogenomic")
         assert section
 
     @pytest.mark.skipif(
         EXCLUDE_BCGSC_TESTS, reason="excluding tests requiring BCGSC loaders"
     )
-    def test_cancer_predisposition_variants_loaded(self, loaded_report: Tuple) -> None:
+    def test_cancer_predisposition_variants_loaded(self, loaded_reports) -> None:
         section = get_section(
             loaded_report, "kb-matches?category=cancer%20predisposition"
         )

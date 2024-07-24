@@ -1,7 +1,7 @@
 import argparse
 from typing import Dict
 
-from .types import CategoryBaseTermMapping
+from pori_python.types import CategoryBaseTermMapping
 
 DEFAULT_LIMIT = 1000
 GKB_BASE_URL = "https://graphkb-api.bcgsc.ca/api"

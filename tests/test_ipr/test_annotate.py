@@ -3,7 +3,7 @@ import pytest
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.ipr.annotate import annotate_positional_variants
-from pori_python.ipr.types import IprSmallMutationVariant
+from pori_python.types import IprSmallMutationVariant
 
 # TP53 examples from https://www.bcgsc.ca/jira/browse/SDEV-3122
 # Mutations are actually identical but on alternate transcripts.

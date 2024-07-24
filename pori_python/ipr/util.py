@@ -6,10 +6,8 @@ from numpy import nan
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 
 from pori_python.graphkb import GraphKBConnection
-from pori_python.graphkb.types import Ontology, Record
 from pori_python.graphkb.vocab import get_term_tree
-
-from .types import IprVariant
+from pori_python.types import IprVariant, Ontology, Record
 
 GENE_NEIGHBORS_MAX = 3
 
@@ -100,7 +98,7 @@ def generate_ontology_preference_key(record: Ontology, sources_sort: Dict[str, i
         record.get("deprecated", False),
         record.get("alias", False),
         bool(record.get("dependency", "")),
-        sources_sort.get(record["source"], 99999),
+        sources_sort.get(str(record.get("source")), 99999),
         record["sourceId"],
         record.get("sourceIdVersion", ""),
         record["name"],
