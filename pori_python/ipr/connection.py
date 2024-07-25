@@ -178,8 +178,6 @@ class IprConnection:
         """
         Post images to the report
         """
-        print(data)
-        print(files)
         file_keys = list(files.keys())
         start_index = 0
         image_errors = set()
