@@ -15,6 +15,7 @@ from pori_python.graphkb.util import FeatureNotFoundError
 # Test datasets
 from .data import structuralVariants
 
+EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
 EXCLUDE_INTEGRATION_TESTS = os.environ.get("EXCLUDE_INTEGRATION_TESTS") == "1"
 
 INCREASE_PREFIXES = ["up", "increase", "over", "gain", "amp"]
@@ -41,6 +42,13 @@ def kras(conn):
     return [f["displayName"] for f in match.get_equivalent_features(conn, "kras")]
 
 
+"""
+version found in the db for ENSG00000133703 will vary depending on which
+version of ensembl was loaded. checking for any . version
+ """
+kras_ensg_version = r"ENSG00000133703\..*"
+
+
 class TestGetEquivalentFeatures:
     def test_kras_has_self(self, kras):
         assert "KRAS" in kras
@@ -54,12 +62,20 @@ class TestGetEquivalentFeatures:
 
     def test_expands_generalizations(self, kras):
         assert "NM_033360.4" in kras
-        assert "ENSG00000133703.11" in kras
+        ensg_version_found = False
+        for item in kras:
+            if re.match(kras_ensg_version, item):
+                ensg_version_found = True
+        assert ensg_version_found
 
     def test_expands_generalizations_kras(self, kras):
         assert "NM_033360.4" in kras
         assert "NM_033360" in kras
-        assert "ENSG00000133703.11" in kras
+        ensg_version_found = False
+        for item in kras:
+            if re.match(kras_ensg_version, item):
+                ensg_version_found = True
+        assert ensg_version_found
         assert "ENSG00000133703" in kras
 
     @pytest.mark.parametrize(
@@ -69,7 +85,11 @@ class TestGetEquivalentFeatures:
         kras = [f["displayName"] for f in match.get_equivalent_features(conn, alt_rep)]
         assert "NM_033360.4" in kras
         assert "NM_033360" in kras
-        assert "ENSG00000133703.11" in kras
+        ensg_version_found = False
+        for item in kras:
+            if re.match(kras_ensg_version, item):
+                ensg_version_found = True
+        assert ensg_version_found
         assert "ENSG00000133703" in kras
 
     def test_checks_by_source_id_kras(self, conn):
@@ -91,6 +111,10 @@ class TestMatchCopyVariant:
         with pytest.raises(FeatureNotFoundError):
             match.match_copy_variant(conn, "not a real gene name", match.INPUT_COPY_CATEGORIES.AMP)
 
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS,
+        reason="excluding BCGSC-specific tests - no copy loss variants in other data",
+    )
     def test_known_loss(self, conn):
         matches = match.match_copy_variant(conn, "CDKN2A", match.INPUT_COPY_CATEGORIES.ANY_LOSS)
         assert matches
@@ -107,6 +131,10 @@ class TestMatchCopyVariant:
         for variant_type in types_selected:
             assert not has_prefix(variant_type, INCREASE_PREFIXES)
 
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS,
+        reason="excluding BCGSC-specific tests - no copy loss variants in other data",
+    )
     def test_known_loss_zygosity_filtered(self, conn):
         matches = match.match_copy_variant(
             conn, "CDKN2A", match.INPUT_COPY_CATEGORIES.ANY_LOSS, True
@@ -187,6 +215,9 @@ class TestMatchExpressionVariant:
     @pytest.mark.skipif(
         EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
     )
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS, reason="variants in db for this test are from IPRKB and ESMO"
+    )
     def test_known_reduced_expression(self, conn):
         matches = match.match_expression_variant(
             conn, "PTEN", match.INPUT_EXPRESSION_CATEGORIES.DOWN
@@ -201,6 +232,9 @@ class TestMatchExpressionVariant:
         for variant_type in types_selected:
             assert not has_prefix(variant_type, INCREASE_PREFIXES)
 
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests - no applicable variants"
+    )
     def test_known_reduced_expression_gene_id(self, conn):
         gene_id = conn.query({"target": "Feature", "filters": [{"name": "PTEN"}]})[0]["@rid"]
         matches = match.match_expression_variant(
@@ -389,6 +423,9 @@ class TestMatchPositionalVariant:
             ["EGFR:p.E746_S752delinsI", ["EGFR mutation"], ["EGFR copy variant"]],
         ],
     )
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS, reason="TODO: fix loader for vars ending in X, p.?, copy variant"
+    )
     def test_known_variants(self, conn, known_variant, related_variants, unrelated_variants):
         matches = match.match_positional_variant(conn, known_variant)
         names = {m["displayName"] for m in matches}
@@ -399,6 +436,9 @@ class TestMatchPositionalVariant:
         for variant in unrelated_variants:
             assert variant not in names
 
+    @pytest.mark.skipif(
+        EXCLUDE_BCGSC_TESTS, reason="TODO: add nonIPRKB fusion tests; source for these is IPRKB"
+    )
     @pytest.mark.parametrize(
         "known_variant,related_variants",
         [
@@ -434,12 +474,14 @@ class TestMatchPositionalVariant:
     )
     def test_genomic_coordinates(self, conn):
         genomic = "X:g.100611165A>T"
-        match.match_positional_variant(conn, genomic)
-        # no assert b/c checking for no error rather than the result
+        x = match.match_positional_variant(conn, genomic)
+        assert x != []
+        # no assert b/c checking for no error rather than the result (but also want to confirm some result returned)
 
     @pytest.mark.skipif(
         EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
     )
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="source for this variant is IPRKB")
     def test_tert_promoter(self, conn):
         assert match.match_positional_variant(conn, "TERT:c.-124C>T")
 
@@ -463,6 +505,7 @@ class TestMatchPositionalVariant:
                 not nonsense
             ), f"Missense {mut} is not a nonsense variant: {((m['displayName'], m['@rid']) for m in nonsense)}"
 
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="TODO: missing record for FGFR3 rearrangement")
     def test_structural_variants(self, conn):
         """KBDEV-1056"""
         for variant_string, expected in structuralVariants.items():

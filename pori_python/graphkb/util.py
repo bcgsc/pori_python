@@ -4,6 +4,7 @@ from requests.adapters import HTTPAdapter
 import hashlib
 import json
 import logging
+import os
 import re
 import time
 from datetime import datetime
@@ -96,7 +97,7 @@ def cache_key(request_body) -> str:
 class GraphKBConnection:
     def __init__(
         self,
-        url: str = DEFAULT_URL,
+        url: str = os.environ.get("GRAPHKB_URL", DEFAULT_URL),
         username: str = "",
         password: str = "",
         use_global_cache: bool = True,

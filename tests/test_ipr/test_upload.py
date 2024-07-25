@@ -45,6 +45,23 @@ def loaded_reports(tmp_path_factory) -> Dict:
         ],
         "patientId": patient_id,
         "project": "TEST",
+        "sampleInfo": [
+            {
+                "sample": "Constitutional",
+                "biopsySite": "Normal tissue",
+                "sampleName": "SAMPLE1-PB",
+                "primarySite": "Blood-Peripheral",
+                "collectionDate": "11-11-11",
+            },
+            {
+                "sample": "Tumour",
+                "pathoTc": "90%",
+                "biopsySite": "hepatic",
+                "sampleName": "SAMPLE2-FF-1",
+                "primarySite": "Vena Cava-Hepatic",
+                "collectionDate": "12-12-12",
+            },
+        ],
         "expressionVariants": json.loads(
             pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(orient="records")
         ),
@@ -74,6 +91,10 @@ def loaded_reports(tmp_path_factory) -> Dict:
         os.environ.get("IPR_USER", os.environ["USER"]),
         "--password",
         os.environ["IPR_PASS"],
+        "--graphkb_username",
+        os.environ.get("GRAPHKB_USER", os.environ.get("IPR_USER", os.environ["USER"])),
+        "--graphkb_password",
+        os.environ.get("GRAPHKB_PASS", os.environ["IPR_PASS"]),
         "--ipr_url",
         os.environ["IPR_TEST_URL"],
         "--graphkb_url",
@@ -101,7 +122,14 @@ def loaded_reports(tmp_path_factory) -> Dict:
     loaded_report = ipr_conn.get(uri=f"reports?searchText={patient_id}")
     async_loaded_report = ipr_conn.get(uri=f"reports?searchText={async_patient_id}")
 
-    return {"sync": (patient_id, loaded_report), "async": (async_patient_id, async_loaded_report)}
+    loaded_reports = {
+        "sync": (patient_id, loaded_report),
+        "async": (async_patient_id, async_loaded_report),
+    }
+    yield loaded_reports
+
+    ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
+    ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
 
 
 def get_section(loaded_report, section_name):
@@ -112,6 +140,21 @@ def get_section(loaded_report, section_name):
         url=os.environ["IPR_TEST_URL"],
     )
     return ipr_conn.get(uri=f"reports/{ident}/{section_name}")
+
+
+def compare_sections(section1, section2):
+    """Removes values that will be distinct from sections, then checks if they
+    are otherwise equal"""
+    for key in ("ident", "updatedAt", "createdAt", "deletedAt"):
+        for section in [section1, section2]:
+            [item.pop(key, None) for item in section]
+            for item in section:
+                for subitem in item.keys():
+                    if isinstance(item[subitem], dict):
+                        item[subitem].pop(key, None)
+                    if isinstance(item[subitem], list):
+                        [subsubitem.pop(key, None) for subsubitem in item[subitem]]
+    return str(section1) == str(section2)
 
 
 @pytest.mark.skipif(
@@ -127,8 +170,85 @@ class TestCreateReport:
         assert loaded_reports["async"][1]["total"] == 1
         assert loaded_reports["async"][1]["reports"][0]["patientId"] == async_patient_id
 
+    def test_expression_variants_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports["sync"], "expression-variants")
+        kbmatched = [item for item in section if item["kbMatches"]]
+        assert "PTP4A3" in [item["gene"]["name"] for item in kbmatched]
+        async_section = get_section(loaded_reports["async"], "expression-variants")
+        assert compare_sections(section, async_section)
+
+    def test_structural_variants_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports["sync"], "structural-variants")
+        kbmatched = [item for item in section if item["kbMatches"]]
+        assert "(EWSR1,FLI1):fusion(e.7,e.4)" in [item["displayName"] for item in kbmatched]
+        async_section = get_section(loaded_reports["async"], "structural-variants")
+        assert compare_sections(section, async_section)
+
+    def test_small_mutations_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports["sync"], "small-mutations")
+        kbmatched = [item for item in section if item["kbMatches"]]
+        assert "FGFR2:p.R421C" in [item["displayName"] for item in kbmatched]
+        assert "CDKN2A:p.T18M" in [item["displayName"] for item in kbmatched]
+        async_section = get_section(loaded_reports["async"], "small-mutations")
+        assert compare_sections(section, async_section)
+
+    def test_copy_variants_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports["sync"], "copy-variants")
+        kbmatched = [item for item in section if item["kbMatches"]]
+        assert ("ERBB2", "amplification") in [
+            (item["gene"]["name"], item["displayName"]) for item in kbmatched
+        ]
+        async_section = get_section(loaded_reports["async"], "copy-variants")
+        assert compare_sections(section, async_section)
+
+    def test_kb_matches_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports["sync"], "kb-matches")
+        observed_and_matched = set(
+            [(item["kbVariant"], item["variant"]["displayName"]) for item in section]
+        )
+        for pair in [
+            ("ERBB2 amplification", "amplification"),
+            ("FGFR2 mutation", "FGFR2:p.R421C"),
+            ("PTP4A3 overexpression", "increased expression"),
+            ("EWSR1 and FLI1 fusion", "(EWSR1,FLI1):fusion(e.7,e.4)"),
+            ("CDKN2A mutation", "CDKN2A:p.T18M"),
+        ]:
+            assert pair in observed_and_matched
+        async_section = get_section(loaded_reports["async"], "kb-matches")
+        assert compare_sections(section, async_section)
+
+    def test_therapeutic_targets_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports["sync"], "therapeutic-targets")
+        therapeutic_target_genes = set([item["gene"] for item in section])
+        for gene in ["CDKN2A", "ERBB2", "FGFR2", "PTP4A3"]:
+            assert gene in therapeutic_target_genes
+        async_section = get_section(loaded_reports["async"], "therapeutic-targets")
+        assert compare_sections(section, async_section)
+
+    def test_genomic_alterations_identified_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports["sync"], "summary/genomic-alterations-identified")
+        variants = set([item["geneVariant"] for item in section])
+        for variant in [
+            "FGFR2:p.R421C",
+            "PTP4A3 (high_percentile)",
+            "ERBB2 (Amplification)",
+            "(EWSR1,FLI1):fusion(e.7,e.4)",
+            "CDKN2A:p.T18M",
+        ]:
+            assert variant in variants
+        async_section = get_section(
+            loaded_reports["async"], "summary/genomic-alterations-identified"
+        )
+        assert compare_sections(section, async_section)
+
     def test_analyst_comments_loaded(self, loaded_reports) -> None:
         sync_section = get_section(loaded_reports["sync"], "summary/analyst-comments")
         assert sync_section["comments"]
         async_section = get_section(loaded_reports["async"], "summary/analyst-comments")
         assert async_section["comments"]
+        assert sync_section["comments"] == async_section["comments"]
+
+    def test_sample_info_loaded(self, loaded_reports) -> None:
+        sync_section = get_section(loaded_reports["sync"], "sample-info")
+        async_section = get_section(loaded_reports["async"], "sample-info")
+        assert compare_sections(sync_section, async_section)

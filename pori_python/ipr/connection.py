@@ -13,7 +13,12 @@ IMAGE_MAX = 20  # cannot upload more than 20 images at a time
 
 
 class IprConnection:
-    def __init__(self, username: str, password: str, url: str = DEFAULT_URL):
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        url: str = os.environ.get("IPR_URL", DEFAULT_URL),
+    ):
         self.token = None
         self.url = url
         self.username = username
@@ -38,7 +43,11 @@ class IprConnection:
         """
         url = f"{self.url}/{endpoint}"
         self.request_count += 1
-        headers = kwargs.pop("headers", self.headers)
+        kwargs_header = kwargs.pop("headers", None)
+        if kwargs_header:
+            headers = json.loads(kwargs_header)
+        else:
+            headers = self.headers
         resp = requests.request(
             method, url, headers=headers, auth=(self.username, self.password), **kwargs
         )
@@ -53,6 +62,8 @@ class IprConnection:
                 pass
 
             raise requests.exceptions.HTTPError(message)
+        if resp.status_code == 204:  # TODO: address this in api
+            return {"status_code": 204}
         return resp.json()
 
     def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
@@ -70,6 +81,16 @@ class IprConnection:
             uri,
             method="GET",
             data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
+            **kwargs,
+        )
+
+    def delete(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
+        """Convenience method for making delete requests"""
+        return self.request(
+            uri,
+            method="DELETE",
+            data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
+            headers=json.dumps({"Accept": "*/*"}),
             **kwargs,
         )
 
@@ -109,10 +130,13 @@ class IprConnection:
                             f"async report upload failed with reason: {current_status.get('jobStatus', {}).get('failedReason', 'Unknown')}"
                         )
 
-                    if check_result not in ["active", "ready", "waiting", "completed"]:
-                        raise Exception(
-                            f"async report upload in unexpected state: {current_status}"
-                        )
+                    if check_result not in [
+                        "active",
+                        "ready",
+                        "waiting",
+                        "completed",
+                    ]:
+                        raise Exception(f"async report upload in unexpected state: {check_result}")
 
                 return current_status
 
@@ -171,7 +195,7 @@ class IprConnection:
                     method="POST",
                     data=data,
                     files=open_files,
-                    headers={},
+                    headers=json.dumps({}),
                 )
                 for status in resp:
                     if status.get("upload") != "successful":

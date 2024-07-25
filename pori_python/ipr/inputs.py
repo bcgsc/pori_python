@@ -20,14 +20,15 @@ from pori_python.types import (
     IprVariant,
 )
 
+from .constants import DEFAULT_URL
 from .util import hash_key, logger, pandas_falsy
 
 protein_letters_3to1.setdefault("Ter", "*")
 
 SPECIFICATION = os.path.join(os.path.dirname(__file__), "content.spec.json")
-# content in the local specification should match the values in IPR_API_SPEC_JSON_URL
-IPR_API_SPEC_JSON_URL = "https://ipr-api.bcgsc.ca/api/spec.json"
 
+# content in the local specification should match the values in IPR_API_SPEC_JSON_URL
+IPR_API_SPEC_JSON_URL = f'{os.environ.get("IPR_URL", DEFAULT_URL)}/spec.json'
 
 # TODO: GERO-307 - use SPECIFICATION json to derive the variant required and optional details defined below
 
@@ -179,7 +180,6 @@ def validate_variant_rows(
     keys = set()
 
     header_validated = False
-
     for row in rows:
         if not header_validated:
             for req_col in required:

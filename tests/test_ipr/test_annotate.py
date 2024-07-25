@@ -5,6 +5,9 @@ from pori_python.graphkb import GraphKBConnection
 from pori_python.ipr.annotate import annotate_positional_variants
 from pori_python.types import IprSmallMutationVariant
 
+EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
+
+
 # TP53 examples from https://www.bcgsc.ca/jira/browse/SDEV-3122
 # Mutations are actually identical but on alternate transcripts.
 
@@ -41,13 +44,20 @@ TP53_MUT_DICT = {
 
 @pytest.fixture(scope="module")
 def graphkb_conn():
-    username = os.environ["IPR_USER"]
-    password = os.environ["IPR_PASS"]
-    graphkb_conn = GraphKBConnection()
+    username = os.environ.get("GRAPHKB_USER", os.environ["IPR_USER"])
+    password = os.environ.get("GRAPHKB_PASS", os.environ["IPR_PASS"])
+    graphkb_url = os.environ.get("GRAPHKB_URL", False)
+    if graphkb_url:
+        graphkb_conn = GraphKBConnection(graphkb_url)
+    else:
+        graphkb_conn = GraphKBConnection()
     graphkb_conn.login(username, password)
     return graphkb_conn
 
 
+@pytest.mark.skipif(
+    EXCLUDE_BCGSC_TESTS, reason="excluding tests that depend on BCGSC-specific data"
+)
 class TestAnnotation:
     def test_annotate_nonsense_vs_missense(self, graphkb_conn):
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""

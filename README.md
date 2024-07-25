@@ -43,7 +43,36 @@ pip install -U pip setuptools
 pip install -e .[dev]
 ```
 
-Run the tests
+Run the tests:
+
+Export usernames, passwords, and set test options.
+
+Note that IPR tests will try to use the BCGSC production GraphKB API by default.
+If you want to test interaction with a different instance, you will need to
+set the GraphKB variables.
+
+Set EXCLUDE vars to 1 if you don't want to run these tests. 
+ONCOKB and BCGSC tests are enabled by default.
+
+```bash
+export IPR_USER='pori_admin'
+export IPR_PASS='pori_admin'
+export IPR_URL='http://localhost:8081/api'
+export GRAPHKB_USER='pori_admin'
+export GRAPHKB_PASS='pori_admin'
+export GRAPHKB_URL='http://localhost:8080/api'
+EXCLUDE_BCGSC_TESTS = 1
+EXCLUDE_ONCOKB_TESTS = 1
+```
+
+If you want to run tests that upload reports to a live IPR instance,
+specify the url of the IPR API you want to use and set the test var to 1.
+These tests are disabled by default.
+
+```bash
+export IPR_TEST_URL='http://localhost:8081/api'
+INCLUDE_UPLOAD_TESTS = 1
+```
 
 ```bash
 pytest tests

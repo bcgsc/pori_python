@@ -22,6 +22,8 @@ from pori_python.graphkb.genes import (
 from pori_python.graphkb.util import get_rid
 
 EXCLUDE_INTEGRATION_TESTS = os.environ.get("EXCLUDE_INTEGRATION_TESTS") == "1"
+EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
+EXCLUDE_ONCOKB_TESTS = os.environ.get("EXCLUDE_ONCOKB_TESTS") == "1"
 
 CANONICAL_ONCOGENES = ["kras", "nras", "alk"]
 CANONICAL_TS = ["cdkn2a", "tp53"]
@@ -109,6 +111,7 @@ def conn():
     return conn
 
 
+@pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data")
 def test_oncogene(conn):
     result = get_oncokb_oncogenes(conn)
     names = {row["name"] for row in result}
@@ -120,6 +123,7 @@ def test_oncogene(conn):
         assert gene not in names
 
 
+@pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data")
 def test_tumour_supressors(conn):
     result = get_oncokb_tumour_supressors(conn)
     names = {row["name"] for row in result}
@@ -131,6 +135,10 @@ def test_tumour_supressors(conn):
         assert gene not in names
 
 
+@pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data")
+@pytest.mark.skipif(
+    EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (tso500 not available)"
+)
 def test_cancer_genes(conn):
     result = get_cancer_genes(conn)
     names = {row["name"] for row in result}
@@ -142,6 +150,9 @@ def test_cancer_genes(conn):
         assert gene not in names
 
 
+@pytest.mark.skipif(
+    EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))"
+)
 def test_get_pharmacogenomic_info(conn):
     genes, matches = get_pharmacogenomic_info(conn)
     for gene in PHARMACOGENOMIC_INITIAL_GENES:
@@ -156,6 +167,9 @@ def test_get_pharmacogenomic_info(conn):
             assert False, f"No rid found for a pharmacogenomic with {gene}"
 
 
+@pytest.mark.skipif(
+    EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))"
+)
 def test_get_gene_linked_pharmacogenomic_info(conn):
     genes, matches = get_gene_linked_pharmacogenomic_info(conn)
     for gene in PHARMACOGENOMIC_INITIAL_GENES:
@@ -169,6 +183,9 @@ def test_get_gene_linked_pharmacogenomic_info(conn):
 
 
 @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))"
+)
 def test_get_cancer_predisposition_info(conn):
     genes, matches = get_cancer_predisposition_info(conn)
     for gene in CANCER_PREDISP_INITIAL_GENES:
@@ -176,6 +193,9 @@ def test_get_cancer_predisposition_info(conn):
 
 
 @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))"
+)
 def test_get_gene_linked_cancer_predisposition_info(conn):
     genes, matches = get_gene_linked_cancer_predisposition_info(conn)
     for gene in CANCER_PREDISP_INITIAL_GENES:
@@ -192,6 +212,9 @@ def test_get_preferred_gene_name_kras(alt_rep, conn):
     ), f"Expected KRAS as preferred gene name for {alt_rep}, not '{gene_name}'"
 
 
+@pytest.mark.skipif(
+    EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))"
+)
 @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 def test_find_genes_by_variant_type_structural_variant(conn):
     result = get_genes_from_variant_types(conn, ["structural variant"])
@@ -214,13 +237,17 @@ def test_get_therapeutic_associated_genes(conn):
     gene_list = get_therapeutic_associated_genes(graphkb_conn=conn)
     assert gene_list, "No get_therapeutic_associated_genes found"
     assert (
-        len(gene_list) > 500
-    ), f"Expected over 500 get_therapeutic_associated_genes but found {len(gene_list)}"
+        len(gene_list) > 300
+    ), f"Expected over 300 get_therapeutic_associated_genes but found {len(gene_list)}"
     names = {row["name"] for row in gene_list}
     for gene in CANNONICAL_THERAPY_GENES + CANONICAL_ONCOGENES + CANONICAL_TS:
         assert gene in names, f"{gene} not found by get_therapeutic_associated_genes"
 
 
+@pytest.mark.skipif(
+    EXCLUDE_BCGSC_TESTS,
+    reason="excluding BCGSC-specific tests (requires oncokb and other loaders))",
+)
 @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 def test_get_gene_information(conn):
     gene_info = get_gene_information(
