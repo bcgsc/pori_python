@@ -90,7 +90,7 @@ class IprConnection:
                 if result.get("jobStatus", False) and result["jobStatus"].get("state", False):
                     return result["jobStatus"]["state"]
                 raise Exception(
-                    f"async report get returned with no report or jobStatus, or unexpected jobStatus type"
+                    "async report get returned with no report or jobStatus, or unexpected jobStatus type"
                 )
 
             def check_status(interval: int = 5, num_attempts: int = 5):
@@ -109,12 +109,7 @@ class IprConnection:
                             f"async report upload failed with reason: {current_status.get('jobStatus', {}).get('failedReason', 'Unknown')}"
                         )
 
-                    if check_result not in [
-                        "active",
-                        "ready",
-                        "waiting",
-                        "completed",
-                    ]:
+                    if check_result not in ["active", "ready", "waiting", "completed"]:
                         raise Exception(
                             f"async report upload in unexpected state: {current_status}"
                         )

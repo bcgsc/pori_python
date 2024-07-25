@@ -2,11 +2,13 @@
 upload variant and report information to IPR
 """
 
+from __future__ import annotations
+
 import pandas
 from typing import Any, Dict, List, Sequence
 
 from pori_python.graphkb import GraphKBConnection
-from pori_python.types import IprVariant, KbMatch
+from pori_python.types import Hashabledict, IprVariant, KbMatch
 
 from .util import (
     create_variant_name_tuple,
@@ -17,7 +19,9 @@ from .util import (
 
 
 def create_therapeutic_options(
-    graphkb_conn: GraphKBConnection, kb_matches: List[KbMatch], variants: Sequence[IprVariant]
+    graphkb_conn: GraphKBConnection,
+    kb_matches: List[KbMatch] | List[Hashabledict],
+    variants: Sequence[IprVariant],
 ) -> List[Dict]:
     """
     Generate therapeutic options summary from the list of kb-matches
@@ -66,7 +70,7 @@ def create_therapeutic_options(
         }
     )
     options_df = options_df.reset_index()
-    options = options_df.to_dict("records")
+    options = options_df.to_dict("records")  # type: ignore
     therapeutic_rank = 0
     chemoresistance_rank = 0
     for option in options:

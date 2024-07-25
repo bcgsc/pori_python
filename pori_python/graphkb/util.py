@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 from urllib3.util.retry import Retry
 
-from pori_python.types import OntologyTerm, ParsedVariant, PositionalVariant, Record
+from pori_python.types import ParsedVariant, PositionalVariant, Record
 
 from .constants import DEFAULT_LIMIT, DEFAULT_URL, TYPES_TO_NOTATION, AA_3to1_MAPPING
 
@@ -328,18 +328,6 @@ def get_rid(conn: GraphKBConnection, target: str, name: str) -> str:
     return result[0]["@rid"]
 
 
-def ontologyTermRepr(term: Union[OntologyTerm, str]) -> str:
-    if type(term) is not str:
-        if getattr(term, "displayName", None) and term.displayName != "":
-            return term.displayName
-        if getattr(term, "sourceId", None) and term.sourceId != "":
-            return term.sourceId
-        if getattr(term, "name", None) and term.name != "":
-            return term.name
-        return ""
-    return term
-
-
 def stripParentheses(breakRepr: str) -> str:
     match = re.search(r"^([a-z])\.\((.+)\)$", breakRepr)
 
@@ -360,13 +348,13 @@ def stripRefSeq(breakRepr: str) -> str:
 
 
 def stripDisplayName(displayName: str, withRef: bool = True, withRefSeq: bool = True) -> str:
-    match: object = re.search(r"^(.*)(\:)(.*)$", displayName)
+    match = re.search(r"^(.*)(\:)(.*)$", displayName)
     if match and not withRef:
         if withRefSeq:
             return match.group(3)
         displayName = match.group(2) + match.group(3)
 
-    match: object = re.search(r"^(.*\:)([a-z]\.)(.*)$", displayName)
+    match = re.search(r"^(.*\:)([a-z]\.)(.*)$", displayName)
     if match and not withRefSeq:
         ref: str = match.group(1) if match.group(1) != ":" else ""
         prefix: str = match.group(2)
@@ -407,7 +395,7 @@ def stringifyVariant(
         str: The string representation
     """
 
-    displayName: str = variant.get("displayName", "")
+    displayName: str = variant.get("displayName") or ""  # type: ignore
 
     # If variant is a PositionalVariant (i.e. variant with a displayName) and
     # we already have the appropriate string representation,
@@ -425,29 +413,36 @@ def stringifyVariant(
     # the following will return a stringify representation (displayName/hgvs) of that variant
     # based on: https://github.com/bcgsc/pori_graphkb_parser/blob/ae3738842a4c208ab30f58c08ae987594d632504/src/variant.ts#L206-L292
 
-    parsed: ParsedVariant = variant
+    parsed = variant
     result: List[str] = []
 
     # Extracting parsed values into individual variables
-    break1Repr: str = parsed.get("break1Repr", "")
-    break2Repr: str = parsed.get("break2Repr", "")
-    multiFeature: bool = parsed.get("multiFeature", False)
-    noFeatures: bool = parsed.get("noFeatures", False)
-    notationType: str = parsed.get("notationType", "")
-    reference1: str = parsed.get("reference1", "")
-    reference2: str = parsed.get("reference2", "")
-    refSeq: str = parsed.get("refSeq", "")
-    truncation: int = parsed.get("truncation", None)
-    type: str = parsed.get("type", "")
-    untemplatedSeq: str = parsed.get("untemplatedSeq", "")
-    untemplatedSeqSize: int = parsed.get("untemplatedSeqSize", None)
+    break1Repr: str = str(parsed.get("break1Repr", ""))
+    break2Repr: str = str(parsed.get("break2Repr", ""))
+    multiFeature: bool = bool(parsed.get("multiFeature"))
+    noFeatures: bool = bool(parsed.get("noFeatures"))
+    notationType: str = str(parsed.get("notationType", ""))
+    reference1: str = ""
+    if ref1 := parsed.get("reference1"):
+        if isinstance(ref1, str):
+            reference1 = ref1
+        else:
+            reference1 = ref1.get("displayName", str(ref1))
+    reference2: str = ""
+    if ref2 := parsed.get("reference2"):
+        if isinstance(ref2, str):
+            reference2 = ref2
+        else:
+            reference2 = ref2.get("displayName", str(ref2))
+    refSeq: str = parsed.get("refSeq") or ""
+    truncation: int = parsed.get("truncation") or 0  # type: ignore
+    variantType: str = parsed.get("type", "")
+    untemplatedSeq: str = parsed.get("untemplatedSeq") or ""
+    untemplatedSeqSize: int = parsed.get("untemplatedSeqSize") or 0
 
     # formating notationType
-    if notationType == "":
-        variantType = ontologyTermRepr(type)
-        notationType = TYPES_TO_NOTATION.get(variantType, "")
-    if notationType == "":
-        notationType = re.sub(r"\s", "-", variantType)
+    if not notationType:
+        notationType = TYPES_TO_NOTATION.get(variantType, re.sub(r"\s", "-", variantType))
 
     # If multiFeature
     if multiFeature or (reference2 != "" and reference1 != reference2):
@@ -503,7 +498,7 @@ def stringifyVariant(
             result.append(notationType)
         if truncation and truncation != 1:
             if truncation < 0:
-                result.append(truncation)
+                result.append(str(truncation))
             else:
                 result.append(f"*{truncation}")
         if any(i in notationType for i in ["dup", "del", "inv"]):

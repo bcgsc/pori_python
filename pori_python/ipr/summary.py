@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import base64
 import json
-from typing import Callable, Dict, List, Sequence, Set, Tuple
+from typing import Callable, Dict, List, Sequence, Set, Tuple, cast
 from urllib.parse import urlencode
 
 from pori_python.graphkb import GraphKBConnection
@@ -9,7 +11,7 @@ from pori_python.graphkb.statement import categorize_relevance
 from pori_python.graphkb.util import convert_to_rid_list
 from pori_python.graphkb.vocab import get_term_tree
 from pori_python.ipr.inputs import create_graphkb_sv_notation
-from pori_python.types import GkbStatement, IprVariant, KbMatch, Ontology, Record
+from pori_python.types import Hashabledict, IprVariant, KbMatch, Ontology, Record, Statement
 
 from .util import (
     convert_to_rid_set,
@@ -45,8 +47,13 @@ def natural_join(word_list: List[str]) -> str:
     return "".join(word_list)
 
 
+def get_displayname(rec: Record) -> str:
+    ret_val = rec.get("displayName", rec["@rid"])
+    return str(ret_val)
+
+
 def natural_join_records(
-    records: Sequence[Record], covert_to_word: Callable[[Dict], str] = lambda x: x["displayName"]
+    records: Sequence[Record], covert_to_word: Callable[[Record], str] = get_displayname
 ) -> str:
     word_list = sorted(list({covert_to_word(rec) for rec in records}))
     return natural_join(word_list)
@@ -62,6 +69,21 @@ def create_graphkb_link(record_ids: List[str], record_class: str = "Statement") 
     complex_param = base64.b64encode(json.dumps({"target": record_ids}).encode("utf-8"))
     search_params = {"complex": complex_param, "@class": record_class}
     return f"{GRAPHKB_GUI}/data/table?{urlencode(search_params)}"
+
+
+def merge_diseases(
+    diseases: List[Ontology] | List[Record], disease_matches: Set[str] = set()
+) -> str:
+    if len(convert_to_rid_set(diseases) - disease_matches) >= 2 and all(
+        [d["@class"] == "Disease" for d in diseases]
+    ):
+        words = sorted(
+            list(set([get_displayname(s) for s in diseases if s["@rid"] in disease_matches]))
+        )
+        words.append(OTHER_DISEASES)
+        return natural_join(words)
+    else:
+        return natural_join_records(diseases)
 
 
 def substitute_sentence_template(
@@ -90,29 +112,23 @@ def substitute_sentence_template(
     )
     result = template.replace(r"{relevance}", relevance["displayName"])
 
-    def merge_diseases(diseases: List[Ontology]) -> str:
-        if len(convert_to_rid_set(diseases) - disease_matches) >= 2 and all(
-            [d["@class"] == "Disease" for d in diseases]
-        ):
-            words = sorted(
-                list(set([s["displayName"] for s in diseases if s["@rid"] in disease_matches]))
-            )
-            words.append(OTHER_DISEASES)
-            return natural_join(words)
-        else:
-            return natural_join_records(diseases)
-
     if r"{subject}" in template:
         # remove subject from the conditions replacements
         subjects_ids = convert_to_rid_set(subjects)
-        disease_conditions = [d for d in disease_conditions if d["@rid"] not in subjects_ids]
-        variant_conditions = [d for d in variant_conditions if d["@rid"] not in subjects_ids]
+        disease_conditions = [
+            cast(Ontology, d) for d in disease_conditions if d["@rid"] not in subjects_ids
+        ]
+        variant_conditions = [
+            cast(Ontology, d) for d in variant_conditions if d["@rid"] not in subjects_ids
+        ]
         other_conditions = [d for d in other_conditions if d["@rid"] not in subjects_ids]
 
-        result = result.replace(r"{subject}", merge_diseases(subjects))
+        result = result.replace(r"{subject}", merge_diseases(subjects, disease_matches))
 
     if r"{conditions:disease}" in template:
-        result = result.replace(r"{conditions:disease}", merge_diseases(disease_conditions))
+        result = result.replace(
+            r"{conditions:disease}", merge_diseases(disease_conditions, disease_matches)
+        )
     else:
         other_conditions.extend(disease_conditions)
 
@@ -137,17 +153,17 @@ def substitute_sentence_template(
 def aggregate_statements(
     graphkb_conn: GraphKBConnection,
     template: str,
-    statements: List[GkbStatement],
+    statements: List[Statement],
     disease_matches: Set[str],
 ) -> Dict[str, str]:
     """
     Group Statements that only differ in disease conditions and evidence
     """
-    hash_other: Dict[Tuple, List[GkbStatement]] = {}
+    hash_other: Dict[Tuple, List[Statement]] = {}
 
-    def generate_key(statement: GkbStatement) -> Tuple:
+    def generate_key(statement: Statement) -> Tuple:
         result = [
-            cond["displayName"]
+            cond.get("displayName", cond["@rid"])
             for cond in filter_by_record_class(statement["conditions"], "Disease", exclude=True)
             if cond["@rid"] != statement["subject"]["@rid"]
         ]
@@ -214,7 +230,7 @@ def display_variant(variant: IprVariant) -> str:
     if gene and hgvs:
         return f"{gene}:{hgvs}"
     elif variant.get("variant"):
-        return variant.get("variant")
+        return str(variant.get("variant"))
 
     raise ValueError(f"Unable to form display_variant of {variant}")
 
@@ -235,7 +251,7 @@ def create_section_html(
     graphkb_conn: GraphKBConnection,
     gene_name: str,
     sentences_by_statement_id: Dict[str, str],
-    statements: Dict[str, GkbStatement],
+    statements: Dict[str, Statement],
     exp_variants: List[IprVariant],
 ) -> str:
     """
@@ -252,22 +268,20 @@ def create_section_html(
         )
         sentence_categories[sentence] = category
 
-    # get the entrez gene description
-    genes = sorted(
-        graphkb_conn.query(
-            {
-                "target": "Feature",
-                "filters": {
-                    "AND": [
-                        {"source": {"target": "Source", "filters": {"name": "entrez gene"}}},
-                        {"name": gene_name},
-                        {"biotype": "gene"},
-                    ]
-                },
-            }
-        ),
-        key=generate_ontology_preference_key,
+    # get the entrez gene descriptive hugo name
+    genes = graphkb_conn.query(
+        {
+            "target": "Feature",
+            "filters": {
+                "AND": [
+                    {"source": {"target": "Source", "filters": {"name": "entrez gene"}}},
+                    {"name": gene_name},
+                    {"biotype": "gene"},
+                ]
+            },
+        }
     )
+    genes = sorted(genes, key=generate_ontology_preference_key)  # type: ignore
 
     variants_text = display_variants(gene_name, exp_variants)
     if not variants_text:
@@ -308,7 +322,7 @@ def create_section_html(
 
 
 def section_statements_by_genes(
-    graphkb_conn: GraphKBConnection, statements: Sequence[GkbStatement]
+    graphkb_conn: GraphKBConnection, statements: Sequence[Statement]
 ) -> Dict[str, Set[str]]:
     """Create Dict of statement @rid sets indexed by preferred gene names in conditions."""
     genes: Dict[str, Set[str]] = {}
@@ -328,15 +342,15 @@ def section_statements_by_genes(
     return genes
 
 
-def summarize(
+def auto_analyst_comments(
     graphkb_conn: GraphKBConnection,
-    matches: Sequence[KbMatch],
+    matches: Sequence[KbMatch] | Sequence[Hashabledict],
     disease_name: str,
     variants: Sequence[IprVariant],
 ) -> str:
     """Given a list of GraphKB matches, generate a text summary to add to the report."""
-    templates: Dict[str, List[GkbStatement]] = {}
-    statements: Dict[str, GkbStatement] = {}
+    templates: Dict[str, List[Statement]] = {}
+    statements: Dict[str, Statement] = {}
     variants_by_keys = {v["key"]: v for v in variants}
     variant_keys_by_statement_ids: Dict[str, Set[str]] = {}
 
