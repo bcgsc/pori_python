@@ -63,9 +63,7 @@ class TestAnnotation:
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
         disease = "cancer"
         for key in ("prot_only", "cds_only", "genome_only", "pref"):
-            matched = annotate_positional_variants(
-                graphkb_conn, [TP53_MUT_DICT[key]], disease
-            )
+            matched = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[key]], disease)
             # nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
             nonsense = [a for a in matched if a["kbVariant"] == "TP53 nonsense"]
             assert not nonsense, f"nonsense matched to {key}: {TP53_MUT_DICT[key]}"
@@ -75,9 +73,7 @@ class TestAnnotation:
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
         disease = "cancer"
         for key in ("prot_only", "pref"):
-            matched = annotate_positional_variants(
-                graphkb_conn, [TP53_MUT_DICT[key]], disease
-            )
+            matched = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[key]], disease)
             # nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
             nonsense = [a for a in matched if "nonsense" in a["kbVariant"]]
             assert not nonsense, f"nonsense matched to {key}: {TP53_MUT_DICT[key]}"
@@ -87,9 +83,7 @@ class TestAnnotation:
         """Verify alternate TP53 variants match."""
         disease = "cancer"
         ref_key = "prot_only"
-        pref = annotate_positional_variants(
-            graphkb_conn, [TP53_MUT_DICT[ref_key]], disease
-        )
+        pref = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[ref_key]], disease)
         # GERO-299 - nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
         nonsense = [a for a in pref if a["kbVariant"] == "TP53 nonsense"]
         assert not nonsense

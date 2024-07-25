@@ -205,7 +205,7 @@ def get_preferred_gene_source_rid(
             "target": {"target": "Source", "filters": {"name": preferred_source_name}},
             "queryType": "similarTo",
         }
-        )[0]["@rid"]
+    )[0]["@rid"]
     return result
 
 

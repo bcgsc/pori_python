@@ -31,9 +31,7 @@ class IprConnection:
         self.cache: Dict[str, List[Dict]] = {}
         self.request_count = 0
 
-    def request(
-        self, endpoint: str, method: str = "GET", **kwargs
-    ) -> Dict:
+    def request(self, endpoint: str, method: str = "GET", **kwargs) -> Dict:
         """Request wrapper to handle adding common headers and logging
 
         Args:
@@ -138,9 +136,7 @@ class IprConnection:
                         "waiting",
                         "completed",
                     ]:
-                        raise Exception(
-                            f"async report upload in unexpected state: {job_status}"
-                        )
+                        raise Exception(f"async report upload in unexpected state: {job_status}")
 
                 return current_status
 
@@ -178,9 +174,7 @@ class IprConnection:
             data=zlib.compress(json.dumps(data, allow_nan=False).encode("utf-8")),
         )
 
-    def post_images(
-        self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}
-    ) -> None:
+    def post_images(self, report_id: str, files: Dict[str, str], data: Dict[str, str] = {}) -> None:
         """
         Post images to the report
         """
@@ -213,9 +207,7 @@ class IprConnection:
                     handler.close()
             start_index += IMAGE_MAX
         if image_errors:
-            raise ValueError(
-                f'Error uploading images ({", ".join(sorted(list(image_errors)))})'
-            )
+            raise ValueError(f'Error uploading images ({", ".join(sorted(list(image_errors)))})')
 
     def get_spec(self) -> Dict:
         """

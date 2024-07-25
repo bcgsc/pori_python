@@ -48,27 +48,25 @@ def loaded_reports(tmp_path_factory) -> Dict:
         ],
         "patientId": patient_id,
         "project": "TEST",
-          "sampleInfo": [
+        "sampleInfo": [
             {
-            "sample": "Constitutional",
-            "biopsySite": "Normal tissue",
-            "sampleName": "SAMPLE1-PB",
-            "primarySite": "Blood-Peripheral",
-            "collectionDate": "11-11-11"
+                "sample": "Constitutional",
+                "biopsySite": "Normal tissue",
+                "sampleName": "SAMPLE1-PB",
+                "primarySite": "Blood-Peripheral",
+                "collectionDate": "11-11-11",
             },
             {
-            "sample": "Tumour",
-            "pathoTc": "90%",
-            "biopsySite": "hepatic",
-            "sampleName": "SAMPLE2-FF-1",
-            "primarySite": "Vena Cava-Hepatic",
-            "collectionDate": "12-12-12"
-            }
+                "sample": "Tumour",
+                "pathoTc": "90%",
+                "biopsySite": "hepatic",
+                "sampleName": "SAMPLE2-FF-1",
+                "primarySite": "Vena Cava-Hepatic",
+                "collectionDate": "12-12-12",
+            },
         ],
         "expressionVariants": json.loads(
-            pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(
-                orient="records"
-            )
+            pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(orient="records")
         ),
         "smallMutations": json.loads(
             pd.read_csv(get_test_file("small_mutations.short.tab"), sep="\t").to_json(
@@ -81,9 +79,7 @@ def loaded_reports(tmp_path_factory) -> Dict:
             )
         ),
         "structuralVariants": json.loads(
-            pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(
-                orient="records"
-            )
+            pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(orient="records")
         ),
         "kbDiseaseMatch": "colorectal cancer",
     }
@@ -177,9 +173,7 @@ def compare_sections(section1, section2):
 @pytest.mark.skipif(
     not INCLUDE_UPLOAD_TESTS, reason="excluding tests of upload to live ipr instance"
 )
-@pytest.mark.skipif(
-    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
-)
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestCreateReport:
     def test_patient_id_loaded_once(self, loaded_reports) -> None:
         sync_patient_id = loaded_reports["sync"][0]
@@ -199,9 +193,7 @@ class TestCreateReport:
     def test_structural_variants_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports["sync"], "structural-variants")
         kbmatched = [item for item in section if item["kbMatches"]]
-        assert "(EWSR1,FLI1):fusion(e.7,e.4)" in [
-            item["displayName"] for item in kbmatched
-        ]
+        assert "(EWSR1,FLI1):fusion(e.7,e.4)" in [item["displayName"] for item in kbmatched]
         async_section = get_section(loaded_reports["async"], "structural-variants")
         assert compare_sections(section, async_section)
 
@@ -247,9 +239,7 @@ class TestCreateReport:
         assert compare_sections(section, async_section)
 
     def test_genomic_alterations_identified_loaded(self, loaded_reports) -> None:
-        section = get_section(
-            loaded_reports["sync"], "summary/genomic-alterations-identified"
-        )
+        section = get_section(loaded_reports["sync"], "summary/genomic-alterations-identified")
         variants = set([item["geneVariant"] for item in section])
         for variant in [
             "FGFR2:p.R421C",
