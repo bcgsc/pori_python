@@ -90,7 +90,7 @@ class TestCategorizeRelevance:
 
 
 @pytest.mark.skipif(
-    EXCLUDE_BCGSC_TESTS, reason='db-specific rid; requires Inferred Functional Annotation source'
+    EXCLUDE_BCGSC_TESTS, reason="db-specific rid; requires Inferred Functional Annotation source"
 )
 @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestStatementMatch:

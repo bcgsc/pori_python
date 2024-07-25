@@ -71,15 +71,15 @@ def command_interface() -> None:
         "-c", "--content", required=True, type=file_path, help="Report Content as JSON"
     )
 
-    parser.add_argument('--ipr_url', default=os.environ.get("IPR_URL", DEFAULT_URL))
+    parser.add_argument("--ipr_url", default=os.environ.get("IPR_URL", DEFAULT_URL))
     parser.add_argument(
-        '--graphkb_username', help='username to use connecting to graphkb if different from ipr'
+        "--graphkb_username", help="username to use connecting to graphkb if different from ipr"
     )
     parser.add_argument(
-        '--graphkb_password', help='password to use connecting to graphkb if different from ipr'
+        "--graphkb_password", help="password to use connecting to graphkb if different from ipr"
     )
-    parser.add_argument('--graphkb_url', default=os.environ.get("GRAPHKB_URL", None))
-    parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
+    parser.add_argument("--graphkb_url", default=os.environ.get("GRAPHKB_URL", None))
+    parser.add_argument("--log_level", default="info", choices=LOG_LEVELS.keys())
     parser.add_argument(
         "--therapeutics",
         default=False,
@@ -242,7 +242,7 @@ def ipr_report(
     interactive: bool = False,
     graphkb_username: str = None,
     graphkb_password: str = None,
-    graphkb_url: str = '',
+    graphkb_url: str = "",
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
     match_germline: bool = False,

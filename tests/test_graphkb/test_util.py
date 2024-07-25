@@ -164,7 +164,7 @@ class TestStringifyVariant:
             ["#158:35317", 1652734056311, "c.1>G"],
         ],
     )
-    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason='db-dependent rids')
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="db-dependent rids")
     def test_stringifyVariant_positional(self, conn, rid, createdAt, stringifiedVariant):
         opt = {"withRef": False, "withRefSeq": False}
         variant = conn.get_record_by_id(rid)

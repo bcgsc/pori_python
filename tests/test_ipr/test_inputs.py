@@ -126,8 +126,8 @@ def test_load_structural_variants() -> None:
     )
     assert records
     assert len(records) == 7
-    assert records[0]['variantType'] == 'sv'
-    assert 'variant' in records[0]
+    assert records[0]["variantType"] == "sv"
+    assert "variant" in records[0]
 
 
 def test_load_expression_variants() -> None:

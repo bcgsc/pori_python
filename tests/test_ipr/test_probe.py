@@ -36,13 +36,13 @@ def probe_upload_content() -> Dict:
                     "blargh": "some fake content",
                     "kbDiseaseMatch": "colorectal cancer",
                 },
-                username=os.environ['IPR_USER'],
-                password=os.environ['IPR_PASS'],
-                log_level='info',
-                ipr_url='http://fake.url.ca',
-                graphkb_username=os.environ.get('GRAPHKB_USER', os.environ['IPR_USER']),
-                graphkb_password=os.environ.get('GRAPHKB_PASS', os.environ['IPR_PASS']),
-                graphkb_url=os.environ.get('GRAPHKB_URL', False),
+                username=os.environ["IPR_USER"],
+                password=os.environ["IPR_PASS"],
+                log_level="info",
+                ipr_url="http://fake.url.ca",
+                graphkb_username=os.environ.get("GRAPHKB_USER", os.environ["IPR_USER"]),
+                graphkb_password=os.environ.get("GRAPHKB_PASS", os.environ["IPR_PASS"]),
+                graphkb_url=os.environ.get("GRAPHKB_URL", False),
             )
 
     assert mock.called

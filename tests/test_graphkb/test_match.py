@@ -46,7 +46,7 @@ def kras(conn):
 version found in the db for ENSG00000133703 will vary depending on which
 version of ensembl was loaded. checking for any . version
  """
-kras_ensg_version = r'ENSG00000133703\..*'
+kras_ensg_version = r"ENSG00000133703\..*"
 
 
 class TestGetEquivalentFeatures:
@@ -424,7 +424,7 @@ class TestMatchPositionalVariant:
         ],
     )
     @pytest.mark.skipif(
-        EXCLUDE_BCGSC_TESTS, reason='TODO: fix loader for vars ending in X, p.?, copy variant'
+        EXCLUDE_BCGSC_TESTS, reason="TODO: fix loader for vars ending in X, p.?, copy variant"
     )
     def test_known_variants(self, conn, known_variant, related_variants, unrelated_variants):
         matches = match.match_positional_variant(conn, known_variant)
@@ -481,7 +481,7 @@ class TestMatchPositionalVariant:
     @pytest.mark.skipif(
         EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
     )
-    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason='source for this variant is IPRKB')
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="source for this variant is IPRKB")
     def test_tert_promoter(self, conn):
         assert match.match_positional_variant(conn, "TERT:c.-124C>T")
 
@@ -505,7 +505,7 @@ class TestMatchPositionalVariant:
                 not nonsense
             ), f"Missense {mut} is not a nonsense variant: {((m['displayName'], m['@rid']) for m in nonsense)}"
 
-    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason='TODO: missing record for FGFR3 rearrangement')
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="TODO: missing record for FGFR3 rearrangement")
     def test_structural_variants(self, conn):
         """KBDEV-1056"""
         for variant_string, expected in structuralVariants.items():
