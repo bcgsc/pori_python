@@ -48,6 +48,23 @@ def loaded_reports(tmp_path_factory) -> Dict:
         ],
         "patientId": patient_id,
         "project": "TEST",
+          "sampleInfo": [
+            {
+            "sample": "Constitutional",
+            "biopsySite": "Normal tissue",
+            "sampleName": "SAMPLE1-PB",
+            "primarySite": "Blood-Peripheral",
+            "collectionDate": "11-11-11"
+            },
+            {
+            "sample": "Tumour",
+            "pathoTc": "90%",
+            "biopsySite": "hepatic",
+            "sampleName": "SAMPLE2-FF-1",
+            "primarySite": "Vena Cava-Hepatic",
+            "collectionDate": "12-12-12"
+            }
+        ],
         "expressionVariants": json.loads(
             pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(
                 orient="records"
@@ -253,3 +270,8 @@ class TestCreateReport:
         async_section = get_section(loaded_reports["async"], "summary/analyst-comments")
         assert async_section["comments"]
         assert sync_section["comments"] == async_section["comments"]
+
+    def test_sample_info_loaded(self, loaded_reports) -> None:
+        sync_section = get_section(loaded_reports["sync"], "sample-info")
+        async_section = get_section(loaded_reports["async"], "sample-info")
+        assert compare_sections(sync_section, async_section)
