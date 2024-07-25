@@ -136,7 +136,7 @@ class IprConnection:
                         "waiting",
                         "completed",
                     ]:
-                        raise Exception(f"async report upload in unexpected state: {job_status}")
+                        raise Exception(f"async report upload in unexpected state: {check_result}")
 
                 return current_status
 
