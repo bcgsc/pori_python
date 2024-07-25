@@ -195,7 +195,7 @@ class IprConnection:
                     method="POST",
                     data=data,
                     files=open_files,
-                    custom_headers={},
+                    headers=json.dumps({}),
                 )
                 for status in resp:
                     if status.get("upload") != "successful":
