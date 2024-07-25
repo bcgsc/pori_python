@@ -3,8 +3,8 @@ from requests.adapters import HTTPAdapter
 
 import hashlib
 import json
-import os
 import logging
+import os
 import re
 import time
 from datetime import datetime

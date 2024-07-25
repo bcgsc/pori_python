@@ -20,8 +20,8 @@ from pori_python.types import (
     IprVariant,
 )
 
-from .util import hash_key, logger, pandas_falsy
 from .constants import DEFAULT_URL
+from .util import hash_key, logger, pandas_falsy
 
 protein_letters_3to1.setdefault("Ter", "*")
 

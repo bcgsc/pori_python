@@ -138,7 +138,6 @@ class IprConnection:
                     ]:
                         raise Exception(f"async report upload in unexpected state: {check_result}")
 
-
                 return current_status
 
             current_status = check_status()

@@ -42,7 +42,7 @@ def kras(conn):
     return [f["displayName"] for f in match.get_equivalent_features(conn, "kras")]
 
 
-""" 
+"""
 version found in the db for ENSG00000133703 will vary depending on which
 version of ensembl was loaded. checking for any . version
  """
