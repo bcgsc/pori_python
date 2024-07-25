@@ -21,11 +21,6 @@ LOG_LEVELS = {
 }
 
 
-class Hashabledict(dict):
-    def __hash__(self):
-        return hash(frozenset(self))
-
-
 def get_terms_set(graphkb_conn: GraphKBConnection, base_terms: List[str]) -> Set[str]:
     terms = set()
     for base_term in base_terms:
@@ -120,7 +115,7 @@ def get_preferred_drug_representation(
     """
 
     source_preference = {
-        r["@rid"]: r["sort"]
+        r["@rid"]: r["sort"]  # type: ignore
         for r in graphkb_conn.query({"target": "Source", "returnProperties": ["sort", "@rid"]})
     }
     drugs = sorted(

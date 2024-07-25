@@ -3,25 +3,29 @@ Contains functions specific to formatting reports for IPR that are unlikely to b
 by other reporting systems
 """
 
-from typing import Dict, Iterable, List, Sequence, Set, Tuple
+from __future__ import annotations
+
+from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.types import (
-    GkbStatement,
+    Hashabledict,
     ImageDefinition,
     IprFusionVariant,
     IprGene,
     IprVariant,
     KbMatch,
+    Statement,
+    Variant,
 )
 
 from .constants import GERMLINE_BASE_TERMS, VARIANT_CLASSES
 from .util import find_variant, logger
 
 
-def display_evidence_levels(statement: GkbStatement) -> str:
+def display_evidence_levels(statement: Statement) -> str:
     result = []
     for evidence_level in statement.get("evidenceLevel", []) or []:
         if isinstance(evidence_level, str):
@@ -33,7 +37,7 @@ def display_evidence_levels(statement: GkbStatement) -> str:
 
 def filter_structural_variants(
     structural_variants: List[IprFusionVariant],
-    kb_matches: List[KbMatch],
+    kb_matches: List[KbMatch] | List[Hashabledict],
     gene_annotations: List[IprGene],
 ) -> List[IprFusionVariant]:
     """
@@ -82,14 +86,14 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
     ipr_source_rid = graphkb_conn.get_source("ipr")["@rid"]
     ipr_evidence_levels = filter(lambda d: d.get("source") == ipr_source_rid, evidence_levels)
     cross_references_mapping: Dict[str, str] = dict()
-    ipr_rids_to_displayname = dict()
+    ipr_rids_to_displayname: Dict[str, str] = dict()
     for level in ipr_evidence_levels:
-        d = map(lambda i: (i, level["displayName"]), level.get("out_CrossReferenceOf", []))
+        d = map(lambda i: (i, level["displayName"]), level.get("out_CrossReferenceOf", []))  # type: ignore
         cross_references_mapping.update(d)
-        ipr_rids_to_displayname[level["@rid"]] = level["displayName"]
+        ipr_rids_to_displayname[level["@rid"]] = level["displayName"]  # type: ignore
 
     # Update EvidenceLevel mapping to corresponding IPR EvidenceLevel displayName
-    def link_refs(refs):
+    def link_refs(refs) -> Tuple[str, str]:
         for rid in refs[1]:
             if cross_references_mapping.get(rid):
                 return (refs[0], cross_references_mapping[rid])
@@ -100,12 +104,12 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
     evidence_levels_mapping = dict(map(link_refs, evidence_levels_mapping.items()))
     evidence_levels_mapping[""] = ""
 
-    return evidence_levels_mapping
+    return evidence_levels_mapping  # type: ignore
 
 
 def convert_statements_to_alterations(
     graphkb_conn: GraphKBConnection,
-    statements: List[GkbStatement],
+    statements: List[Statement],
     disease_name: str,
     variant_matches: Iterable[str],
 ) -> List[KbMatch]:
@@ -154,10 +158,12 @@ def convert_statements_to_alterations(
                 }
             )
             if query_result:
-                recruitment_statuses[rid] = query_result[0]["recruitmentStatus"]
+                recruitment_statuses[rid] = query_result[0]["recruitmentStatus"]  # type: ignore
 
     for statement in statements:
-        variants = [c for c in statement["conditions"] if c["@class"] in VARIANT_CLASSES]
+        variants = [
+            cast(Variant, c) for c in statement["conditions"] if c["@class"] in VARIANT_CLASSES
+        ]
         diseases = [c for c in statement["conditions"] if c["@class"] == "Disease"]
         disease_match = len(diseases) == 1 and diseases[0]["@rid"] in disease_matches
         pmid = ";".join([e["displayName"] for e in statement["evidence"]])
@@ -185,17 +191,19 @@ def convert_statements_to_alterations(
                 continue
             row = KbMatch(
                 {
-                    "approvedTherapy": approved_therapy,
+                    "approvedTherapy": approved_therapy or False,
                     "category": ipr_section or "unknown",
                     "context": (
-                        statement["subject"]["displayName"] if statement["subject"] else None
+                        statement["subject"]["displayName"] if statement["subject"] else ""
                     ),
-                    "kbContextId": (statement["subject"]["@rid"] if statement["subject"] else None),
-                    "disease": ";".join(sorted(d["displayName"] for d in diseases)),
-                    "evidenceLevel": evidence_level_str,
-                    "iprEvidenceLevel": ipr_evidence_levels_str,
+                    "kbContextId": (statement["subject"]["@rid"] if statement["subject"] else ""),
+                    "disease": ";".join(sorted(d.get("displayName", "") for d in diseases)),
+                    "evidenceLevel": evidence_level_str or "",
+                    "iprEvidenceLevel": ipr_evidence_levels_str or "",
                     "kbStatementId": statement["@rid"],
-                    "kbVariant": variant["displayName"],
+                    "kbVariant": str(variant.get("displayName", "")) or "",
+                    "variant": str(variant.get("displayName", "")) or "",
+                    "variantType": "",
                     "kbVariantId": variant["@rid"],
                     "matchedCancer": disease_match,
                     "reference": pmid,
@@ -204,10 +212,10 @@ def convert_statements_to_alterations(
                     "externalSource": (
                         str(statement["source"].get("displayName", ""))
                         if statement["source"]
-                        else None
+                        else ""
                     ),
-                    "externalStatementId": statement.get("sourceId"),
-                    "reviewStatus": statement.get("reviewStatus"),
+                    "externalStatementId": statement.get("sourceId", "") or "",
+                    "reviewStatus": statement.get("reviewStatus", "") or "",
                     "kbData": {},
                 }
             )
@@ -220,7 +228,7 @@ def convert_statements_to_alterations(
 
 
 def select_expression_plots(
-    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
+    kb_matches: List[KbMatch] | List[Hashabledict], all_variants: Sequence[IprVariant]
 ) -> List[ImageDefinition]:
     """
     Given the list of expression variants, determine which expression
@@ -256,7 +264,7 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
+    kb_matches: List[Hashabledict], all_variants: Sequence[IprVariant]
 ) -> Tuple[List[Dict], Dict]:
     """Create the list of significant variants matched by the KB.
 
@@ -318,8 +326,8 @@ def create_key_alterations(
 
 
 def germline_kb_matches(
-    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant], assume_somatic: bool = True
-) -> List[KbMatch]:
+    kb_matches: List[Hashabledict], all_variants: Sequence[IprVariant], assume_somatic: bool = True
+) -> List[Hashabledict]:
     """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
 
     Statements related to pharmacogenomic toxicity or cancer predisposition are only relevant if

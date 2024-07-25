@@ -453,15 +453,13 @@ def type_screening(
         return default_type
 
     # When size is given
-    if parsed.get("untemplatedSeqSize", 0) >= threshold:
+    if (parsed.get("untemplatedSeqSize") or 0) >= threshold:
         return parsed["type"]
 
     # When size needs to be computed from positions
-    pos_start = parsed.get("break1Start", {}).get("pos", 1)
-    pos_end = parsed.get("break2Start", {}).get("pos", pos_start)
-    pos_size = 1
-    if prefix == "p":
-        pos_size = 3
+    pos_start: int = parsed.get("break1Start", {}).get("pos", 1)  # type: ignore
+    pos_end: int = parsed.get("break2Start", {}).get("pos", pos_start)  # type: ignore
+    pos_size = 3 if prefix == "p" else 1
     if ((pos_end - pos_start) + 1) * pos_size >= threshold:
         return parsed["type"]
 

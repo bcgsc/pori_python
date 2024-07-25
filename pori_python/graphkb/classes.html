@@ -2,7 +2,7 @@
   <body>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
       <div class="mermaid">
-    
+
         classDiagram
           class BasicPosition {
             pos : int
@@ -78,9 +78,9 @@
             untemplatedSeqSize : Optional[int]
           }
           class Statement {
-            conditions : List[OntologyLink]
-            evidence : List[OntologyLink]
-            evidenceLevel : List[OntologyLink]
+            conditions : List[Ontology]
+            evidence : List[Ontology]
+            evidenceLevel : List[Ontology]
             relevance : Union
             source : Union
             sourceId : str
@@ -90,12 +90,12 @@
             displayName : str
             germline : bool
             reference1 : Union
-            reference2 : Optional[OntologyLink]
+            reference2 : Optional[Ontology]
             type : Union
             zygosity : str
           }
           PositionalVariant --|> Variant
-  
+
        </div>
   </body>
 </html>

@@ -2,11 +2,13 @@
 handles annotating variants with annotation information from graphkb
 """
 
+from __future__ import annotations
+
 from requests.exceptions import HTTPError
 
 from pandas import isnull
 from tqdm import tqdm
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, cast
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import match as gkb_match
@@ -14,23 +16,24 @@ from pori_python.graphkb.match import INPUT_COPY_CATEGORIES
 from pori_python.graphkb.statement import get_statements_from_variants
 from pori_python.graphkb.util import FeatureNotFoundError
 from pori_python.types import (
-    GkbStatement,
+    Hashabledict,
     IprCopyVariant,
     IprExprVariant,
     IprStructuralVariant,
     KbMatch,
+    Statement,
     Variant,
 )
 
 from .constants import TMB_HIGH_CATEGORY
 from .ipr import convert_statements_to_alterations
-from .util import Hashabledict, convert_to_rid_set, logger
+from .util import convert_to_rid_set, logger
 
 REPORTED_COPY_VARIANTS = (INPUT_COPY_CATEGORIES.AMP, INPUT_COPY_CATEGORIES.DEEP)
 
 
 def get_second_pass_variants(
-    graphkb_conn: GraphKBConnection, statements: List[GkbStatement]
+    graphkb_conn: GraphKBConnection, statements: List[Statement]
 ) -> List[Variant]:
     """Given a list of statements that have been matched, convert these to
     new category variants to be used in a second-pass matching.
@@ -197,12 +200,13 @@ def annotate_copy_variants(
 
 def annotate_positional_variants(
     graphkb_conn: GraphKBConnection,
-    variants: Sequence[IprStructuralVariant],
+    variants: Sequence[IprStructuralVariant] | Sequence[Hashabledict],
     disease_name: str,
     show_progress: bool = False,
-) -> List[KbMatch]:
+) -> List[Hashabledict]:
     """Annotate SNP, INDEL or fusion variant calls with GraphKB and return in IPR match format.
 
+    Hashable type is required to turn lists into sets.
     Args:
         graphkb_conn (GraphKBConnection): the graphkb api connection object
         variants (list.<dict>): list of variants. Defaults to [].
@@ -210,11 +214,11 @@ def annotate_positional_variants(
         show_progress (bool): Progressbar displayed for long runs.
 
     Returns:
-        list of kbMatches records for IPR
+        Hashable list of kbMatches records for IPR
     """
     VARIANT_KEYS = ("variant", "hgvsProtein", "hgvsCds", "hgvsGenomic")
     errors = 0
-    alterations = []
+    alterations: List[Hashabledict] = []
     problem_genes = set()
 
     iterfunc = tqdm if show_progress else iter
@@ -283,7 +287,7 @@ def annotate_positional_variants(
         logger.error(f"skipped {errors} positional variants due to errors")
 
     # drop duplicates
-    alterations: List[KbMatch] = list(set(alterations))
+    alterations = list(set(alterations))
 
     variant_types = ", ".join(sorted(set([alt["variantType"] for alt in alterations])))
     logger.info(
@@ -322,7 +326,8 @@ def annotate_msi(
         }
     )
     if msi_categories:
-        for ipr_row in get_ipr_statements_from_variants(graphkb_conn, msi_categories, disease_name):
+        msi_variants = [cast(Variant, var) for var in msi_categories]
+        for ipr_row in get_ipr_statements_from_variants(graphkb_conn, msi_variants, disease_name):
             ipr_row["variant"] = msi_category
             ipr_row["variantType"] = "msi"
             gkb_matches.append(ipr_row)
@@ -360,7 +365,8 @@ def annotate_tmb(
         }
     )
     if categories:
-        for ipr_row in get_ipr_statements_from_variants(graphkb_conn, categories, disease_name):
+        cat_variants = [cast(Variant, var) for var in categories]
+        for ipr_row in get_ipr_statements_from_variants(graphkb_conn, cat_variants, disease_name):
             ipr_row["variant"] = category
             ipr_row["variantType"] = "tmb"
             gkb_matches.append(ipr_row)
