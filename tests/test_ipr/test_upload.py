@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 import sys
 import uuid
-from typing import Dict
+from typing import Dict, Generator
 from unittest.mock import patch
 
 from pori_python.ipr.connection import IprConnection
@@ -31,7 +31,7 @@ def get_test_file(name: str) -> str:
 
 
 @pytest.fixture(scope="module")
-def loaded_reports(tmp_path_factory) -> Dict:
+def loaded_reports(tmp_path_factory) -> Generator:
     json_file = tmp_path_factory.mktemp("inputs") / "content.json"
     async_json_file = tmp_path_factory.mktemp("inputs") / "async_content.json"
     patient_id = f"TEST_{str(uuid.uuid4())}"
