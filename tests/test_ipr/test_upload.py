@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 import sys
 import uuid
-from typing import Dict, Generator
+from typing import Generator
 from unittest.mock import patch
 
 from pori_python.ipr.connection import IprConnection
