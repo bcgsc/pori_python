@@ -41,6 +41,38 @@ TP53_MUT_DICT = {
     ),
 }
 
+KBDEV1231_TP53_ERR_MATCH_WT = {'altSeq': '',
+  'chromosome': 'chr17',
+  'comments': '',
+  'endPosition': '',
+  'gene': 'TP53',
+  'germline': False,
+  'hgvsCds': 'ENST00000269305:c.853G>A',
+  'hgvsGenomic': 'chr17:g.7673767C>T',
+  'hgvsProtein': 'TP53:p.E285K',
+  'key': 'c23a7b0387335e7a5ed6c1081a1822ae',
+  'library': 'F145233;F145265',
+  'ncbiBuild': 'GRCh38',
+  'normalAltCount': '',
+  'normalDepth': '',
+  'normalRefCount': '',
+  'proteinChange': 'p.E285K',
+  'refSeq': '',
+  'rnaAltCount': 311,
+  'rnaDepth': 370,
+  'rnaRefCount': 59,
+  'startPosition': '',
+  'transcript': 'ENST00000269305',
+  'tumourAltCopies': '',
+  'tumourAltCount': 64,
+  'tumourDepth': 100,
+  'tumourRefCopies': '',
+  'tumourRefCount': 36,
+  'variant': 'TP53:p.E285K',
+  'variantType': 'mut',
+  'zygosity': ''}
+
+
 
 @pytest.fixture(scope="module")
 def graphkb_conn():
@@ -106,3 +138,11 @@ class TestAnnotation:
             missing = pref_vars.difference(alt_vars).difference(known_issues)
             print(alt_vars)
             assert not missing, f"{key} missing{missing}: {diff}"
+
+    def test_wt_not_matched(self, graphkb_conn):
+        """Verify wildtypes are not matched to mutations."""
+        disease = "cancer"
+        matches = annotate_positional_variants(graphkb_conn, [KBDEV1231_TP53_ERR_MATCH_WT], disease)
+        # KBDEV-1231 - wildtype - should not match.  A mutation is not wildtype
+        wt_matches = sorted(set([m["kbVariant"] for m in matches if "wildtype" in m["kbVariant"]]))
+        assert not wt_matches, f"Mutation 'TP53:p.E285K' should NOT match {wt_matches}"
