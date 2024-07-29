@@ -29,6 +29,7 @@ def get_test_spec():
 def get_test_file(name: str) -> str:
     return os.path.join(os.path.dirname(__file__), "test_data", name)
 
+
 @pytest.fixture(scope="module")
 def loaded_reports(tmp_path_factory) -> Dict:
     json_file = tmp_path_factory.mktemp("inputs") / "content.json"
@@ -172,6 +173,7 @@ def compare_sections(section1, section2):
         section1_items.sort()
         return str(section2_items) == str(section1_items)
     return str(section1) == str(section2)
+
 
 @pytest.mark.skipif(
     not INCLUDE_UPLOAD_TESTS, reason="excluding tests of upload to live ipr instance"
