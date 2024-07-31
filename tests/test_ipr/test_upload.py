@@ -166,6 +166,8 @@ def compare_sections(section1, section2):
                         item[subitem].pop(key, None)
                     if isinstance(item[subitem], list):
                         [subsubitem.pop(key, None) for subsubitem in item[subitem]]
+                        if item[subitem] != []:
+                            item[subitem] = sorted(item[subitem], key=lambda d: str(d))
     if isinstance(section1, list):
         section2_items = [str(item) for item in section2]
         section2_items.sort()
