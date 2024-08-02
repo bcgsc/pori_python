@@ -485,6 +485,12 @@ class TestMatchPositionalVariant:
     def test_tert_promoter(self, conn):
         assert match.match_positional_variant(conn, "TERT:c.-124C>T")
 
+    def test_wildtype_match_error(self, conn):
+        for gkb_match in match.match_positional_variant(conn, "TP53:p.E285K"):
+            assert (
+                "wildtype" not in gkb_match["displayName"]
+            ), f"TP53:p.E285K should not match {gkb_match['displayName']}"
+
     @pytest.mark.skipif(
         True, reason="GERO-303 - technically incorrect notation for GSC backwards compatibility."
     )
