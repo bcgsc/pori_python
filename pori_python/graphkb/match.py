@@ -275,7 +275,26 @@ def positions_overlap(
     return start is None or pos == start
 
 
+def equivalent_types(conn: GraphKBConnection, type1: str, type2: str):
+
+    # Convert rid to displayName if needed
+    if looks_like_rid(type1):
+        type1 = conn.get_records_by_id([type1])[0]['displayName']
+    if looks_like_rid(type2):
+        type2 = conn.get_records_by_id([type2])[0]['displayName']
+
+    # Get terms set
+    terms1 = get_terms_set(conn, [type1])
+    terms2 = get_terms_set(conn, [type2])
+
+    if len(terms1.intersection(terms2)) == 0:
+        return False
+    
+    return True
+
+
 def compare_positional_variants(
+    conn: GraphKBConnection,
     variant: Union[PositionalVariant, ParsedVariant],
     reference_variant: Union[PositionalVariant, ParsedVariant],
     generic: bool = True,
@@ -376,6 +395,11 @@ def compare_positional_variants(
             if reference_variant["refSeq"].lower() != variant["refSeq"].lower():  # type: ignore
                 return False
         elif len(variant["refSeq"]) != len(reference_variant["refSeq"]):  # type: ignore
+            return False
+        
+    # Equivalent types
+    if variant.get('type') and reference_variant.get('type'):
+        if not equivalent_types(conn, variant["type"], reference_variant["type"]):
             return False
 
     return True
@@ -598,10 +622,14 @@ def match_positional_variant(
     ):
         # TODO: Check if variant and reference_variant should be interchanged
         if compare_positional_variants(
-            variant=parsed, reference_variant=cast(PositionalVariant, row), generic=True
+            conn,
+            variant=parsed,
+            reference_variant=cast(PositionalVariant, row),
+            generic=True,
         ):
             filtered_similarAndGeneric.append(row)
             if compare_positional_variants(
+                conn,
                 variant=parsed,
                 reference_variant=cast(PositionalVariant, row),
                 generic=False,  # Similar variants only
