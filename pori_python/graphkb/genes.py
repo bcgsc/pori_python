@@ -1,6 +1,10 @@
 """Methods for retrieving gene annotation lists from GraphKB."""
 
+from __future__ import annotations
+
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
+
+from pori_python.types import IprGene, Ontology, Record, Statement, Variant
 
 from . import GraphKBConnection
 from .constants import (
@@ -9,25 +13,22 @@ from .constants import (
     CHROMOSOMES,
     FAILED_REVIEW_STATUS,
     GENE_RETURN_PROPERTIES,
+    GSC_PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST,
     ONCOGENE,
     ONCOKB_SOURCE_NAME,
-    PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST,
     PREFERRED_GENE_SOURCE,
+    PREFERRED_GENE_SOURCE_NAME,
     RELEVANCE_BASE_TERMS,
     TSO500_SOURCE_NAME,
     TUMOUR_SUPPRESSIVE,
 )
 from .match import get_equivalent_features
-from .types import Ontology, Statement, Variant
-from .util import get_rid, logger
+from .util import get_rid, logger, looks_like_rid
 from .vocab import get_terms_set
 
 
 def _get_tumourigenesis_genes_list(
-    conn: GraphKBConnection,
-    relevance: str,
-    sources: List[str],
-    ignore_cache: bool = False,
+    conn: GraphKBConnection, relevance: str, sources: List[str], ignore_cache: bool = False
 ) -> List[Ontology]:
     statements = cast(
         List[Statement],
@@ -112,6 +113,7 @@ def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> List[On
     )
     genes: List[Ontology] = []
     for statement in statements:
+        statement = cast(Statement, statement)
         if statement["reviewStatus"] == "failed":
             continue
         for condition in statement["conditions"]:
@@ -147,9 +149,9 @@ def get_genes_from_variant_types(
     Returns:
         List.<dict>: gene (Feature) records
     """
-    filters: List[Dict[str, Any]] = []
+    variant_filters: List[Dict[str, Any]] = []
     if types:
-        filters.append(
+        variant_filters.append(
             {"type": {"target": "Vocabulary", "filters": {"name": types, "operator": "IN"}}}
         )
 
@@ -158,7 +160,7 @@ def get_genes_from_variant_types(
         conn.query(
             {
                 "target": "Variant",
-                "filters": filters,
+                "filters": variant_filters,
                 "returnProperties": ["reference1", "reference2"],
             },
             ignore_cache=ignore_cache,
@@ -173,22 +175,49 @@ def get_genes_from_variant_types(
     if not genes:
         return []
 
-    filters: List[Dict[str, Any]] = [{"biotype": "gene"}]
+    gene_filters: List[Dict[str, Any]] = [{"biotype": "gene"}]
     if source_record_ids:
-        filters.append({"source": source_record_ids, "operator": "IN"})
+        gene_filters.append({"source": source_record_ids, "operator": "IN"})
 
     result = cast(
         List[Ontology],
         conn.query(
-            {"target": list(genes), "returnProperties": GENE_RETURN_PROPERTIES, "filters": filters},
+            {
+                "target": list(genes),
+                "returnProperties": GENE_RETURN_PROPERTIES,
+                "filters": gene_filters,
+            },
             ignore_cache=ignore_cache,
         ),
     )
     return result
 
 
+def get_preferred_gene_source_rid(
+    conn: GraphKBConnection, preferred_source_name=PREFERRED_GENE_SOURCE_NAME
+):
+    """Get the rid of the preferred gene source.
+
+    Args:
+        ignore_cache (bool, optional): bypass the cache to always force a new request
+        preferred_source_name: name of the preferred gene symbol source to look up the rid of
+    Returns:
+        rid of the source record matching the preferred source name.
+
+    """
+    if looks_like_rid(preferred_source_name):
+        return preferred_source_name
+    result = conn.query(
+        {
+            "target": {"target": "Source", "filters": {"name": preferred_source_name}},
+            "queryType": "similarTo",
+        }
+    )[0]["@rid"]
+    return result
+
+
 def get_preferred_gene_name(
-    conn: GraphKBConnection, gene_name: str, source: str = PREFERRED_GENE_SOURCE
+    conn: GraphKBConnection, gene_name: str, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> str:
     """Preferred gene symbol of a gene or transcript.
 
@@ -203,6 +232,7 @@ def get_preferred_gene_name(
         return KRAS for get_preferred_gene_name(conn, 'NM_033360')
         return KRAS for get_preferred_gene_name(conn, 'ENSG00000133703.11')
     """
+    source_rid = get_preferred_gene_source_rid(conn, source)
     if gene_name in CHROMOSOMES:
         logger.error(f"{gene_name} assumed to be a chromosome, not gene")
         return ""
@@ -211,10 +241,10 @@ def get_preferred_gene_name(
     if not genes:
         logger.error(f"No genes found for: {gene_name}")
         return ""
-    if source:
-        source_filtered_genes = [m for m in genes if m.get("source") == source]
+    if source_rid:
+        source_filtered_genes = [m for m in genes if m.get("source") == source_rid]
         if not source_filtered_genes:
-            logger.error(f"No data from source {source} for {gene_name}")
+            logger.error(f"No data from source {source_rid} for {gene_name}")
         else:
             genes = source_filtered_genes
 
@@ -227,8 +257,16 @@ def get_preferred_gene_name(
 
 
 def get_cancer_predisposition_info(
-    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, str]]:
+    genes, allvardata = get_gene_linked_cancer_predisposition_info(conn, source)
+    variants = {key: allvardata[key][0] for key in allvardata.keys()}
+    return genes, variants
+
+
+def get_gene_linked_cancer_predisposition_info(
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+) -> Tuple[List[str], Dict[str, Tuple[str, List[str]]]]:
     """
     Return two lists from GraphKB, one of cancer predisposition genes and one of associated variants.
 
@@ -241,6 +279,8 @@ def get_cancer_predisposition_info(
 
     Example: https://graphkb.bcgsc.ca/view/Statement/155:11616
 
+
+
     Returns:
         genes: list of cancer predisposition genes
         variants: dictionary mapping pharmacogenomic variant IDs to variant display names
@@ -248,56 +288,67 @@ def get_cancer_predisposition_info(
     genes = set()
     non_genes = set()
     infer_genes = set()
-    variants = {}
+    variants: Dict[str, Tuple[str, List[str]]] = {}
 
     terms: dict = {term: lst for term, lst in RELEVANCE_BASE_TERMS}
     relevance_rids = list(get_terms_set(conn, terms.get("cancer predisposition", [])))
+    source_rid = get_preferred_gene_source_rid(conn, source)
 
-    for record in conn.query(
-        {
-            "target": "Statement",
-            "filters": {
-                "AND": [
-                    {
-                        "evidence": {
-                            "target": "Source",
-                            "filters": {"@rid": get_rid(conn, "Source", "CGL")},
+    predisp_statements = [
+        cast(Statement, record)
+        for record in conn.query(
+            {
+                "target": "Statement",
+                "filters": {
+                    "AND": [
+                        {
+                            "evidence": {
+                                "target": "Source",
+                                "filters": {"@rid": get_rid(conn, "Source", "CGL")},
+                            }
                         },
-                    },
-                    {
-                        "relevance": {"target": "Vocabulary", "filters": {"@rid": relevance_rids}},
-                    },
+                        {
+                            "relevance": {
+                                "target": "Vocabulary",
+                                "filters": {"@rid": relevance_rids},
+                            }
+                        },
+                    ]
+                },
+                "returnProperties": [
+                    "conditions.@class",
+                    "conditions.@rid",
+                    "conditions.displayName",
+                    "conditions.reference1.biotype",
+                    "conditions.reference1.displayName",
+                    "conditions.reference2.biotype",
+                    "conditions.reference2.displayName",
                 ],
             },
-            "returnProperties": [
-                "conditions.@class",
-                "conditions.@rid",
-                "conditions.displayName",
-                "conditions.reference1.biotype",
-                "conditions.reference1.displayName",
-                "conditions.reference2.biotype",
-                "conditions.reference2.displayName",
-            ],
-        },
-        ignore_cache=False,
-    ):
-        for condition in record["conditions"]:  # type: ignore
+            ignore_cache=False,
+        )
+    ]
+    for record in predisp_statements:
+        for condition in record["conditions"]:
             if condition["@class"] == "PositionalVariant":
-                variants[condition["@rid"]] = condition["displayName"]
+                assoc_gene_list: List[str] = []
                 for reference in ["reference1", "reference2"]:
-                    name = (condition.get(reference) or {}).get("displayName", "")
-                    biotype = (condition.get(reference) or {}).get("biotype", "")
+                    name = (condition.get(reference) or {}).get("displayName", "")  # type: ignore
+                    biotype = (condition.get(reference) or {}).get("biotype", "")  # type: ignore
                     if name and biotype == "gene":
                         genes.add(name)
+                        assoc_gene_list.append(name)
                     elif name:
-                        gene = get_preferred_gene_name(conn, name, source)
+                        gene = get_preferred_gene_name(conn, name, source_rid)
                         if gene:
                             infer_genes.add((gene, name, biotype))
+                            assoc_gene_list.append(gene)
                         else:
                             non_genes.add((name, biotype))
                             logger.error(
                                 f"Non-gene cancer predisposition {biotype}: {name} for {condition['displayName']}"
                             )
+                variants[condition["@rid"]] = (condition["displayName"], assoc_gene_list)
 
     for gene, name, biotype in infer_genes:
         logger.debug(f"Found gene '{gene}' for '{name}' ({biotype})")
@@ -310,8 +361,16 @@ def get_cancer_predisposition_info(
 
 
 def get_pharmacogenomic_info(
-    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, str]]:
+    genes, allvardata = get_gene_linked_pharmacogenomic_info(conn, source)
+    variants = {key: allvardata[key][0] for key in allvardata.keys()}
+    return genes, variants
+
+
+def get_gene_linked_pharmacogenomic_info(
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+) -> Tuple[List[str], Dict[str, Tuple[str, List[str]]]]:
     """
     Return two lists from GraphKB, one of pharmacogenomic genes and one of associated variants.
 
@@ -331,9 +390,10 @@ def get_pharmacogenomic_info(
     genes = set()
     non_genes = set()
     infer_genes = set()
-    variants = {}
+    variants: Dict[str, Tuple] = {}
 
     relevance_rids = list(get_terms_set(conn, "pharmacogenomic"))
+    source_rid = get_preferred_gene_source_rid(conn, source)
 
     for record in conn.query(
         {
@@ -355,27 +415,29 @@ def get_pharmacogenomic_info(
         ignore_cache=False,
     ):
         if record["source"]:  # type: ignore
-            if record["source"]["name"].lower() in PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST:  # type: ignore
+            if record["source"]["name"].lower() in GSC_PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST:  # type: ignore
                 continue
 
         for condition in record["conditions"]:  # type: ignore
             if condition["@class"] == "PositionalVariant":
-                variants[condition["@rid"]] = condition["displayName"]
+                assoc_gene_list = []
                 for reference in ["reference1", "reference2"]:
                     name = (condition.get(reference) or {}).get("displayName", "")
                     biotype = (condition.get(reference) or {}).get("biotype", "")
                     if name and biotype == "gene":
                         genes.add(name)
+                        assoc_gene_list.append(name)
                     elif name:
-                        gene = get_preferred_gene_name(conn, name, source)
+                        gene = get_preferred_gene_name(conn, name, source_rid)
                         if gene:
                             infer_genes.add((gene, name, biotype))
+                            assoc_gene_list.append(gene)
                         else:
                             non_genes.add((name, biotype))
                             logger.error(
                                 f"Non-gene pharmacogenomic {biotype}: {name} for {condition['displayName']}"
                             )
-
+                variants[condition["@rid"]] = (condition["displayName"], assoc_gene_list)
     for gene, name, biotype in infer_genes:
         logger.debug(f"Found gene '{gene}' for '{name}' ({biotype})")
         genes.add(gene)
@@ -386,13 +448,13 @@ def get_pharmacogenomic_info(
     return sorted(genes), variants
 
 
-def convert_to_rid_set(records: Sequence[Dict]) -> Set[str]:
+def convert_to_rid_set(records: List[Record] | List[Ontology]) -> Set[str]:
     return {r["@rid"] for r in records}
 
 
 def get_gene_information(
     graphkb_conn: GraphKBConnection, gene_names: Sequence[str]
-) -> List[Dict[str, bool]]:
+) -> List[IprGene]:
     """Create a list of gene_info flag dicts for IPR report upload.
 
     Function is originally from pori_ipr_python::annotate.py
@@ -436,16 +498,19 @@ def get_gene_information(
     }
 
     for statement in statements:
+        statement = cast(Statement, statement)
         for condition in statement["conditions"]:
-            if not condition.get("reference1"):
-                continue
-            gene_flags["kbStatementRelated"].add(condition["reference1"])
-            if condition["reference2"]:
-                gene_flags["kbStatementRelated"].add(condition["reference2"])
-                gene_flags["knownFusionPartner"].add(condition["reference1"])
-                gene_flags["knownFusionPartner"].add(condition["reference2"])
-            elif condition["@class"] == "PositionalVariant":
-                gene_flags["knownSmallMutation"].add(condition["reference1"])
+            # ignore types, as there can be various types of conditions
+            if condition.get("reference1"):
+                gene_flags["kbStatementRelated"].add(condition["reference1"])  # type: ignore
+                if condition.get("reference2"):
+                    # Having a reference2 implies the event is a fusion
+                    gene_flags["kbStatementRelated"].add(condition["reference2"])  # type: ignore
+                    gene_flags["knownFusionPartner"].add(condition["reference1"])  # type: ignore
+                    gene_flags["knownFusionPartner"].add(condition["reference2"])  # type: ignore
+                elif condition["@class"] == "PositionalVariant":
+                    # PositionalVariant without a reference2 implies a smallMutation type
+                    gene_flags["knownSmallMutation"].add(condition["reference1"])  # type: ignore
 
     logger.info("fetching oncogenes list")
     gene_flags["oncogene"] = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
@@ -460,16 +525,16 @@ def get_gene_information(
     )
 
     logger.info(f"Setting gene_info flags on {len(gene_names)} genes")
-    result = []
+    result: List[IprGene] = []
     for gene_name in gene_names:
         equivalent = convert_to_rid_set(get_equivalent_features(graphkb_conn, gene_name))
-        row = {"name": gene_name}
+        row: Dict[str, str | bool] = {"name": gene_name}
         flagged = False
         for flag in gene_flags:
             # make smaller JSON to upload since all default to false already
             if equivalent.intersection(gene_flags[flag]):
                 row[flag] = flagged = True
         if flagged:
-            result.append(row)
+            result.append(cast(IprGene, row))
 
     return result

@@ -1,7 +1,6 @@
 import os
-from unittest import mock
-
 import pytest
+from unittest import mock
 
 from pori_python.graphkb import GraphKBConnection
 
@@ -17,6 +16,7 @@ def conn():
     conn = GraphKBConnection()
     conn.login(os.environ["GRAPHKB_USER"], os.environ["GRAPHKB_PASS"])
     return conn
+
 
 class TestPaginate:
     @mock.patch("pori_python.graphkb.GraphKBConnection.request")

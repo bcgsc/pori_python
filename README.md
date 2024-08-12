@@ -1,15 +1,22 @@
 
-# IPR
+# PORI Python Adaptor
 
-![build](https://github.com/bcgsc/pori_ipr_python/workflows/build/badge.svg) [![PyPi](https://img.shields.io/pypi/v/ipr.svg)](https://pypi.org/project/ipr) [![codecov](https://codecov.io/gh/bcgsc/pori_ipr_python/branch/master/graph/badge.svg)](https://codecov.io/gh/bcgsc/pori_ipr_python) [![PyPI - Downloads](https://img.shields.io/pypi/dm/ipr)](https://pypistats.org/packages/ipr) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5730671.svg)](https://doi.org/10.5281/zenodo.5730671)
+![build](https://github.com/bcgsc/pori_python/workflows/build/badge.svg) [![codecov](https://codecov.io/gh/bcgsc/pori_python/branch/master/graph/badge.svg)](https://codecov.io/gh/bcgsc/pori_python)
 
 This repository is part of the [Platform for Oncogenomic Reporting and Interpretation (PORI)](https://bcgsc.github.io/pori/).
+
+This is a python adaptor package for querying the GraphKB API and IPR API.
 
 This python tool takes in variant inputs as tab-delimited files and annotates them using GraphKB.
 The resulting output is uploaded to IPR as a report. Additional report content such as images and
 metadata can be passed to be included in the report upload.
 
-For documentation on how to create reports using this adaptor, see the [main documentation site](https://bcgsc.github.io/pori/) for the platform.
+For documentation on how to create reports using the IPR adaptor, see the [main documentation site](https://bcgsc.github.io/pori/) for the platform. For the GraphKB adaptor, see the [user manual](https://bcgsc.github.io/pori/graphkb/scripting/).
+
+- [Getting Started](#getting-started)
+  - [Install (For developers)](#install-for-developers)
+- [Documentation](#documentation)
+- [Deployment (Publishing)](#deployment-publishing)
 
 ## Getting Started
 
@@ -18,8 +25,8 @@ For documentation on how to create reports using this adaptor, see the [main doc
 clone this repository
 
 ```bash
-git clone https://github.com/bcgsc/pori_ipr_python.git
-cd pori_ipr_python
+git clone https://github.com/bcgsc/pori_python.git
+cd pori_python
 ```
 
 create a virtual environment
@@ -36,7 +43,36 @@ pip install -U pip setuptools
 pip install -e .[dev]
 ```
 
-Run the tests
+Run the tests:
+
+Export usernames, passwords, and set test options.
+
+Note that IPR tests will try to use the BCGSC production GraphKB API by default.
+If you want to test interaction with a different instance, you will need to
+set the GraphKB variables.
+
+Set EXCLUDE vars to 1 if you don't want to run these tests. 
+ONCOKB and BCGSC tests are enabled by default.
+
+```bash
+export IPR_USER='pori_admin'
+export IPR_PASS='pori_admin'
+export IPR_URL='http://localhost:8081/api'
+export GRAPHKB_USER='pori_admin'
+export GRAPHKB_PASS='pori_admin'
+export GRAPHKB_URL='http://localhost:8080/api'
+EXCLUDE_BCGSC_TESTS = 1
+EXCLUDE_ONCOKB_TESTS = 1
+```
+
+If you want to run tests that upload reports to a live IPR instance,
+specify the url of the IPR API you want to use and set the test var to 1.
+These tests are disabled by default.
+
+```bash
+export IPR_TEST_URL='http://localhost:8081/api'
+INCLUDE_UPLOAD_TESTS = 1
+```
 
 ```bash
 pytest tests
@@ -48,55 +84,6 @@ The user documentation for this tool is hosted with the [main documentation site
 
 Developers: Any updates to this tool should be edited and reflected in the main site documentation as well.
 
-
-# GraphKB (Python)
-
-![build](https://github.com/bcgsc/pori_graphkb_python/workflows/build/badge.svg) [![PyPi](https://img.shields.io/pypi/v/graphkb.svg)](https://pypi.org/project/graphkb) [![codecov](https://codecov.io/gh/bcgsc/pori_graphkb_python/branch/master/graph/badge.svg)](https://codecov.io/gh/bcgsc/pori_graphkb_python) [![PyPI - Downloads](https://img.shields.io/pypi/dm/graphkb)](https://pypistats.org/packages/graphkb) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5730523.svg)](https://doi.org/10.5281/zenodo.5730523)
-
-This repository is part of the [platform for oncogenomic reporting and interpretation](https://github.com/bcgsc/pori).
-
-Python adapter package for querying the GraphKB API. See the [user manual](https://bcgsc.github.io/pori/graphkb/scripting/)
-
-- [Getting Started](#getting-started)
-  - [Install (For developers)](#install-for-developers)
-  - [Run Tests](#run-tests)
-- [Generating the Documentation](#generating-the-documentation)
-- [Deployment (Publishing)](#deployment-publishing)
-
-## Getting Started
-
-### Install (For developers)
-
-clone this repository
-
-```bash
-git clone https://github.com/bcgsc/pori_graphkb_python
-cd pori_graphkb_python
-```
-
-create a virtual environment
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-install the package and its development dependencies
-
-```bash
-pip install -U pip setuptools
-pip install -e .[dev]
-```
-
-### Run Tests
-
-```bash
-pytest tests
-```
-
-## Generating the Documentation
-
-User documentation for this repository is hosted in the [central PORI repository](https://github.com/bcgsc/pori/)
 
 ## Deployment (Publishing)
 

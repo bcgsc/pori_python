@@ -1,8 +1,9 @@
 import os
-
 import pytest
 
 from pori_python.graphkb import GraphKBConnection, util
+
+EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
 
 
 class OntologyTerm:
@@ -44,27 +45,6 @@ class TestLooksLikeRid:
 )
 def test_convert_aa_3to1(input, result):
     assert util.convert_aa_3to1(input) == result
-
-
-class TestOntologyTermRepr:
-    @pytest.mark.parametrize(
-        "termStr,termRepr", [["missense mutation", "missense mutation"], ["", ""]]
-    )
-    def test_ontologyTermRepr_str(self, termStr, termRepr):
-        assert util.ontologyTermRepr(termStr) == termRepr
-
-    @pytest.mark.parametrize(
-        "termObjOpt,termRepr",
-        [
-            [{"displayName": "abc123", "name": "", "sourceId": ""}, "abc123"],
-            [{"displayName": "", "name": "", "sourceId": "abc123"}, "abc123"],
-            [{"displayName": "", "name": "abc123", "sourceId": ""}, "abc123"],
-            [{"displayName": "", "name": "", "sourceId": ""}, ""],
-        ],
-    )
-    def test_ontologyTermRepr_obj(self, termObjOpt, termRepr):
-        termObj = OntologyTerm(**termObjOpt)
-        assert util.ontologyTermRepr(termObj) == termRepr
 
 
 class TestStripParentheses:
@@ -163,6 +143,7 @@ class TestStringifyVariant:
             ["#158:35317", 1652734056311, "c.1>G"],
         ],
     )
+    @pytest.mark.skipif(EXCLUDE_BCGSC_TESTS, reason="db-dependent rids")
     def test_stringifyVariant_positional(self, conn, rid, createdAt, stringifiedVariant):
         opt = {"withRef": False, "withRefSeq": False}
         variant = conn.get_record_by_id(rid)

@@ -4,6 +4,15 @@ Functions which return Variants from GraphKB which match some input variant defi
 
 from typing import Dict, List, Optional, Set, Union, cast
 
+from pori_python.types import (
+    BasicPosition,
+    Ontology,
+    ParsedVariant,
+    PositionalVariant,
+    Record,
+    Variant,
+)
+
 from . import GraphKBConnection
 from .constants import (
     AMBIGUOUS_AA,
@@ -15,7 +24,6 @@ from .constants import (
     STRUCTURAL_VARIANT_TYPES,
     VARIANT_RETURN_PROPERTIES,
 )
-from .types import BasicPosition, Ontology, ParsedVariant, PositionalVariant, Record, Variant
 from .util import (
     FeatureNotFoundError,
     convert_to_rid_list,
@@ -23,7 +31,7 @@ from .util import (
     looks_like_rid,
     stringifyVariant,
 )
-from .vocab import get_equivalent_terms, get_terms_set, get_term_tree
+from .vocab import get_equivalent_terms, get_term_tree, get_terms_set
 
 FEATURES_CACHE: Set[str] = set()
 
@@ -374,9 +382,7 @@ def compare_positional_variants(
 
 
 def type_screening(
-    conn: GraphKBConnection,
-    parsed: ParsedVariant,
-    updateStructuralTypes=False,
+    conn: GraphKBConnection, parsed: ParsedVariant, updateStructuralTypes=False
 ) -> str:
     """
     [KBDEV-1056]
@@ -424,40 +430,38 @@ def type_screening(
 
     # Will use either hardcoded type list or an updated list from the API
     if updateStructuralTypes:
-        rids = list(get_terms_set(conn, ['structural variant']))
+        rids = list(get_terms_set(conn, ["structural variant"]))
         records = conn.get_records_by_id(rids)
-        structuralVariantTypes = [el['name'] for el in records]
+        structuralVariantTypes = [el["name"] for el in records]
 
     # Unambiguous non-structural variation type
-    if parsed['type'] not in structuralVariantTypes:
-        return parsed['type']
+    if parsed["type"] not in structuralVariantTypes:
+        return parsed["type"]
 
     # Unambiguous structural variation type
-    if parsed['type'] in ['fusion', 'translocation']:
-        return parsed['type']
-    if parsed.get('reference2', None):
-        return parsed['type']
-    prefix = parsed.get('prefix', 'g')
-    if prefix == 'y':  # Assuming all variations using cytoband coordiantes meet the size threshold
-        return parsed['type']
+    if parsed["type"] in ["fusion", "translocation"]:
+        return parsed["type"]
+    if parsed.get("reference2", None):
+        return parsed["type"]
+    prefix = parsed.get("prefix", "g")
+    if prefix == "y":  # Assuming all variations using cytoband coordiantes meet the size threshold
+        return parsed["type"]
 
     # When size cannot be determined: exonic and intronic coordinates
     # e.g. "MET:e.14del" meaning "Any deletion occuring at the 14th exon"
-    if prefix in ['e', 'i']:  # Assuming they don't meet the size threshold
+    if prefix in ["e", "i"]:  # Assuming they don't meet the size threshold
         return default_type
 
     # When size is given
-    if parsed.get('untemplatedSeqSize', 0) >= threshold:
-        return parsed['type']
+    if (parsed.get("untemplatedSeqSize") or 0) >= threshold:
+        return parsed["type"]
 
     # When size needs to be computed from positions
-    pos_start = parsed.get('break1Start', {}).get('pos', 1)
-    pos_end = parsed.get('break2Start', {}).get('pos', pos_start)
-    pos_size = 1
-    if prefix == 'p':
-        pos_size = 3
+    pos_start: int = parsed.get("break1Start", {}).get("pos", 1)  # type: ignore
+    pos_end: int = parsed.get("break2Start", {}).get("pos", pos_start)  # type: ignore
+    pos_size = 3 if prefix == "p" else 1
     if ((pos_end - pos_start) + 1) * pos_size >= threshold:
-        return parsed['type']
+        return parsed["type"]
 
     # Default
     return default_type

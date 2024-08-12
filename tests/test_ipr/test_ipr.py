@@ -1,10 +1,10 @@
 import pytest
-from pori_python.graphkb import statement as gkb_statement
-from pori_python.graphkb import vocab as gkb_vocab
 from unittest.mock import Mock, patch
 
+from pori_python.graphkb import statement as gkb_statement
+from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.ipr.ipr import convert_statements_to_alterations, germline_kb_matches
-from pori_python.ipr.types import GkbStatement
+from pori_python.types import Statement
 
 DISEASE_RIDS = ["#138:12", "#138:13"]
 APPROVED_EVIDENCE_RIDS = ["approved1", "approved2"]
@@ -165,10 +165,8 @@ def graphkb_conn():
     return conn
 
 
-def base_graphkb_statement(
-    disease_id: str = "disease", relevance_rid: str = "other"
-) -> GkbStatement:
-    statement = GkbStatement(  # type: ignore
+def base_graphkb_statement(disease_id: str = "disease", relevance_rid: str = "other") -> Statement:
+    statement = Statement(  # type: ignore
         {
             "conditions": [
                 {"@class": "Disease", "@rid": disease_id, "displayName": "disease_display_name"},
@@ -180,9 +178,9 @@ def base_graphkb_statement(
             ],
             "evidence": [],
             "subject": {
-                "@class": 'dummy_value',
+                "@class": "dummy_value",
                 "@rid": "101:010",
-                "displayName": 'dummy_display_name',
+                "displayName": "dummy_display_name",
             },
             "source": None,
             "sourceId": None,

@@ -1,7 +1,7 @@
 import argparse
 from typing import Dict
 
-from .types import CategoryBaseTermMapping
+from pori_python.types import CategoryBaseTermMapping
 
 DEFAULT_LIMIT = 1000
 GKB_BASE_URL = "https://graphkb-api.bcgsc.ca/api"
@@ -10,6 +10,7 @@ GKB_DEV_URL = "https://graphkbdev-api.bcgsc.ca/api"
 DEFAULT_URL = GKB_BASE_URL
 
 PREFERRED_GENE_SOURCE = "#39:5"  # HGNC
+PREFERRED_GENE_SOURCE_NAME = "HGNC"
 
 BASE_RETURN_PROPERTIES = ["@rid", "@class"]
 
@@ -66,7 +67,8 @@ TUMOUR_SUPPRESSIVE = "tumour suppressive"
 CANCER_GENE = "cancer gene"
 FUSION_NAMES = ["structural variant", "fusion"]
 
-PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST = ["cancer genome interpreter", "civic"]
+GSC_PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST = ["cancer genome interpreter", "civic"]
+GSC_PHARMACOGENOMIC_SOURCE_DISPLAYNAME_EXCLUDE_LIST = ["CGI", "CIViC"]
 
 BASE_THERAPEUTIC_TERMS = ["therapeutic efficacy", "eligibility"]
 # the order here is the order these are applied, the first category matched is returned
@@ -176,7 +178,7 @@ TYPES_TO_NOTATION: Dict[str, str] = {
 }
 
 # For match.type_screening() [KBDEV-1056]
-DEFAULT_NON_STRUCTURAL_VARIANT_TYPE = 'mutation'
+DEFAULT_NON_STRUCTURAL_VARIANT_TYPE = "mutation"
 STRUCTURAL_VARIANT_SIZE_THRESHOLD = 48  # bp
 STRUCTURAL_VARIANT_TYPES = [
     "structural variant",
