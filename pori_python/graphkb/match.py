@@ -289,7 +289,7 @@ def equivalent_types(conn: GraphKBConnection, type1: str, type2: str):
 
     if len(terms1.intersection(terms2)) == 0:
         return False
-    
+
     return True
 
 
@@ -396,7 +396,7 @@ def compare_positional_variants(
                 return False
         elif len(variant["refSeq"]) != len(reference_variant["refSeq"]):  # type: ignore
             return False
-        
+
     # Equivalent types
     if variant.get('type') and reference_variant.get('type'):
         if not equivalent_types(conn, variant["type"], reference_variant["type"]):

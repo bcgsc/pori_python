@@ -269,17 +269,14 @@ class TestMatchExpressionVariant:
 class TestComparePositionalVariants:
     def test_nonspecific_altseq(self):
         assert match.compare_positional_variants(
-            conn,
-            {"break1Start": {"pos": 1}}, {"break1Start": {"pos": 1}}
+            conn, {"break1Start": {"pos": 1}}, {"break1Start": {"pos": 1}}
         )
         # null matches anything
         assert match.compare_positional_variants(
-            conn,
-            {"break1Start": {"pos": 1}, "untemplatedSeq": "T"}, {"break1Start": {"pos": 1}}
+            conn, {"break1Start": {"pos": 1}, "untemplatedSeq": "T"}, {"break1Start": {"pos": 1}}
         )
         assert match.compare_positional_variants(
-            conn,
-            {"break1Start": {"pos": 1}}, {"break1Start": {"pos": 1}, "untemplatedSeq": "T"}
+            conn, {"break1Start": {"pos": 1}}, {"break1Start": {"pos": 1}, "untemplatedSeq": "T"}
         )
 
     @pytest.mark.parametrize("seq1", ["T", "X", "?"])
@@ -307,12 +304,10 @@ class TestComparePositionalVariants:
     def test_nonspecific_refseq(self):
         # null matches anything
         assert match.compare_positional_variants(
-            conn,
-            {"break1Start": {"pos": 1}, "refSeq": "T"}, {"break1Start": {"pos": 1}}
+            conn, {"break1Start": {"pos": 1}, "refSeq": "T"}, {"break1Start": {"pos": 1}}
         )
         assert match.compare_positional_variants(
-            conn,
-            {"break1Start": {"pos": 1}}, {"break1Start": {"pos": 1}, "refSeq": "T"}
+            conn, {"break1Start": {"pos": 1}}, {"break1Start": {"pos": 1}, "refSeq": "T"}
         )
 
     @pytest.mark.parametrize("seq1", ["T", "X", "?"])
@@ -321,17 +316,20 @@ class TestComparePositionalVariants:
         # ambiguous AA matches anything the same length
         assert match.compare_positional_variants(
             conn,
-            {"break1Start": {"pos": 1}, "refSeq": seq1}, {"break1Start": {"pos": 1}, "refSeq": seq2}
+            {"break1Start": {"pos": 1}, "refSeq": seq1},
+            {"break1Start": {"pos": 1}, "refSeq": seq2},
         )
 
     def test_refseq_length_mismatch(self):
         assert not match.compare_positional_variants(
             conn,
-            {"break1Start": {"pos": 1}, "refSeq": "??"}, {"break1Start": {"pos": 1}, "refSeq": "T"}
+            {"break1Start": {"pos": 1}, "refSeq": "??"},
+            {"break1Start": {"pos": 1}, "refSeq": "T"},
         )
         assert not match.compare_positional_variants(
             conn,
-            {"break1Start": {"pos": 1}, "refSeq": "?"}, {"break1Start": {"pos": 1}, "refSeq": "TT"}
+            {"break1Start": {"pos": 1}, "refSeq": "?"},
+            {"break1Start": {"pos": 1}, "refSeq": "TT"},
         )
 
     def test_diff_altseq(self):
@@ -351,13 +349,15 @@ class TestComparePositionalVariants:
     def test_diff_refseq(self):
         assert not match.compare_positional_variants(
             conn,
-            {"break1Start": {"pos": 1}, "refSeq": "M"}, {"break1Start": {"pos": 1}, "refSeq": "R"}
+            {"break1Start": {"pos": 1}, "refSeq": "M"},
+            {"break1Start": {"pos": 1}, "refSeq": "R"},
         )
 
     def test_same_refseq_matches(self):
         assert match.compare_positional_variants(
             conn,
-            {"break1Start": {"pos": 1}, "refSeq": "R"}, {"break1Start": {"pos": 1}, "refSeq": "R"}
+            {"break1Start": {"pos": 1}, "refSeq": "R"},
+            {"break1Start": {"pos": 1}, "refSeq": "R"},
         )
 
     def test_range_vs_sub(self):
