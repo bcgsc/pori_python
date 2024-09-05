@@ -429,7 +429,6 @@ def compare_positional_variants(
 
     # Equivalent types
     if variant.get('type') and reference_variant.get('type'):
-        # print(variant, 'VS.', reference_variant["displayName"])
         if not equivalent_types(conn, variant["type"], reference_variant["type"]):
             return False
 
