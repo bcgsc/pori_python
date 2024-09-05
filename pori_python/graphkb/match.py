@@ -309,7 +309,10 @@ def equivalent_types(
     # Get type terms from observed variant
     terms1 = []
     if strict:
-        terms1.append(get_term_by_name(conn, type1)['@rid'])
+        try:
+            terms1.append(get_term_by_name(conn, type1)['@rid'])
+        except:
+            pass
     else:
         terms1 = get_terms_set(conn, [type1])
 
