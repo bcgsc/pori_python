@@ -31,7 +31,12 @@ from .util import (
     looks_like_rid,
     stringifyVariant,
 )
-from .vocab import get_equivalent_terms, get_term_tree, get_terms_set
+from .vocab import (
+    get_equivalent_terms,
+    get_term_by_name,
+    get_term_tree,
+    get_terms_set,
+)
 
 FEATURES_CACHE: Set[str] = set()
 
@@ -275,7 +280,25 @@ def positions_overlap(
     return start is None or pos == start
 
 
-def equivalent_types(conn: GraphKBConnection, type1: str, type2: str):
+def equivalent_types(
+    conn: GraphKBConnection,
+    type1: str,
+    type2: str,
+    strict: bool = False,
+) -> bool:
+    """
+    Compare 2 variant types to determine if they should match
+
+    Args:
+        type1: type from the observed variant we want to match to the DB
+        type2: type from the DB variant
+        string: Wether or not only the specific-to-generic ones are considered.
+                By default (false), not only specific types can match more generic ones,
+                but generic types can also match more specific ones.
+
+    Returns:
+        bool: True if the types can be matched
+    """
 
     # Convert rid to displayName if needed
     if looks_like_rid(type1):
@@ -283,11 +306,18 @@ def equivalent_types(conn: GraphKBConnection, type1: str, type2: str):
     if looks_like_rid(type2):
         type2 = conn.get_records_by_id([type2])[0]['displayName']
 
-    # Get terms set
-    terms1 = get_terms_set(conn, [type1])
+    # Get type terms from observed variant
+    terms1 = []
+    if strict:
+        terms1.append(get_term_by_name(conn, type1)['@rid'])
+    else:
+        terms1 = get_terms_set(conn, [type1])
+
+    # Get type terms from DB variant
     terms2 = get_terms_set(conn, [type2])
 
-    if len(terms1.intersection(terms2)) == 0:
+    # Check for intersect
+    if len(terms2.intersection(terms1)) == 0:
         return False
 
     return True
@@ -399,6 +429,7 @@ def compare_positional_variants(
 
     # Equivalent types
     if variant.get('type') and reference_variant.get('type'):
+        # print(variant, 'VS.', reference_variant["displayName"])
         if not equivalent_types(conn, variant["type"], reference_variant["type"]):
             return False
 
