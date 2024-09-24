@@ -290,9 +290,10 @@ def equivalent_types(
     Compare 2 variant types to determine if they should match
 
     Args:
+        conn: the graphkb connection object
         type1: type from the observed variant we want to match to the DB
         type2: type from the DB variant
-        string: Wether or not only the specific-to-generic ones are considered.
+        strict: wether or not only the specific-to-generic ones are considered.
                 By default (false), not only specific types can match more generic ones,
                 but generic types can also match more specific ones.
 
