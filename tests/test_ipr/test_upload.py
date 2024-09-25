@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 import sys
 import uuid
-from typing import Dict
+from typing import Generator
 from unittest.mock import patch
 
 from pori_python.ipr.connection import IprConnection
@@ -31,7 +31,7 @@ def get_test_file(name: str) -> str:
 
 
 @pytest.fixture(scope="module")
-def loaded_reports(tmp_path_factory) -> Dict:
+def loaded_reports(tmp_path_factory) -> Generator:
     json_file = tmp_path_factory.mktemp("inputs") / "content.json"
     async_json_file = tmp_path_factory.mktemp("inputs") / "async_content.json"
     patient_id = f"TEST_{str(uuid.uuid4())}"
@@ -41,7 +41,10 @@ def loaded_reports(tmp_path_factory) -> Dict:
             {"analysisRole": "expression (disease)", "name": "1"},
             {"analysisRole": "expression (primary site)", "name": "2"},
             {"analysisRole": "expression (biopsy site)", "name": "3"},
-            {"analysisRole": "expression (internal pancancer cohort)", "name": "4"},
+            {
+                "analysisRole": "expression (internal pancancer cohort)",
+                "name": "4",
+            },
         ],
         "patientId": patient_id,
         "project": "TEST",
@@ -80,10 +83,20 @@ def loaded_reports(tmp_path_factory) -> Dict:
         ),
         "kbDiseaseMatch": "colorectal cancer",
     }
-    json_file.write_text(json.dumps(json_contents, allow_nan=False))
+    json_file.write_text(
+        json.dumps(
+            json_contents,
+            allow_nan=False,
+        )
+    )
 
     json_contents["patientId"] = async_patient_id
-    async_json_file.write_text(json.dumps(json_contents, allow_nan=False))
+    async_json_file.write_text(
+        json.dumps(
+            json_contents,
+            allow_nan=False,
+        )
+    )
 
     argslist = [
         "ipr",
@@ -122,12 +135,11 @@ def loaded_reports(tmp_path_factory) -> Dict:
     loaded_report = ipr_conn.get(uri=f"reports?searchText={patient_id}")
     async_loaded_report = ipr_conn.get(uri=f"reports?searchText={async_patient_id}")
 
-    loaded_reports = {
+    loaded_reports_result = {
         "sync": (patient_id, loaded_report),
         "async": (async_patient_id, async_loaded_report),
     }
-    yield loaded_reports
-
+    yield loaded_reports_result
     ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
     ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
 
@@ -154,6 +166,14 @@ def compare_sections(section1, section2):
                         item[subitem].pop(key, None)
                     if isinstance(item[subitem], list):
                         [subsubitem.pop(key, None) for subsubitem in item[subitem]]
+                        if item[subitem] != []:
+                            item[subitem] = sorted(item[subitem], key=lambda d: str(d))
+    if isinstance(section1, list):
+        section2_items = [str(item) for item in section2]
+        section2_items.sort()
+        section1_items = [str(item) for item in section1]
+        section1_items.sort()
+        return str(section2_items) == str(section1_items)
     return str(section1) == str(section2)
 
 
