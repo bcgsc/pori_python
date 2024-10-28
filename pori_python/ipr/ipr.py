@@ -388,3 +388,65 @@ def germline_kb_matches(
                 ret_list.append(alt)  # alteration not in any specific keys matches to check.
 
     return ret_list
+
+
+def multi_variant_filtering(
+    graphkb_conn: GraphKBConnection,
+    gkb_matches: List[KbMatch],
+) -> List[KbMatch]:
+    """Filters out GraphKB matches that doesn't match to all required variants on multi-variant statements
+
+    DEVSU-2477
+    GKB Statements can be conditional to more than one variant, with implicit 'AND' operator. Since variants
+    are matched only one at a time, any multi-variant statement get matched if one of their conditional
+    variants is matching the observed ones, making de facto an 'OR' operator between conditions. The current
+    function is filtering out these incomplete matches.
+
+    Params:
+        graphkb_conn: the graphkb connection object
+        gkb_matches: KbMatch statements to be filtered
+    Returns:
+        filtered list of KbMatch statements
+    """
+    # All matching statements & variants (GKB RIDs)
+    matching_statement_rids = {match['kbStatementId'] for match in gkb_matches}
+    matching_variant_rids = {match['kbVariantId'] for match in gkb_matches}
+
+    # Get conditions detail on all matching statements
+    res = graphkb_conn.post(
+        uri="query",
+        data={
+            "target": "Statement",
+            "filters": {
+                "@rid": list(matching_statement_rids),
+                "operator": 'IN',
+            },
+            "history": True,
+            "returnProperties": [
+                "@rid",
+                "conditions.@rid",
+                "conditions.@class",
+            ],
+        },
+    )
+    statements = res['result']
+
+    # Mapping statements to their conditional variants
+    # (discarding non-variant conditions)
+    statement_to_variants = {}
+    for statement in statements:
+        statement_to_variants[statement['@rid']] = {
+            el['@rid'] for el in statement['conditions'] if el['@class'] in VARIANT_CLASSES
+        }
+
+    # Set of statements with complete matching
+    complete_matching_statements = {
+        statementRid
+        for statementRid, variantRids in statement_to_variants.items()
+        if variantRids.issubset(matching_variant_rids)
+    }
+
+    # Filtering out incompleted matches of gkb_matches
+    return [
+        match for match in gkb_matches if match['kbStatementId'] in complete_matching_statements
+    ]
