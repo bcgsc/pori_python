@@ -35,6 +35,7 @@ from .ipr import (
     create_key_alterations,
     filter_structural_variants,
     germline_kb_matches,
+    multi_variant_filtering,
     select_expression_plots,
 )
 from .summary import auto_analyst_comments
@@ -246,6 +247,7 @@ def ipr_report(
     custom_kb_match_filter=None,
     async_upload: bool = False,
     mins_to_wait: int = 5,
+    multi_variant_filter: bool = True,
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
 
@@ -269,6 +271,7 @@ def ipr_report(
         custom_kb_match_filter: function(List[kbMatch]) -> List[kbMatch]
         async_upload: use report_async endpoint to upload reports
         mins_to_wait: if using report_async, number of minutes to wait for success before exception raised
+        multi_variant_filter: filters out matches that doesn't match to all required variants on multi-variant statements
 
     Returns:
         ipr_conn.upload_report return dictionary
@@ -433,6 +436,13 @@ def ipr_report(
         logger.info(f"custom_kb_match_filter on {len(gkb_matches)} variants")
         gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
+
+    if multi_variant_filter:
+        logger.info(
+            f"Filtering out incomplete  matches on multi-variant statements for {len(gkb_matches)} matches"
+        )
+        gkb_matches = multi_variant_filtering(graphkb_conn, gkb_matches)
+        logger.info(f"multi_variant_filtering left {len(gkb_matches)} matches")
 
     key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
 
