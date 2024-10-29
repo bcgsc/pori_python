@@ -3,7 +3,11 @@ from unittest.mock import Mock, patch
 
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
-from pori_python.ipr.ipr import convert_statements_to_alterations, germline_kb_matches
+from pori_python.ipr.ipr import (
+    convert_statements_to_alterations,
+    germline_kb_matches,
+    multi_variant_filtering,
+)
 from pori_python.types import Statement
 
 DISEASE_RIDS = ["#138:12", "#138:13"]
@@ -142,6 +146,24 @@ SOMATIC_KB_MATCHES = [
     },
 ]
 
+KB_MATCHES_STATEMENTS = [
+    {
+        '@rid': SOMATIC_KB_MATCHES[0]['kbStatementId'],
+        'conditions': [
+            {'@class': 'PositionalVariant', '@rid': SOMATIC_KB_MATCHES[0]['kbVariantId']},
+            {'@class': 'CategoryVariant', '@rid': SOMATIC_KB_MATCHES[1]['kbVariantId']},
+            {'@class': 'Disease', '@rid': ''},  # non-variant condition
+        ],
+    },
+    {
+        '@rid': SOMATIC_KB_MATCHES[1]['kbStatementId'],
+        'conditions': [
+            {'@class': 'CategoryVariant', '@rid': SOMATIC_KB_MATCHES[1]['kbVariantId']},
+            {'@class': 'PositionalVariant', '@rid': '157:0'},  # Unmatched variant
+        ],
+    },
+]
+
 
 @pytest.fixture
 def graphkb_conn():
@@ -157,10 +179,15 @@ def graphkb_conn():
             ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
             return ret_val
 
+    class PostMock:
+        def __call__(self, *args, **kwargs):
+            # custom return tailored for multi_variant_filtering() testing
+            return {'result': KB_MATCHES_STATEMENTS}
+
     def mock_get_source(source):
         return {"@rid": 0}
 
-    conn = Mock(query=QueryMock(), cache={}, get_source=mock_get_source)
+    conn = Mock(query=QueryMock(), cache={}, get_source=mock_get_source, post=PostMock())
 
     return conn
 
@@ -336,3 +363,8 @@ class TestKbmatchFilters:
         assert not germline_kb_matches(
             SOMATIC_KB_MATCHES, GERMLINE_VARIANTS
         ), "Germline variant matched to KB somatic statement."
+
+    def test_multi_variant_filtering(self, graphkb_conn):
+        gkb_matches = multi_variant_filtering(graphkb_conn, SOMATIC_KB_MATCHES)
+        assert len(SOMATIC_KB_MATCHES) == 2, 'Matches before filtering'
+        assert len(gkb_matches) == 1, 'Incomplete matches filtered'
