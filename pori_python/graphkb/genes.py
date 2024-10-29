@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
+from typing_extensions import deprecated
 
 from pori_python.types import IprGene, Ontology, Record, Statement, Variant
 
@@ -256,6 +257,7 @@ def get_preferred_gene_name(
     return gene_names[0]
 
 
+@deprecated("Use get_gene_linked_cancer_predisposition_info instead")
 def get_cancer_predisposition_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, str]]:
@@ -360,6 +362,7 @@ def get_gene_linked_cancer_predisposition_info(
     return sorted(genes), variants
 
 
+@deprecated("Use get_gene_linked_pharmacogenomic_info instead")
 def get_pharmacogenomic_info(
     conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, str]]:
