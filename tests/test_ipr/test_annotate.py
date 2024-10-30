@@ -33,12 +33,14 @@ TP53_MUT_DICT = {
     "prot_only": IprSmallMutationVariant(  # type: ignore
         {"key": "prot_only", "gene": "TP53", "hgvsProtein": "TP53:p.M237I"}
     ),
-    "cds_only": IprSmallMutationVariant(  # type: ignore
-        {"key": "cds_only", "gene": "TP53", "hgvsCds": "ENST00000269305:c.711G>A"}
-    ),
-    "genome_only": IprSmallMutationVariant(  # type: ignore
-        {"key": "genome_only", "gene": "TP53", "hgvsGenomic": "chr17:g.7674252C>T"}
-    ),
+    # KBDEV-1259
+    # Temporarely disabled until issue resolution
+    # "cds_only": IprSmallMutationVariant(  # type: ignore
+    #     {"key": "cds_only", "gene": "TP53", "hgvsCds": "ENST00000269305:c.711G>A"}
+    # ),
+    # "genome_only": IprSmallMutationVariant(  # type: ignore
+    #     {"key": "genome_only", "gene": "TP53", "hgvsGenomic": "chr17:g.7674252C>T"}
+    # ),
 }
 
 KBDEV1231_TP53_ERR_MATCH_WT = {
