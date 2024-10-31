@@ -33,14 +33,12 @@ TP53_MUT_DICT = {
     "prot_only": IprSmallMutationVariant(  # type: ignore
         {"key": "prot_only", "gene": "TP53", "hgvsProtein": "TP53:p.M237I"}
     ),
-    # KBDEV-1259
-    # Temporarely disabled until issue resolution
-    # "cds_only": IprSmallMutationVariant(  # type: ignore
-    #     {"key": "cds_only", "gene": "TP53", "hgvsCds": "ENST00000269305:c.711G>A"}
-    # ),
-    # "genome_only": IprSmallMutationVariant(  # type: ignore
-    #     {"key": "genome_only", "gene": "TP53", "hgvsGenomic": "chr17:g.7674252C>T"}
-    # ),
+    "cds_only": IprSmallMutationVariant(  # type: ignore
+        {"key": "cds_only", "gene": "TP53", "hgvsCds": "ENST00000269305:c.711G>A"}
+    ),
+    "genome_only": IprSmallMutationVariant(  # type: ignore
+        {"key": "genome_only", "gene": "TP53", "hgvsGenomic": "chr17:g.7674252C>T"}
+    ),
 }
 
 KBDEV1231_TP53_ERR_MATCH_WT = {
@@ -127,6 +125,9 @@ class TestAnnotation:
         print(pref_vars)
         for key, alt_rep in TP53_MUT_DICT.items():
             if key == ref_key:
+                continue
+            if key in ('cds_only', 'genome_only'):
+                # KBDEV-1259. Temporarely disabled until issue resolution.
                 continue
             alt = annotate_positional_variants(graphkb_conn, [alt_rep], disease)
             alt_vars = set([m["kbVariant"] for m in alt])
