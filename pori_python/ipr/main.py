@@ -37,7 +37,7 @@ from .ipr import (
     germline_kb_matches,
     select_expression_plots,
 )
-from .summary import auto_analyst_comments
+from .summary import auto_analyst_comments, ipr_analyst_comments
 from .therapeutic_options import create_therapeutic_options
 from .util import LOG_LEVELS, logger, trim_empty_values
 
@@ -194,6 +194,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         "copyVariants",
         "structuralVariants",
         "probeResults",
+        "signatureVariants",
         "msi",
     ]
     for variant_list_section in VARIANT_LIST_KEYS:
@@ -446,12 +447,20 @@ def ipr_report(
         targets = []
 
     logger.info("generating analyst comments")
+
     if generate_comments:
-        comments = {
-            "comments": auto_analyst_comments(
+        graphkb_comments = auto_analyst_comments(
                 graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
             )
-        }
+
+        ipr_comments = ipr_analyst_comments(
+                ipr_conn,
+                gkb_matches,
+                disease_name=kb_disease_match,
+                project_name=content['project'],
+                report_type=content['template']
+            )
+        comments = {"comments": "\n".join([ipr_comments, graphkb_comments])}
     else:
         comments = {"comments": ""}
 

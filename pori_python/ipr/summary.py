@@ -342,6 +342,40 @@ def section_statements_by_genes(
     return genes
 
 
+def ipr_analyst_comments(
+    ipr_conn: IprConnection,
+    matches: Sequence[KbMatch] | Sequence[Hashabledict],
+    disease_name: str,
+    project_name: str,
+    report_type: str
+):
+    output: List[str] = [
+        "<h3>The comments below were automatically drawn from curated text stored in IPR for variant matches in this report, and have not been manually reviewed</h3>"
+    ]
+
+    items = []
+
+    templates = ipr_conn.get(f'templates?name={report_type}')
+    # if this is genomic expect two results - one 'pharmacogenomic'
+    template_ident = [item for item in templates if item['name']==report_type][0]['ident']
+
+    projects = ipr_conn.get(f'project')
+    project_ident = [item for item in projects if item['name']==project_name][0]['ident']
+
+    match_set = list(set([item['kbVariant'] for item in matches]))
+
+    for variant in match_set:
+        itemlist = ipr_conn.get('variant-text', data={
+            'variantName': variant,
+            'template': template_ident,
+            'project': project_ident
+        })
+        if itemlist:
+            for item in itemlist:
+                output.append(item['text'])
+    return "\n".join(output)
+
+
 def auto_analyst_comments(
     graphkb_conn: GraphKBConnection,
     matches: Sequence[KbMatch] | Sequence[Hashabledict],
