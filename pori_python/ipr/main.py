@@ -216,7 +216,6 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
                 "tmburMutationBurden"
             ].get("kbCategory", "")
 
-    import pdb; pdb.set_trace()
     for row in upload_content["kbMatches"]:
         for stmt in row['kbMatchedStatements']:
             del stmt["kbContextId"]
