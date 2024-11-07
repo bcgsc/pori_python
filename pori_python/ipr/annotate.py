@@ -126,6 +126,7 @@ def annotate_expression_variants(
                 ipr_row = {
                     'variant': row['key'],
                     'variantType': row.get('variantType', 'exp'),
+                    'kbVariantId': matched_stmt['kbVariantId'],
                     'kbVariant': matched_stmt['kbVariant'],
                     'kbMatchedStatements': [matched_stmt]
                 }
@@ -137,7 +138,6 @@ def annotate_expression_variants(
             logger.debug(f"Unrecognized gene ({gene} {variant}): {err}")
         except ValueError as err:
             logger.error(f"failed to match variants ({gene} {variant}): {err}")
-    import pdb; pdb.set_trace()
 
     if skipped:
         logger.info(f"skipped matching {skipped} expression information rows")
@@ -147,7 +147,6 @@ def annotate_expression_variants(
     logger.info(
         f"matched {len(variants)} expression variants to {len(alterations)} graphkb annotations"
     )
-    import pdb; pdb.set_trace()
     return alterations
 
 
@@ -191,6 +190,7 @@ def annotate_copy_variants(
                 ipr_row = {
                     'variant': row['key'],
                     'variantType': row.get('variantType', 'cnv'),
+                    'kbVariantId': matched_stmt['kbVariantId'],
                     'kbVariant': matched_stmt['kbVariant'],
                     'kbMatchedStatements': [matched_stmt]
                 }
@@ -275,6 +275,7 @@ def annotate_positional_variants(
                         'variant': row['key'],
                         'variantType': row.get("variantType", "mut" if row.get("gene") else "sv"),
                         'kbVariant': matched_stmt['kbVariant'],
+                        'kbVariantId': matched_stmt['kbVariantId'],
                         'kbMatchedStatements': [matched_stmt]
                     }
                     alterations.append(Hashabledict(ipr_row))
@@ -356,6 +357,7 @@ def annotate_msi(
             ipr_row = {
                 'variant': msi_category,
                 'variantType': 'msi',
+                'kbVariantId': matched_stmt['kbVariantId'],
                 'kbVariant': matched_stmt['kbVariant'],
                 'kbMatchedStatements': [matched_stmt]
             }
@@ -403,6 +405,7 @@ def annotate_tmb(
             ipr_row = {
                 'variant': category,
                 'variantType': 'tmb',
+                'kbVariantId': matched_stmt['kbVariantId'],
                 'kbVariant': matched_stmt['kbVariant'],
                 'kbMatchedStatements': [matched_stmt]
             }

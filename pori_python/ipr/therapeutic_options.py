@@ -31,30 +31,44 @@ def create_therapeutic_options(
 
     for match in kb_matches:
         row_type = "therapeutic"
-        if match["category"] != "therapeutic" or match["relevance"] == "eligibility":
-            continue
-        if match["kbRelevanceId"] in resistance_markers:
-            row_type = "chemoresistance"
-        variant = find_variant(variants, match["variantType"], match["variant"])
-        drug = get_preferred_drug_representation(graphkb_conn, match["kbContextId"])
+        # check multiple cateogires
+        for stmt in match['kbMatchedStatements']:
+            if stmt["category"] != "therapeutic" or stmt["relevance"] == "eligibility":
+                continue
 
-        gene, variant_string = create_variant_name_tuple(variant)
+            # check multiple relevances
+            if stmt["kbRelevanceId"] in resistance_markers:
+                row_type = "chemoresistance"
 
-        options.append(
-            {
-                "gene": gene,
-                "type": row_type,
-                "therapy": drug["displayName"],
-                "therapyGraphkbId": drug["@rid"],
-                "context": match["relevance"],
-                "contextGraphkbId": match["kbRelevanceId"],
-                "variantGraphkbId": match["kbVariantId"],
-                "variant": variant_string,
-                "evidenceLevel": match["evidenceLevel"],
-                "kbStatementIds": match["kbStatementId"],
-                "notes": "",
-            }
-        )
+            # do this inside the loop because we expect that most matches will only have
+            # one statement - so in general will only be run once per outer loop anyway -
+            # and that running it in the outer loop will result in more executions anyway
+            # because the category/relevance check will not have been done yet
+            variant = find_variant(variants, match["variantType"], match["variant"])
+
+            # could possibly extract all drugs and run this outside loop to avoid
+            # adding to runtime but not sure how long it takes or how many dupes
+            # there are likely to be
+            drug = get_preferred_drug_representation(graphkb_conn, stmt["kbContextId"])
+
+            gene, variant_string = create_variant_name_tuple(variant)
+
+            # TODO this may need updating when we update the ptt table
+            options.append(
+                {
+                    "gene": gene,
+                    "type": row_type,
+                    "therapy": drug["displayName"],
+                    "therapyGraphkbId": drug["@rid"],
+                    "context": stmt["relevance"],
+                    "contextGraphkbId": stmt["kbRelevanceId"],
+                    "variantGraphkbId": match["kbVariantId"],
+                    "variant": variant_string,
+                    "evidenceLevel": stmt["evidenceLevel"],
+                    "kbStatementIds": stmt["kbStatementId"],
+                    "notes": "",
+                }
+            )
     if not options:
         return options
     options_df = pandas.DataFrame.from_records(options)

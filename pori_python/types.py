@@ -66,9 +66,7 @@ class Statement(Record):
     displayNameTemplate: str
 
 
-class KbMatch(TypedDict):
-    variant: str
-    variantType: str
+class KbMatchedStatement(TypedDict):
     approvedTherapy: bool
     category: str
     context: str
@@ -77,8 +75,6 @@ class KbMatch(TypedDict):
     evidenceLevel: str
     iprEvidenceLevel: Optional[str]
     kbStatementId: str
-    kbVariant: str
-    kbVariantId: str
     matchedCancer: bool
     reference: str
     relevance: str
@@ -87,6 +83,14 @@ class KbMatch(TypedDict):
     externalStatementId: str
     reviewStatus: str
     kbData: Dict
+
+
+class KbMatch(TypedDict):
+    variant: str
+    variantType: str
+    kbVariant: str
+    kbVariantId: str
+    kbMatchedStatements: List[KbMatchedStatement]
 
 
 class Hashabledict(dict):

@@ -341,7 +341,8 @@ def section_statements_by_genes(
 
     return genes
 
-
+# TODO can bandaid this to work but will need some more thought to actually
+# be sure it makes sense for multivariant statement matches
 def auto_analyst_comments(
     graphkb_conn: GraphKBConnection,
     matches: Sequence[KbMatch] | Sequence[Hashabledict],
@@ -355,13 +356,16 @@ def auto_analyst_comments(
     variant_keys_by_statement_ids: Dict[str, Set[str]] = {}
 
     for match in matches:
-        rid = match["kbStatementId"]
-        exp_variant = match["variant"]
-        variant_keys_by_statement_ids.setdefault(rid, set()).add(exp_variant)
+        for stmt in match['kbMatchedStatements']:
+            rid = stmt['kbStatementId']
+            exp_variant = match['variant']
+            # is it possible this already handles multiple variants for a single rid?
+            variant_keys_by_statement_ids.setdefault(rid, set()).add(exp_variant)
 
     exp_variants_by_statements: Dict[str, List[IprVariant]] = {}
     for rid, keys in variant_keys_by_statement_ids.items():
         try:
+            # preserves multiple variant matches?
             exp_variants_by_statements[rid] = [variants_by_keys[key] for key in keys]
         except KeyError as err:
             logger.warning(f"No specific variant matched for {rid}:{keys} - {err}")
@@ -373,11 +377,12 @@ def auto_analyst_comments(
 
     # get details for statements
     for match in matches:
-        rid = match["kbStatementId"].replace("#", "")
-        result = graphkb_conn.request(f"/statements/{rid}?neighbors=1")["result"]
+        for stmt in match['kbMatchedStatements']:
+            rid = stmt["kbStatementId"].replace("#", "")
+            result = graphkb_conn.request(f"/statements/{rid}?neighbors=1")["result"]
 
-        templates.setdefault(result["displayNameTemplate"], []).append(result)
-        statements[result["@rid"]] = result
+            templates.setdefault(result["displayNameTemplate"], []).append(result)
+            statements[result["@rid"]] = result
 
     # aggregate similar sentences
     sentences = {}
