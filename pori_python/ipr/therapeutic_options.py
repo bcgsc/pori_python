@@ -28,7 +28,6 @@ def create_therapeutic_options(
     """
     options: List[Dict[str, Any]] = []
     resistance_markers = get_terms_set(graphkb_conn, ["no sensitivity"])
-
     for match in kb_matches:
         row_type = "therapeutic"
         for stmt in match["kbMatchedStatements"]:
@@ -42,6 +41,7 @@ def create_therapeutic_options(
             # one statement - so in general will only be run once per outer loop anyway -
             # and that running it in the outer loop will result in more executions anyway
             # because the category/relevance check will not have been done yet
+
             variant = find_variant(variants, match["variantType"], match["variant"])
 
             # could possibly extract all drugs and run this outside loop to avoid
