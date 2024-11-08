@@ -393,6 +393,7 @@ def germline_kb_matches(
 def multi_variant_filtering(
     graphkb_conn: GraphKBConnection,
     gkb_matches: List[KbMatch],
+    excludedTypes: List[str] = ['wildtype'],
 ) -> List[KbMatch]:
     """Filters out GraphKB matches that doesn't match to all required variants on multi-variant statements
 
@@ -402,9 +403,12 @@ def multi_variant_filtering(
     variants is matching the observed ones, making de facto an 'OR' operator between conditions. The current
     function is filtering out these incomplete matches.
 
+    Note: Wildtype variants are not taken into account at the moment.
+
     Params:
         graphkb_conn: the graphkb connection object
         gkb_matches: KbMatch statements to be filtered
+        excludedTypes: List of variant type terms to exclude from filtering. Default to Wildtype
     Returns:
         filtered list of KbMatch statements
     """
@@ -426,17 +430,25 @@ def multi_variant_filtering(
                 "@rid",
                 "conditions.@rid",
                 "conditions.@class",
+                "conditions.type",
             ],
         },
     )
     statements = res['result']
 
+    # Get set of excluded Vocabulary RIDs for variant types
+    excluded = {}
+    if len(excludedTypes) != 0 and excludedTypes[0] != '':
+        excluded = gkb_vocab.get_terms_set(graphkb_conn, excludedTypes)
+
     # Mapping statements to their conditional variants
-    # (discarding non-variant conditions)
+    # (discarding non-variant conditions & variant conditions from excluded types)
     statement_to_variants = {}
     for statement in statements:
         statement_to_variants[statement['@rid']] = {
-            el['@rid'] for el in statement['conditions'] if el['@class'] in VARIANT_CLASSES
+            el['@rid']
+            for el in statement['conditions']
+            if (el['@class'] in VARIANT_CLASSES and el.get('type', '') not in excluded)
         }
 
     # Set of statements with complete matching

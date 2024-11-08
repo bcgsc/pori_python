@@ -152,14 +152,14 @@ KB_MATCHES_STATEMENTS = [
         'conditions': [
             {'@class': 'PositionalVariant', '@rid': SOMATIC_KB_MATCHES[0]['kbVariantId']},
             {'@class': 'CategoryVariant', '@rid': SOMATIC_KB_MATCHES[1]['kbVariantId']},
-            {'@class': 'Disease', '@rid': ''},  # non-variant condition
+            {'@class': 'Disease', '@rid': ''},
         ],
     },
     {
         '@rid': SOMATIC_KB_MATCHES[1]['kbStatementId'],
         'conditions': [
             {'@class': 'CategoryVariant', '@rid': SOMATIC_KB_MATCHES[1]['kbVariantId']},
-            {'@class': 'PositionalVariant', '@rid': '157:0'},  # Unmatched variant
+            {'@class': 'PositionalVariant', '@rid': '157:0', 'type': '#999:99'},
         ],
     },
 ]
@@ -228,6 +228,14 @@ def mock_get_term_tree(monkeypatch):
         return [{"@rid": d} for d in DISEASE_RIDS]
 
     monkeypatch.setattr(gkb_vocab, "get_term_tree", mock_func)
+
+
+@pytest.fixture(autouse=True)
+def get_terms_set(monkeypatch):
+    def mock_func(*pos, **kwargs):
+        return {'#999:99'}
+
+    monkeypatch.setattr(gkb_vocab, "get_terms_set", mock_func)
 
 
 @pytest.fixture(autouse=True)
@@ -365,6 +373,9 @@ class TestKbmatchFilters:
         ), "Germline variant matched to KB somatic statement."
 
     def test_multi_variant_filtering(self, graphkb_conn):
-        gkb_matches = multi_variant_filtering(graphkb_conn, SOMATIC_KB_MATCHES)
-        assert len(SOMATIC_KB_MATCHES) == 2, 'Matches before filtering'
-        assert len(gkb_matches) == 1, 'Incomplete matches filtered'
+        assert (
+            len(multi_variant_filtering(graphkb_conn, SOMATIC_KB_MATCHES, [])) == 1
+        ), 'Incomplete matches filtered, without excluded types'
+        assert (
+            len(multi_variant_filtering(graphkb_conn, SOMATIC_KB_MATCHES)) == 2
+        ), 'Incomplete matches filtered, with default excluded types'
