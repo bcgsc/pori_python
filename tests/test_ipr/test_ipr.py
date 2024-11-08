@@ -3,7 +3,11 @@ from unittest.mock import Mock, patch
 
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
-from pori_python.ipr.ipr import convert_statements_to_alterations, germline_kb_matches
+from pori_python.ipr.ipr import (
+    convert_statements_to_alterations,
+    germline_kb_matches,
+    multi_variant_filtering,
+)
 from pori_python.types import Statement
 
 DISEASE_RIDS = ["#138:12", "#138:13"]
@@ -142,6 +146,24 @@ SOMATIC_KB_MATCHES = [
     },
 ]
 
+KB_MATCHES_STATEMENTS = [
+    {
+        '@rid': SOMATIC_KB_MATCHES[0]['kbStatementId'],
+        'conditions': [
+            {'@class': 'PositionalVariant', '@rid': SOMATIC_KB_MATCHES[0]['kbVariantId']},
+            {'@class': 'CategoryVariant', '@rid': SOMATIC_KB_MATCHES[1]['kbVariantId']},
+            {'@class': 'Disease', '@rid': ''},
+        ],
+    },
+    {
+        '@rid': SOMATIC_KB_MATCHES[1]['kbStatementId'],
+        'conditions': [
+            {'@class': 'CategoryVariant', '@rid': SOMATIC_KB_MATCHES[1]['kbVariantId']},
+            {'@class': 'PositionalVariant', '@rid': '157:0', 'type': '#999:99'},
+        ],
+    },
+]
+
 
 @pytest.fixture
 def graphkb_conn():
@@ -157,10 +179,15 @@ def graphkb_conn():
             ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
             return ret_val
 
+    class PostMock:
+        def __call__(self, *args, **kwargs):
+            # custom return tailored for multi_variant_filtering() testing
+            return {'result': KB_MATCHES_STATEMENTS}
+
     def mock_get_source(source):
         return {"@rid": 0}
 
-    conn = Mock(query=QueryMock(), cache={}, get_source=mock_get_source)
+    conn = Mock(query=QueryMock(), cache={}, get_source=mock_get_source, post=PostMock())
 
     return conn
 
@@ -201,6 +228,14 @@ def mock_get_term_tree(monkeypatch):
         return [{"@rid": d} for d in DISEASE_RIDS]
 
     monkeypatch.setattr(gkb_vocab, "get_term_tree", mock_func)
+
+
+@pytest.fixture(autouse=True)
+def get_terms_set(monkeypatch):
+    def mock_func(*pos, **kwargs):
+        return {'#999:99'}
+
+    monkeypatch.setattr(gkb_vocab, "get_terms_set", mock_func)
 
 
 @pytest.fixture(autouse=True)
@@ -336,3 +371,11 @@ class TestKbmatchFilters:
         assert not germline_kb_matches(
             SOMATIC_KB_MATCHES, GERMLINE_VARIANTS
         ), "Germline variant matched to KB somatic statement."
+
+    def test_multi_variant_filtering(self, graphkb_conn):
+        assert (
+            len(multi_variant_filtering(graphkb_conn, SOMATIC_KB_MATCHES, [])) == 1
+        ), 'Incomplete matches filtered, without excluded types'
+        assert (
+            len(multi_variant_filtering(graphkb_conn, SOMATIC_KB_MATCHES)) == 2
+        ), 'Incomplete matches filtered, with default excluded types'
