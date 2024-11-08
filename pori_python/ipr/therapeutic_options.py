@@ -31,12 +31,10 @@ def create_therapeutic_options(
 
     for match in kb_matches:
         row_type = "therapeutic"
-        # check multiple cateogires
-        for stmt in match['kbMatchedStatements']:
+        for stmt in match["kbMatchedStatements"]:
             if stmt["category"] != "therapeutic" or stmt["relevance"] == "eligibility":
                 continue
 
-            # check multiple relevances
             if stmt["kbRelevanceId"] in resistance_markers:
                 row_type = "chemoresistance"
 

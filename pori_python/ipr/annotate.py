@@ -84,7 +84,10 @@ def get_ipr_statements_from_variants(
     ]
 
     for ipr_row in convert_statements_to_alterations(
-        graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches)
+        graphkb_conn,
+        inferred_statements,
+        disease_name,
+        convert_to_rid_set(inferred_matches),
     ):
         ipr_row["kbData"]["inferred"] = True
         rows.append(ipr_row)
@@ -122,16 +125,16 @@ def annotate_expression_variants(
             continue
         try:
             matches = gkb_match.match_expression_variant(graphkb_conn, gene, variant)
-            for matched_stmt in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+            for matched_stmt in get_ipr_statements_from_variants(
+                graphkb_conn, matches, disease_name
+            ):
                 ipr_row = {
-                    'variant': row['key'],
-                    'variantType': row.get('variantType', 'exp'),
-                    'kbVariantId': matched_stmt['kbVariantId'],
-                    'kbVariant': matched_stmt['kbVariant'],
-                    'kbMatchedStatements': [matched_stmt]
+                    "variant": row["key"],
+                    "variantType": row.get("variantType", "exp"),
+                    "kbVariantId": matched_stmt["kbVariantId"],
+                    "kbVariant": matched_stmt["kbVariant"],
+                    "kbMatchedStatements": [matched_stmt],
                 }
-                #ipr_row["variant"] = row["key"]
-                #ipr_row["variantType"] = row.get("variantType", "exp")
                 alterations.append(ipr_row)
         except FeatureNotFoundError as err:
             problem_genes.add(gene)
@@ -182,21 +185,17 @@ def annotate_copy_variants(
             continue
         try:
             matches = gkb_match.match_copy_variant(graphkb_conn, gene, variant)
-            #for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
-            #    ipr_row["variant"] = row["key"]
-            #    ipr_row["variantType"] = row.get("variantType", "cnv")
-            #    alterations.append(ipr_row)
-            for matched_stmt in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+            for matched_stmt in get_ipr_statements_from_variants(
+                graphkb_conn, matches, disease_name
+            ):
                 ipr_row = {
-                    'variant': row['key'],
-                    'variantType': row.get('variantType', 'cnv'),
-                    'kbVariantId': matched_stmt['kbVariantId'],
-                    'kbVariant': matched_stmt['kbVariant'],
-                    'kbMatchedStatements': [matched_stmt]
+                    "variant": row["key"],
+                    "variantType": row.get("variantType", "cnv"),
+                    "kbVariantId": matched_stmt["kbVariantId"],
+                    "kbVariant": matched_stmt["kbVariant"],
+                    "kbMatchedStatements": [matched_stmt],
                 }
                 alterations.append(ipr_row)
-                #ipr_row["variant"] = row["key"]
-                #ipr_row["variantType"] = row.get("variantType", "exp")
         except FeatureNotFoundError as err:
             problem_genes.add(gene)
             logger.debug(f"Unrecognized gene ({gene} {variant}): {err}")
@@ -270,23 +269,17 @@ def annotate_positional_variants(
                         matches = gkb_match.match_positional_variant(graphkb_conn, variant)
                     else:
                         raise parse_err
-                for matched_stmt in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+                for matched_stmt in get_ipr_statements_from_variants(
+                    graphkb_conn, matches, disease_name
+                ):
                     ipr_row = {
-                        'variant': row['key'],
-                        'variantType': row.get("variantType", "mut" if row.get("gene") else "sv"),
-                        'kbVariant': matched_stmt['kbVariant'],
-                        'kbVariantId': matched_stmt['kbVariantId'],
-                        'kbMatchedStatements': [matched_stmt]
+                        "variant": row["key"],
+                        "variantType": row.get("variantType", "mut" if row.get("gene") else "sv"),
+                        "kbVariant": matched_stmt["kbVariant"],
+                        "kbVariantId": matched_stmt["kbVariantId"],
+                        "kbMatchedStatements": [matched_stmt],
                     }
                     alterations.append(Hashabledict(ipr_row))
-                #for ipr_row in get_ipr_statements_from_variants(
-                #    graphkb_conn, matches, disease_name
-                #):
-                #    ipr_row["variant"] = row["key"]
-                #    ipr_row["variantType"] = row.get(
-                #        "variantType", "mut" if row.get("gene") else "sv"
-                #    )
-                #    alterations.append(Hashabledict(ipr_row))
 
             except FeatureNotFoundError as err:
                 logger.debug(f"failed to match positional variants ({variant}): {err}")
@@ -344,7 +337,10 @@ def annotate_msi(
             "target": {
                 "target": "CategoryVariant",
                 "filters": {
-                    "reference1": {"target": "Signature", "filters": {"name": msi_category}}
+                    "reference1": {
+                        "target": "Signature",
+                        "filters": {"name": msi_category},
+                    }
                 },
             },
             "queryType": "similarTo",
@@ -353,24 +349,24 @@ def annotate_msi(
     )
     if msi_categories:
         msi_variants = [cast(Variant, var) for var in msi_categories]
-        for matched_stmt in get_ipr_statements_from_variants(graphkb_conn, msi_variants, disease_name):
+        for matched_stmt in get_ipr_statements_from_variants(
+            graphkb_conn, msi_variants, disease_name
+        ):
             ipr_row = {
-                'variant': msi_category,
-                'variantType': 'msi',
-                'kbVariantId': matched_stmt['kbVariantId'],
-                'kbVariant': matched_stmt['kbVariant'],
-                'kbMatchedStatements': [matched_stmt]
+                "variant": msi_category,
+                "variantType": "msi",
+                "kbVariantId": matched_stmt["kbVariantId"],
+                "kbVariant": matched_stmt["kbVariant"],
+                "kbMatchedStatements": [matched_stmt],
             }
             gkb_matches.append(ipr_row)
-        #for ipr_row in get_ipr_statements_from_variants(graphkb_conn, msi_variants, disease_name):
-        #    ipr_row["variant"] = msi_category
-        #    ipr_row["variantType"] = "msi"
-        #    gkb_matches.append(ipr_row)
     return gkb_matches
 
 
 def annotate_tmb(
-    graphkb_conn: GraphKBConnection, disease_name: str = "cancer", category: str = TMB_HIGH_CATEGORY
+    graphkb_conn: GraphKBConnection,
+    disease_name: str = "cancer",
+    category: str = TMB_HIGH_CATEGORY,
 ) -> List[KbMatch]:
     """Annotate Tumour Mutation Burden (tmb) categories from GraphKB in the IPR alterations format.
 
@@ -401,17 +397,15 @@ def annotate_tmb(
     )
     if categories:
         cat_variants = [cast(Variant, var) for var in categories]
-        for matched_stmt in get_ipr_statements_from_variants(graphkb_conn, cat_variants, disease_name):
+        for matched_stmt in get_ipr_statements_from_variants(
+            graphkb_conn, cat_variants, disease_name
+        ):
             ipr_row = {
-                'variant': category,
-                'variantType': 'tmb',
-                'kbVariantId': matched_stmt['kbVariantId'],
-                'kbVariant': matched_stmt['kbVariant'],
-                'kbMatchedStatements': [matched_stmt]
+                "variant": category,
+                "variantType": "tmb",
+                "kbVariantId": matched_stmt["kbVariantId"],
+                "kbVariant": matched_stmt["kbVariant"],
+                "kbMatchedStatements": [matched_stmt],
             }
             gkb_matches.append(ipr_row)
-        #for ipr_row in get_ipr_statements_from_variants(graphkb_conn, cat_variants, disease_name):
-        #    ipr_row["variant"] = category
-        #    ipr_row["variantType"] = "tmb"
-        #    gkb_matches.append(ipr_row)
     return gkb_matches

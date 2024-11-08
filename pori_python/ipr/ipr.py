@@ -245,7 +245,7 @@ def select_expression_plots(
     selected_variants = {
         (match["variantType"], match["variant"])
         for match in kb_matches
-        if "therapeutic" in [stmt['category'] for stmt in match['kbMatchedStatements']]
+        if "therapeutic" in [stmt["category"] for stmt in match["kbMatchedStatements"]]
     }
     images_by_gene: Dict[str, ImageDefinition] = {}
     selected_genes = set()
@@ -282,15 +282,9 @@ def create_key_alterations(
         variant_type = kb_match["variantType"]
         variant_key = kb_match["variant"]
 
-        # TODO nb need to support multiple categories now.
-        # need to check whether there are consequences from possibly having an 'unknown'
-        # element in the list since here we are only checking whether the list only includes
-        # unknown elements
-        match_categories = [item['category'] for item in kb_match['kbMatchedStatements']]
-        if list(set(match_categories)) == ['unknown']:
+        match_categories = [item["category"] for item in kb_match["kbMatchedStatements"]]
+        if list(set(match_categories)) == ["unknown"]:
             continue
-        #if kb_match["category"] == "unknown":
-        #    continue
 
         if variant_type not in type_mapping.keys():
             if variant_type not in skipped_variant_types:
@@ -312,9 +306,6 @@ def create_key_alterations(
             alterations.append(f'{variant.get("gene","")} ({variant.get("expressionState")})')
         elif variant_type == "cnv":
             alterations.append(f'{variant.get("gene","")} ({variant.get("cnvState")})')
-        # only show germline if relevant
-        #elif kb_match["category"] in GERMLINE_BASE_TERMS and variant.get("germline"):
-        #update the germline check to look for any in a list
         elif any(item in GERMLINE_BASE_TERMS for item in match_categories):
             alterations.append(f"germline {variant['variant']}")
         else:
@@ -335,7 +326,9 @@ def create_key_alterations(
 
 
 def germline_kb_matches(
-    kb_matches: List[Hashabledict], all_variants: Sequence[IprVariant], assume_somatic: bool = True
+    kb_matches: List[Hashabledict],
+    all_variants: Sequence[IprVariant],
+    assume_somatic: bool = True,
 ) -> List[Hashabledict]:
     """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
 

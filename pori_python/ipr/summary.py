@@ -11,7 +11,14 @@ from pori_python.graphkb.statement import categorize_relevance
 from pori_python.graphkb.util import convert_to_rid_list
 from pori_python.graphkb.vocab import get_term_tree
 from pori_python.ipr.inputs import create_graphkb_sv_notation
-from pori_python.types import Hashabledict, IprVariant, KbMatch, Ontology, Record, Statement
+from pori_python.types import (
+    Hashabledict,
+    IprVariant,
+    KbMatch,
+    Ontology,
+    Record,
+    Statement,
+)
 
 from .util import (
     convert_to_rid_set,
@@ -264,7 +271,9 @@ def create_section_html(
     for statement_id, sentence in sentences_by_statement_id.items():
         relevance = statements[statement_id]["relevance"]["@rid"]
         category = categorize_relevance(
-            graphkb_conn, relevance, RELEVANCE_BASE_TERMS + [("resistance", ["no sensitivity"])]
+            graphkb_conn,
+            relevance,
+            RELEVANCE_BASE_TERMS + [("resistance", ["no sensitivity"])],
         )
         sentence_categories[sentence] = category
 
@@ -274,7 +283,12 @@ def create_section_html(
             "target": "Feature",
             "filters": {
                 "AND": [
-                    {"source": {"target": "Source", "filters": {"name": "entrez gene"}}},
+                    {
+                        "source": {
+                            "target": "Source",
+                            "filters": {"name": "entrez gene"},
+                        }
+                    },
                     {"name": gene_name},
                     {"biotype": "gene"},
                 ]
@@ -311,7 +325,14 @@ def create_section_html(
         {
             s
             for (s, v) in sentence_categories.items()
-            if v not in ["diagnostic", "biological", "therapeutic", "prognostic", "resistance"]
+            if v
+            not in [
+                "diagnostic",
+                "biological",
+                "therapeutic",
+                "prognostic",
+                "resistance",
+            ]
         },
         {s for (s, v) in sentence_categories.items() if v == "resistance"},
     ]:
@@ -341,8 +362,7 @@ def section_statements_by_genes(
 
     return genes
 
-# TODO can bandaid this to work but will need some more thought to actually
-# be sure it makes sense for multivariant statement matches
+
 def auto_analyst_comments(
     graphkb_conn: GraphKBConnection,
     matches: Sequence[KbMatch] | Sequence[Hashabledict],
@@ -356,16 +376,14 @@ def auto_analyst_comments(
     variant_keys_by_statement_ids: Dict[str, Set[str]] = {}
 
     for match in matches:
-        for stmt in match['kbMatchedStatements']:
-            rid = stmt['kbStatementId']
-            exp_variant = match['variant']
-            # is it possible this already handles multiple variants for a single rid?
+        for stmt in match["kbMatchedStatements"]:
+            rid = stmt["kbStatementId"]
+            exp_variant = match["variant"]
             variant_keys_by_statement_ids.setdefault(rid, set()).add(exp_variant)
 
     exp_variants_by_statements: Dict[str, List[IprVariant]] = {}
     for rid, keys in variant_keys_by_statement_ids.items():
         try:
-            # preserves multiple variant matches?
             exp_variants_by_statements[rid] = [variants_by_keys[key] for key in keys]
         except KeyError as err:
             logger.warning(f"No specific variant matched for {rid}:{keys} - {err}")
@@ -377,7 +395,7 @@ def auto_analyst_comments(
 
     # get details for statements
     for match in matches:
-        for stmt in match['kbMatchedStatements']:
+        for stmt in match["kbMatchedStatements"]:
             rid = stmt["kbStatementId"].replace("#", "")
             result = graphkb_conn.request(f"/statements/{rid}?neighbors=1")["result"]
 
