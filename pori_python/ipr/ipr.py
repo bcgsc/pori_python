@@ -395,7 +395,7 @@ def germline_kb_matches(
 def multi_variant_filtering(
     graphkb_conn: GraphKBConnection,
     gkb_matches: List[KbMatch],
-    excludedTypes: List[str] = ['wildtype'],
+    excludedTypes: List[str] = ["wildtype"],
 ) -> List[KbMatch]:
     """Filters out GraphKB matches that doesn't match to all required variants on multi-variant statements
 
@@ -415,8 +415,10 @@ def multi_variant_filtering(
         filtered list of KbMatch statements
     """
     # All matching statements & variants (GKB RIDs)
-    matching_statement_rids = {match['kbStatementId'] for match in gkb_matches}
-    matching_variant_rids = {match['kbVariantId'] for match in gkb_matches}
+    matching_statement_rids = {
+        stmt["kbStatementId"] for match in gkb_matches for stmt in match["kbMatchedStatements"]
+    }
+    matching_variant_rids = {match["kbVariantId"] for match in gkb_matches}
 
     # Get conditions detail on all matching statements
     res = graphkb_conn.post(
@@ -425,7 +427,7 @@ def multi_variant_filtering(
             "target": "Statement",
             "filters": {
                 "@rid": list(matching_statement_rids),
-                "operator": 'IN',
+                "operator": "IN",
             },
             "history": True,
             "returnProperties": [
@@ -436,21 +438,21 @@ def multi_variant_filtering(
             ],
         },
     )
-    statements = res['result']
+    statements = res["result"]
 
     # Get set of excluded Vocabulary RIDs for variant types
     excluded = {}
-    if len(excludedTypes) != 0 and excludedTypes[0] != '':
+    if len(excludedTypes) != 0 and excludedTypes[0] != "":
         excluded = gkb_vocab.get_terms_set(graphkb_conn, excludedTypes)
 
     # Mapping statements to their conditional variants
     # (discarding non-variant conditions & variant conditions from excluded types)
     statement_to_variants = {}
     for statement in statements:
-        statement_to_variants[statement['@rid']] = {
-            el['@rid']
-            for el in statement['conditions']
-            if (el['@class'] in VARIANT_CLASSES and el.get('type', '') not in excluded)
+        statement_to_variants[statement["@rid"]] = {
+            el["@rid"]
+            for el in statement["conditions"]
+            if (el["@class"] in VARIANT_CLASSES and el.get("type", "") not in excluded)
         }
 
     # Set of statements with complete matching
@@ -461,6 +463,13 @@ def multi_variant_filtering(
     }
 
     # Filtering out incompleted matches of gkb_matches
-    return [
-        match for match in gkb_matches if match['kbStatementId'] in complete_matching_statements
-    ]
+    output = []
+    for match in gkb_matches:
+        match["kbMatchedStatements"] = [
+            stmt
+            for stmt in match["kbMatchedStatements"]
+            if stmt["kbStatementId"] in complete_matching_statements
+        ]
+        # nb this can result in statement-less matches getting loaded to ipr
+        output.append(match)
+    return output
