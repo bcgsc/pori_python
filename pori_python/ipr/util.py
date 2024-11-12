@@ -25,9 +25,7 @@ def get_terms_set(graphkb_conn: GraphKBConnection, base_terms: List[str]) -> Set
     terms = set()
     for base_term in base_terms:
         terms.update(
-            convert_to_rid_set(
-                get_term_tree(graphkb_conn, base_term, include_superclasses=False)
-            )
+            convert_to_rid_set(get_term_tree(graphkb_conn, base_term, include_superclasses=False))
         )
     return terms
 
@@ -64,9 +62,7 @@ def create_variant_name_tuple(variant: IprVariant) -> Tuple[str, str]:
     elif variant_type == "cnv":
         return (gene, str(variant.get("cnvState", "")))
     variant_split = (
-        variant["variant"].split(":", 1)[1]
-        if ":" in variant["variant"]
-        else variant["variant"]
+        variant["variant"].split(":", 1)[1] if ":" in variant["variant"] else variant["variant"]
     )
 
     gene2 = str(variant.get("gene2", ""))
@@ -91,9 +87,7 @@ def find_variant(
     raise KeyError(f"expected variant ({variant_key}, {variant_type}) does not exist")
 
 
-def generate_ontology_preference_key(
-    record: Ontology, sources_sort: Dict[str, int] = {}
-) -> Tuple:
+def generate_ontology_preference_key(record: Ontology, sources_sort: Dict[str, int] = {}) -> Tuple:
     """Generate a tuple key for comparing preferred ontology terms."""
     return (
         record.get("name") == record.get("sourceId"),
@@ -123,9 +117,7 @@ def get_preferred_drug_representation(
 
     source_preference = {
         r["@rid"]: r["sort"]  # type: ignore
-        for r in graphkb_conn.query(
-            {"target": "Source", "returnProperties": ["sort", "@rid"]}
-        )
+        for r in graphkb_conn.query({"target": "Source", "returnProperties": ["sort", "@rid"]})
     }
     drugs = sorted(
         get_alternatives(graphkb_conn, drug_record_id),
@@ -141,12 +133,8 @@ def get_preferred_gene_name(
     record = graphkb_conn.get_record_by_id(record_id)
     biotype = record.get("biotype", "")
     genes = []
-    expanded_gene_names = graphkb_conn.query(
-        {"target": [record_id], "neighbors": neighbors}
-    )
-    assert (
-        len(expanded_gene_names) == 1
-    ), "get_preferred_gene_name should have single result"
+    expanded_gene_names = graphkb_conn.query({"target": [record_id], "neighbors": neighbors})
+    assert len(expanded_gene_names) == 1, "get_preferred_gene_name should have single result"
     expanded: Dict[str, List] = expanded_gene_names[0]  # type: ignore
     if biotype != "gene":
         for edge in expanded.get("out_ElementOf", []):
