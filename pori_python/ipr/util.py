@@ -80,6 +80,7 @@ def find_variant(
     """
     Find a variant in a list of variants by its key and type
     """
+
     for variant in all_variants:
         if variant["key"] == variant_key and variant["variantType"] == variant_type:
             return variant

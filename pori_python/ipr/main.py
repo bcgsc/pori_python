@@ -76,15 +76,20 @@ def command_interface() -> None:
 
     parser.add_argument("--ipr_url", default=os.environ.get("IPR_URL", DEFAULT_URL))
     parser.add_argument(
-        "--graphkb_username", help="username to use connecting to graphkb if different from ipr"
+        "--graphkb_username",
+        help="username to use connecting to graphkb if different from ipr",
     )
     parser.add_argument(
-        "--graphkb_password", help="password to use connecting to graphkb if different from ipr"
+        "--graphkb_password",
+        help="password to use connecting to graphkb if different from ipr",
     )
     parser.add_argument("--graphkb_url", default=os.environ.get("GRAPHKB_URL", None))
     parser.add_argument("--log_level", default="info", choices=LOG_LEVELS.keys())
     parser.add_argument(
-        "--therapeutics", default=False, help="Generate therapeutic options", action="store_true"
+        "--therapeutics",
+        default=False,
+        help="Generate therapeutic options",
+        action="store_true",
     )
     parser.add_argument(
         "--skip_comments",
@@ -93,7 +98,9 @@ def command_interface() -> None:
         help="Turn off generating the analyst comments section of the report",
     )
     parser.add_argument(
-        "-o", "--output_json_path", help="path to a JSON to output the report upload body"
+        "-o",
+        "--output_json_path",
+        help="path to a JSON to output the report upload body",
     )
     parser.add_argument(
         "-w",
@@ -218,13 +225,12 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
             ].get("kbCategory", "")
 
     for row in upload_content["kbMatches"]:
-        for stmt in row['kbMatchedStatements']:
+        for stmt in row["kbMatchedStatements"]:
             del stmt["kbContextId"]
             del stmt["kbRelevanceId"]
-            del stmt['variant']
-            del stmt['variantType']
-            del stmt['kbVariant']
-            del stmt['kbVariantId']
+            # del stmt["variantType"]
+            # del stmt["kbVariant"]
+            # del stmt["kbVariantId"]
     return upload_content
 
 
@@ -398,7 +404,10 @@ def ipr_report(
     logger.info(f"annotating {len(structural_variants)} structural variants")
     gkb_matches.extend(
         annotate_positional_variants(
-            graphkb_conn, structural_variants, kb_disease_match, show_progress=interactive
+            graphkb_conn,
+            structural_variants,
+            kb_disease_match,
+            show_progress=interactive,
         )
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
@@ -421,7 +430,10 @@ def ipr_report(
         [
             Hashabledict(exp_var)
             for exp_var in annotate_expression_variants(
-                graphkb_conn, expression_variants, kb_disease_match, show_progress=interactive
+                graphkb_conn,
+                expression_variants,
+                kb_disease_match,
+                show_progress=interactive,
             )
         ]
     )
@@ -477,7 +489,10 @@ def ipr_report(
     if generate_comments:
         comments = {
             "comments": auto_analyst_comments(
-                graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
+                graphkb_conn,
+                gkb_matches,
+                disease_name=kb_disease_match,
+                variants=all_variants,
             )
         }
     else:

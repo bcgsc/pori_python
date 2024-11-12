@@ -17,6 +17,7 @@ from pori_python.types import (
     IprGene,
     IprVariant,
     KbMatch,
+    KbMatchedStatement,
     Statement,
     Variant,
 )
@@ -189,40 +190,40 @@ def convert_statements_to_alterations(
         for variant in variants:
             if variant["@rid"] not in variant_matches:
                 continue
+            stmt = {
+                "approvedTherapy": approved_therapy or False,
+                "category": ipr_section or "unknown",
+                "context": (statement["subject"]["displayName"] if statement["subject"] else ""),
+                "kbContextId": (statement["subject"]["@rid"] if statement["subject"] else ""),
+                "disease": ";".join(sorted(d.get("displayName", "") for d in diseases)),
+                "evidenceLevel": evidence_level_str or "",
+                "iprEvidenceLevel": ipr_evidence_levels_str or "",
+                "kbStatementId": statement["@rid"],
+                "matchedCancer": disease_match,
+                "reference": pmid,
+                "relevance": statement["relevance"]["displayName"],
+                "kbRelevanceId": statement["relevance"]["@rid"],
+                "externalSource": (
+                    str(statement["source"].get("displayName", "")) if statement["source"] else ""
+                ),
+                "externalStatementId": statement.get("sourceId", "") or "",
+                "reviewStatus": statement.get("reviewStatus", "") or "",
+                "kbData": {},
+            }
+
+            if statement["relevance"]["name"] == "eligibility":
+                stmt["kbData"]["recruitment_status"] = recruitment_statuses.get(
+                    stmt["kbContextId"], "not found"
+                )
             row = KbMatch(
                 {
-                    "approvedTherapy": approved_therapy or False,
-                    "category": ipr_section or "unknown",
-                    "context": (
-                        statement["subject"]["displayName"] if statement["subject"] else ""
-                    ),
-                    "kbContextId": (statement["subject"]["@rid"] if statement["subject"] else ""),
-                    "disease": ";".join(sorted(d.get("displayName", "") for d in diseases)),
-                    "evidenceLevel": evidence_level_str or "",
-                    "iprEvidenceLevel": ipr_evidence_levels_str or "",
-                    "kbStatementId": statement["@rid"],
+                    "kbMatchedStatements": [stmt],
                     "kbVariant": str(variant.get("displayName", "")) or "",
                     "variant": str(variant.get("displayName", "")) or "",
                     "variantType": "",
                     "kbVariantId": variant["@rid"],
-                    "matchedCancer": disease_match,
-                    "reference": pmid,
-                    "relevance": statement["relevance"]["displayName"],
-                    "kbRelevanceId": statement["relevance"]["@rid"],
-                    "externalSource": (
-                        str(statement["source"].get("displayName", ""))
-                        if statement["source"]
-                        else ""
-                    ),
-                    "externalStatementId": statement.get("sourceId", "") or "",
-                    "reviewStatus": statement.get("reviewStatus", "") or "",
-                    "kbData": {},
                 }
             )
-            if statement["relevance"]["name"] == "eligibility":
-                row["kbData"]["recruitment_status"] = recruitment_statuses.get(
-                    row["kbContextId"], "not found"
-                )
             rows.append(row)
     return rows
 
