@@ -4,6 +4,7 @@ by other reporting systems
 """
 
 from __future__ import annotations
+import copy
 
 from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
 
@@ -326,6 +327,9 @@ def create_key_alterations(
     )
 
 
+# TODO function needs rewrite to deal with case where
+# there are multiple statements per variant - technically possible though
+# it should not appear here yet
 def germline_kb_matches(
     kb_matches: List[Hashabledict],
     all_variants: Sequence[IprVariant],
@@ -346,7 +350,14 @@ def germline_kb_matches(
         filtered list of kb_matches
     """
     ret_list = []
-    germ_alts = [alt for alt in kb_matches if alt["category"] in GERMLINE_BASE_TERMS]
+    germ_alts = [
+        alt
+        for alt in kb_matches
+        if any(
+            cat in GERMLINE_BASE_TERMS
+            for cat in [item['category'] for item in alt['kbMatchedStatements']]
+        )
+    ]
     somatic_alts = [alt for alt in kb_matches if alt not in germ_alts]
     if germ_alts:
         logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
@@ -356,25 +367,25 @@ def germline_kb_matches(
             unknown_var_list = [v for v in var_list if "germline" not in v]
             if germline_var_list:
                 logger.debug(
-                    f"germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    f"germline kbStatementId:{alt['kbMatchedStatements'][0]['kbStatementId']}: {alt['kbVariant']} {alt['kbMatchedStatements'][0]['category']}"
                 )
                 ret_list.append(alt)
             elif unknown_var_list:
                 logger.warning(
-                    f"germline no data fail for: {alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    f"germline no data fail for: {alt['kbMatchedStatements'][0]['kbStatementId']}: {alt['kbVariant']} {alt['kbMatchedStatements'][0]['category']}"
                 )
                 if not assume_somatic:
                     logger.debug(
-                        f"Keeping unverified match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                        f"Keeping unverified match to germline kbStatementId:{alt['kbMatchedStatements'][0]['kbStatementId']}: {alt['kbVariant']} {alt['kbMatchedStatements'][0]['category']}"
                     )
                     ret_list.append(alt)
                 else:
                     logger.debug(
-                        f"Dropping unverified match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                        f"Dropping unverified match to germline kbStatementId:{alt['kbMatchedStatements'][0]['kbStatementId']}: {alt['kbVariant']} {alt['kbMatchedStatements'][0]['category']}"
                     )
             else:
                 logger.debug(
-                    f"Dropping somatic match to germline kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    f"Dropping somatic match to germline kbStatementId:{alt['kbMatchedStatements'][0]['kbStatementId']}: {alt['kbVariant']} {alt['kbMatchedStatements'][0]['category']}"
                 )
     if somatic_alts:
         # Remove any matches to germline events
@@ -383,7 +394,7 @@ def germline_kb_matches(
             somatic_var_list = [v for v in var_list if not v.get("germline", not assume_somatic)]
             if var_list and not somatic_var_list:
                 logger.debug(
-                    f"Dropping germline match to somatic statement kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
+                    f"Dropping germline match to somatic statement kbStatementId:{alt['kbMatchedStatements'][0]['kbStatementId']}: {alt['kbVariant']} {alt['kbMatchedStatements'][0]['category']}"
                 )
             elif somatic_var_list:
                 ret_list.append(alt)  # match to somatic variant
@@ -416,6 +427,7 @@ def multi_variant_filtering(
         filtered list of KbMatch statements
     """
     # All matching statements & variants (GKB RIDs)
+
     matching_statement_rids = {
         stmt["kbStatementId"] for match in gkb_matches for stmt in match["kbMatchedStatements"]
     }
@@ -465,12 +477,13 @@ def multi_variant_filtering(
 
     # Filtering out incompleted matches of gkb_matches
     output = []
-    for match in gkb_matches:
+    for item in gkb_matches:
+        match = copy.deepcopy(item)
         match["kbMatchedStatements"] = [
             stmt
             for stmt in match["kbMatchedStatements"]
             if stmt["kbStatementId"] in complete_matching_statements
         ]
-        # nb this can result in statement-less matches getting loaded to ipr
-        output.append(match)
+        if match['kbMatchedStatements']:
+            output.append(match)
     return output

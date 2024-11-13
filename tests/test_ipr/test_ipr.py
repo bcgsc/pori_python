@@ -88,67 +88,85 @@ SOMATIC_VARIANTS = [
 GERMLINE_KB_MATCHES = [
     {
         "variant": "1",
-        "approvedTherapy": False,
-        "category": "pharmacogenomic",
-        "context": "anthracyclines",
-        "kbContextId": "#122:20944",
-        "kbRelevanceId": "#147:38",
-        "kbStatementId": "#154:13387",
+        "kbMatchedStatements": [
+            {
+                "approvedTherapy": False,
+                "category": "pharmacogenomic",
+                "context": "anthracyclines",
+                "kbContextId": "#122:20944",
+                "kbRelevanceId": "#147:38",
+                "kbStatementId": "#154:13387",
+                "matchedCancer": False,
+                "reference": "PMID: 27197003",
+                "relevance": "decreased toxicity",
+                "reviewStatus": "initial",
+            }
+        ],
         "kbVariant": "SLC28A3:c.1381C>T",
         "kbVariantId": "#159:5426",
-        "matchedCancer": False,
-        "reference": "PMID: 27197003",
-        "relevance": "decreased toxicity",
-        "reviewStatus": "initial",
     },
     {
         "variant": "2",
-        "approvedTherapy": True,
-        "category": "cancer predisposition",
-        "kbContextId": "#135:8764",
-        "kbRelevanceId": "#147:32",
-        "kbStatementId": "#155:13511",
+        "kbMatchedStatements": [
+            {
+                "approvedTherapy": True,
+                "category": "cancer predisposition",
+                "kbContextId": "#135:8764",
+                "kbRelevanceId": "#147:32",
+                "kbStatementId": "#155:13511",
+                "matchedCancer": False,
+                "reference": "MOAlmanac FDA-56",
+                "relevance": "therapy",
+                "reviewStatus": None,
+            }
+        ],
         "kbVariant": "BRCA1 mutation",
         "kbVariantId": "#161:938",
-        "matchedCancer": False,
-        "reference": "MOAlmanac FDA-56",
-        "relevance": "therapy",
-        "reviewStatus": None,
     },
 ]
 
 SOMATIC_KB_MATCHES = [
     {
         "variant": "1",
-        "approvedTherapy": False,
-        "category": "prognostic",
-        "kbContextId": "somatic_test",
-        "kbRelevanceId": "#147:38",
-        "kbStatementId": "#154:13387",
+        "kbMatchedStatements": [
+            {
+                "approvedTherapy": False,
+                "category": "prognostic",
+                "kbContextId": "somatic_test",
+                "kbRelevanceId": "#147:38",
+                "kbStatementId": "#154:13387",
+                "kbVariant": "SLC28A3:c.1381C>T",
+                "kbVariantId": "#159:5426",
+                "relevance": "prognostic",
+                "reviewStatus": "initial",
+            }
+        ],
         "kbVariant": "SLC28A3:c.1381C>T",
         "kbVariantId": "#159:5426",
-        "relevance": "prognostic",
-        "reviewStatus": "initial",
     },
     {
         "variant": "2",
-        "approvedTherapy": True,
-        "category": "therapy",
-        "kbContextId": "#135:8764",
-        "kbRelevanceId": "#147:32",
-        "kbStatementId": "#155:13511",
+        "kbMatchedStatements": [
+            {
+                "approvedTherapy": True,
+                "category": "therapy",
+                "kbContextId": "#135:8764",
+                "kbRelevanceId": "#147:32",
+                "kbStatementId": "#155:13511",
+                "matchedCancer": False,
+                "reference": "MOAlmanac FDA-56",
+                "relevance": "therapy",
+                "reviewStatus": None,
+            }
+        ],
         "kbVariant": "BRCA1 mutation",
         "kbVariantId": "#161:938",
-        "matchedCancer": False,
-        "reference": "MOAlmanac FDA-56",
-        "relevance": "therapy",
-        "reviewStatus": None,
     },
 ]
 
 KB_MATCHES_STATEMENTS = [
     {
-        '@rid': SOMATIC_KB_MATCHES[0]['kbStatementId'],
+        '@rid': SOMATIC_KB_MATCHES[0]['kbMatchedStatements'][0]['kbStatementId'],
         'conditions': [
             {'@class': 'PositionalVariant', '@rid': SOMATIC_KB_MATCHES[0]['kbVariantId']},
             {'@class': 'CategoryVariant', '@rid': SOMATIC_KB_MATCHES[1]['kbVariantId']},
@@ -156,7 +174,7 @@ KB_MATCHES_STATEMENTS = [
         ],
     },
     {
-        '@rid': SOMATIC_KB_MATCHES[1]['kbStatementId'],
+        '@rid': SOMATIC_KB_MATCHES[1]['kbMatchedStatements'][0]['kbStatementId'],
         'conditions': [
             {'@class': 'CategoryVariant', '@rid': SOMATIC_KB_MATCHES[1]['kbVariantId']},
             {'@class': 'PositionalVariant', '@rid': '157:0', 'type': '#999:99'},
@@ -255,11 +273,13 @@ class TestConvertStatementsToAlterations:
 
         assert len(result) == 1
         row = result[0]
+        assert len(row['kbMatchedStatements']) == 1
+
         assert row["kbVariantId"] == "variant_rid"
-        assert row["kbStatementId"] == "statement_rid"
-        assert row["matchedCancer"]
+        assert row['kbMatchedStatements'][0]["kbStatementId"] == "statement_rid"
+        assert row['kbMatchedStatements'][0]["matchedCancer"]
         assert row["kbVariant"] == "KRAS increased expression"
-        assert row["relevance"] == "relevance_display_name"
+        assert row['kbMatchedStatements'][0]["relevance"] == "relevance_display_name"
 
     def test_no_disease_match(self, graphkb_conn) -> None:
         statement = base_graphkb_statement("other")
@@ -269,7 +289,9 @@ class TestConvertStatementsToAlterations:
 
         assert len(result) == 1
         row = result[0]
-        assert not row["matchedCancer"]
+        assert len(row['kbMatchedStatements']) == 1
+
+        assert not row['kbMatchedStatements'][0]["matchedCancer"]
 
     def test_multiple_disease_not_match(self, graphkb_conn) -> None:
         statement = base_graphkb_statement("disease")
@@ -282,7 +304,9 @@ class TestConvertStatementsToAlterations:
 
         assert len(result) == 1
         row = result[0]
-        assert not row["matchedCancer"]
+        assert len(row['kbMatchedStatements']) == 1
+
+        assert not row['kbMatchedStatements'][0]["matchedCancer"]
 
     def test_biological(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
@@ -293,7 +317,9 @@ class TestConvertStatementsToAlterations:
         )
         assert len(result) == 1
         row = result[0]
-        assert row["category"] == "biological"
+        assert len(row['kbMatchedStatements']) == 1
+
+        assert row['kbMatchedStatements'][0]["category"] == "biological"
 
     def test_prognostic_no_disease_match(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
@@ -313,7 +339,9 @@ class TestConvertStatementsToAlterations:
         )
         assert len(result) == 1
         row = result[0]
-        assert row["category"] == "prognostic"
+        assert len(row['kbMatchedStatements']) == 1
+
+        assert row['kbMatchedStatements'][0]["category"] == "prognostic"
 
     def test_diagnostic(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
@@ -324,7 +352,9 @@ class TestConvertStatementsToAlterations:
         )
         assert len(result) == 1
         row = result[0]
-        assert row["category"] == "diagnostic"
+        assert len(row['kbMatchedStatements']) == 1
+
+        assert row['kbMatchedStatements'][0]["category"] == "diagnostic"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
     def test_unapproved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
@@ -339,7 +369,9 @@ class TestConvertStatementsToAlterations:
         )
         assert len(result) == 1
         row = result[0]
-        assert row["category"] == "therapeutic"
+        assert len(row['kbMatchedStatements']) == 1
+
+        assert row['kbMatchedStatements'][0]["category"] == "therapeutic"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
     def test_approved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
@@ -354,7 +386,9 @@ class TestConvertStatementsToAlterations:
         )
         assert len(result) == 1
         row = result[0]
-        assert row["category"] == "therapeutic"
+        assert len(row['kbMatchedStatements']) == 1
+
+        assert row['kbMatchedStatements'][0]["category"] == "therapeutic"
 
 
 class TestKbmatchFilters:
