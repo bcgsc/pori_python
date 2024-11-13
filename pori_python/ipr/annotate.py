@@ -89,7 +89,8 @@ def get_ipr_statements_from_variants(
         disease_name,
         convert_to_rid_set(inferred_matches),
     ):
-        ipr_row["kbData"]["inferred"] = True
+        for indx in range(len(ipr_row['kbMatchedStatements'])):
+            ipr_row['kbMatchedStatements'][indx]["kbData"]["inferred"] = True
         rows.append(ipr_row)
 
     return rows
@@ -263,7 +264,6 @@ def annotate_positional_variants(
                         "variantType", "mut" if row.get("gene") else "sv"
                     )
                     alterations.append(Hashabledict(ipr_row))
-
             except FeatureNotFoundError as err:
                 logger.debug(f"failed to match positional variants ({variant}): {err}")
                 errors += 1
