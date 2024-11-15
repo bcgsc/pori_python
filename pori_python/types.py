@@ -168,10 +168,22 @@ class IprFusionVariant(IprStructVarBase):
     svg: Optional[str]  # path to svg image of fusion
 
 
+class IprSignatureVariant(IprVariantBase):
+    # variantType = 'sigv'
+    displayName: str
+    signatureName: str
+    variantTypeName: str
+
+
 class ImageDefinition(TypedDict):
     key: str
     path: str
 
 
 IprStructuralVariant = Union[IprSmallMutationVariant, IprFusionVariant]
-IprVariant = Union[IprCopyVariant, IprExprVariant, IprStructuralVariant]
+IprVariant = Union[
+    IprCopyVariant,
+    IprExprVariant,
+    IprSignatureVariant,
+    IprStructuralVariant,
+]
