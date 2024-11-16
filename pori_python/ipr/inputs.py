@@ -16,6 +16,7 @@ from pori_python.types import (
     IprCopyVariant,
     IprExprVariant,
     IprFusionVariant,
+    IprSignatureVariant,
     IprSmallMutationVariant,
     IprVariant,
 )
@@ -151,8 +152,12 @@ SV_OPTIONAL = [
     "germline",
     "mavis_product_id",
 ]
+
+SIGV_REQ = ["signatureName", "variantTypeName"]
 SIGV_COSMIC = ["signature"]  # 1st element used as signatureName key
 SIGV_HLA = ["a1", "a2", "b1", "b2", "c1", "c2"]
+SIGV_OPTIONAL = ["displayName"]
+SIGV_KEY = SIGV_REQ[:]
 
 
 def validate_variant_rows(
@@ -388,6 +393,22 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprFusionVarian
                 row["svg"] = fh.read()
 
     return result
+
+
+def preprocess_signature_variants(rows: Iterable[Dict]) -> List[IprSignatureVariant]:
+    """
+    Validate the input rows contain the minimum required fields and
+    generate any default values where possible
+    """
+
+    def row_key(row: Dict) -> Tuple[str, ...]:
+        return tuple(["sigv"] + [row[key] for key in SIGV_KEY])
+
+    variants = validate_variant_rows(rows, SIGV_REQ, SIGV_OPTIONAL, row_key)
+    result = [cast(IprSignatureVariant, var) for var in variants]
+
+    return result
+
 
 def preprocess_cosmic(rows: Iterable[Dict]) -> Iterable[Dict]:
     """
