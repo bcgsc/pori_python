@@ -12,7 +12,10 @@ from pori_python.ipr.inputs import (
     check_variant_links,
     create_graphkb_sv_notation,
     preprocess_copy_variants,
+    preprocess_cosmic,
     preprocess_expression_variants,
+    preprocess_hla,
+    preprocess_signature_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
     validate_report_content,
@@ -22,6 +25,21 @@ from pori_python.types import IprFusionVariant, IprGeneVariant
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "test_data")
 NON_EMPTY_STRING_NULLS = ["", None, np.nan, pd.NA]
+EXPECTED_COSMIC = {"DBS9", "DBS11", "ID2", "ID7", "ID10", "SBS2", "SBS5", "DMMR"}
+EXPECTED_HLA = {
+    "HLA-A*02:01",
+    "HLA-A*02",
+    "HLA-A*30:01",
+    "HLA-A*30",
+    "HLA-B*27:01",
+    "HLA-B*27",
+    "HLA-B*15:01",
+    "HLA-B*15",
+    "HLA-C*03:03",
+    "HLA-C*03",
+    "HLA-C*06:02",
+    "HLA-C*06",
+}
 
 
 def read_data_file(filename):
@@ -118,6 +136,51 @@ class TestPreProcessCopyVariants:
                     records = preprocess_copy_variants([copy_var])
                     record = records[0]
                     assert record["variantType"] == "cnv"
+
+
+class TestPreProcessSignatureVariants:
+    def test_preprocess_cosmic(self) -> None:
+        records = preprocess_cosmic(
+            pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict("records")
+        )
+        assert records
+        assert len(records) == len(EXPECTED_COSMIC)
+        assert "variantTypeName" in records[0]
+        assert "displayName" in records[0]
+
+        signatureNames = {r.get('signatureName', '') for r in records}
+        assert len(EXPECTED_COSMIC.symmetric_difference(signatureNames)) == 0
+
+    def test_preprocess_hla(self) -> None:
+        records = preprocess_hla(
+            pd.read_csv(os.path.join(DATA_DIR, "hla_variants.tab"), sep="\t").to_dict("records")
+        )
+        assert records
+        assert len(records) == len(EXPECTED_HLA)
+        assert "variantTypeName" in records[0]
+        assert "displayName" in records[0]
+
+        signatureNames = {r.get('signatureName', '') for r in records}
+        assert len(EXPECTED_HLA.symmetric_difference(signatureNames)) == 0
+
+    def test_preprocess_signature_variants(self) -> None:
+        records = preprocess_signature_variants(
+            [
+                *preprocess_cosmic(
+                    pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict(
+                        "records"
+                    )
+                ),
+                *preprocess_hla(
+                    pd.read_csv(os.path.join(DATA_DIR, "hla_variants.tab"), sep="\t").to_dict(
+                        "records"
+                    )
+                ),
+            ]
+        )
+        assert records
+        assert len(records) == len(EXPECTED_COSMIC) + len(EXPECTED_HLA)
+        assert "key" in records[0]
 
 
 def test_load_structural_variants() -> None:
