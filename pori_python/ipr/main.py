@@ -7,17 +7,26 @@ import jsonschema.exceptions
 import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, Set
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
-from pori_python.types import Hashabledict, IprVariant
+from pori_python.types import (
+    Hashabledict,
+    IprCopyVariant,
+    IprExprVariant,
+    IprFusionVariant,
+    IprSignatureVariant,
+    IprSmallMutationVariant,
+    IprVariant,
+)
 
 from .annotate import (
     annotate_copy_variants,
     annotate_expression_variants,
     annotate_msi,
     annotate_positional_variants,
+    annotate_signature_variants,
     annotate_tmb,
 )
 from .connection import IprConnection
@@ -26,7 +35,10 @@ from .inputs import (
     check_comparators,
     check_variant_links,
     preprocess_copy_variants,
+    preprocess_cosmic,
     preprocess_expression_variants,
+    preprocess_hla,
+    preprocess_signature_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
     validate_report_content,
@@ -289,14 +301,26 @@ def ipr_report(
     kb_disease_match = content["kbDiseaseMatch"]
 
     # validate the input variants
-    small_mutations = preprocess_small_mutations(content.get("smallMutations", []))
-    structural_variants = preprocess_structural_variants(content.get("structuralVariants", []))
-    copy_variants = preprocess_copy_variants(content.get("copyVariants", []))
-    expression_variants = preprocess_expression_variants(content.get("expressionVariants", []))
+    signatureVariants: List[IprSignatureVariant] = preprocess_signature_variants(
+        [
+            *preprocess_cosmic(content.get("cosmicSignatures", [])),
+            *preprocess_hla(content.get("hlaTypes", [])),
+        ]
+    )
+    small_mutations: List[IprSmallMutationVariant] = preprocess_small_mutations(
+        content.get("smallMutations", [])
+    )
+    structural_variants: List[IprFusionVariant] = preprocess_structural_variants(
+        content.get("structuralVariants", [])
+    )
+    copy_variants: List[IprCopyVariant] = preprocess_copy_variants(content.get("copyVariants", []))
+    expression_variants: List[IprExprVariant] = preprocess_expression_variants(
+        content.get("expressionVariants", [])
+    )
     if expression_variants:
         check_comparators(content, expression_variants)
 
-    genes_with_variants = check_variant_links(
+    genes_with_variants: Set[str] = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
 
@@ -317,7 +341,7 @@ def ipr_report(
 
     gkb_matches: List[Hashabledict] = []
 
-    # Signature category variants
+    # tmb
     tmb_variant: IprVariant = {}  # type: ignore
     tmb_matches = []
     if "tmburMutationBurden" in content.keys():
@@ -351,6 +375,7 @@ def ipr_report(
                 gkb_matches.extend([Hashabledict(tmb_statement) for tmb_statement in tmb_matches])
                 logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
+    # msi
     msi = content.get("msi", [])
     msi_matches = []
     msi_variant: IprVariant = {}  # type: ignore
@@ -373,6 +398,15 @@ def ipr_report(
             logger.info(f"GERO-295 '{msi_cat}' matches {len(msi_matches)} msi statements.")
             gkb_matches.extend([Hashabledict(msi) for msi in msi_matches])
             logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
+
+    # signature category variants
+    logger.info(f"annotating {len(signatureVariants)} signatures")
+    gkb_matches.extend(
+        annotate_signature_variants(
+            graphkb_conn, signatureVariants, kb_disease_match, show_progress=interactive
+        )
+    )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     logger.info(f"annotating {len(small_mutations)} small mutations")
     gkb_matches.extend(
@@ -412,8 +446,14 @@ def ipr_report(
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
-    all_variants: Sequence[IprVariant]
-    all_variants = expression_variants + copy_variants + structural_variants + small_mutations  # type: ignore
+    all_variants: Sequence[IprVariant] = [
+        *copy_variants,
+        *expression_variants,
+        *signatureVariants,
+        *small_mutations,
+        *structural_variants,
+    ]  # type: ignore
+
     if msi_matches:
         all_variants.append(msi_variant)  # type: ignore
     if tmb_matches:
@@ -478,6 +518,7 @@ def ipr_report(
                     structural_variants, gkb_matches, gene_information
                 )
             ],
+            "signatureVariants": [trim_empty_values(s) for s in signatureVariants],
             "genes": gene_information,
             "genomicAlterationsIdentified": key_alterations,
             "variantCounts": variant_counts,
