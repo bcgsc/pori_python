@@ -19,6 +19,7 @@ from pori_python.types import (
     Hashabledict,
     IprCopyVariant,
     IprExprVariant,
+    IprSignatureVariant,
     IprStructuralVariant,
     KbMatch,
     Statement,
@@ -371,3 +372,55 @@ def annotate_tmb(
             ipr_row["variantType"] = "tmb"
             gkb_matches.append(ipr_row)
     return gkb_matches
+
+
+def annotate_signature_variants(
+    graphkb_conn: GraphKBConnection,
+    variants: List[IprSignatureVariant] = [],
+    disease_name: str = "cancer",
+    show_progress: bool = False,
+) -> List[KbMatch]:
+    """Annotate Signature variants with GraphKB in the IPR alterations format.
+
+    Match to corresponding GraphKB Variants, then to linked GraphKB Statements
+
+    Args:
+        graphkb_conn: the graphkb api connection object
+        variants: list of signature variants
+        disease_name: oncotree disease name for graphkb matching
+        show_progress: progressbar displayed for long runs; default to False
+
+    Returns:
+        list of kbMatches records for IPR
+    """
+    alterations: List[Hashabledict] = []
+
+    iterfunc = tqdm if show_progress else iter
+    for variant in iterfunc(variants):
+        try:
+            # Matching signature variant to GKB Variants
+            matched_variants: List[Variant] = gkb_match.match_category_variant(
+                graphkb_conn,
+                variant["signatureName"],
+                variant["variantTypeName"],
+                reference_class="Signature",
+            )
+            # Matching GKB Variants to GKB Statements
+            for ipr_row in get_ipr_statements_from_variants(
+                graphkb_conn, matched_variants, disease_name
+            ):
+                ipr_row["variant"] = variant["key"]
+                ipr_row["variantType"] = "sigv"
+                alterations.append(Hashabledict(ipr_row))
+
+        except ValueError as err:
+            logger.error(f"failed to match signature category variant '{variant}': {err}")
+
+    # drop duplicates
+    alterations = list(set(alterations))
+
+    logger.info(
+        f"matched {len(variants)} signature category variants to {len(alterations)} graphkb annotations"
+    )
+
+    return alterations
