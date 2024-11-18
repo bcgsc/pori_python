@@ -31,7 +31,12 @@ from .util import (
     looks_like_rid,
     stringifyVariant,
 )
-from .vocab import get_equivalent_terms, get_term_tree, get_terms_set
+from .vocab import (
+    get_equivalent_terms,
+    get_term_by_name,
+    get_term_tree,
+    get_terms_set,
+)
 
 FEATURES_CACHE: Set[str] = set()
 
@@ -290,7 +295,55 @@ def positions_overlap(
     return start is None or pos == start
 
 
+def equivalent_types(
+    conn: GraphKBConnection,
+    type1: str,
+    type2: str,
+    strict: bool = False,
+) -> bool:
+    """
+    Compare 2 variant types to determine if they should match
+
+    Args:
+        conn: the graphkb connection object
+        type1: type from the observed variant we want to match to the DB
+        type2: type from the DB variant
+        strict: wether or not only the specific-to-generic ones are considered.
+                By default (false), not only specific types can match more generic ones,
+                but generic types can also match more specific ones.
+
+    Returns:
+        bool: True if the types can be matched
+    """
+
+    # Convert rid to displayName if needed
+    if looks_like_rid(type1):
+        type1 = conn.get_records_by_id([type1])[0]['displayName']
+    if looks_like_rid(type2):
+        type2 = conn.get_records_by_id([type2])[0]['displayName']
+
+    # Get type terms from observed variant
+    terms1 = []
+    if strict:
+        try:
+            terms1.append(get_term_by_name(conn, type1)['@rid'])
+        except:
+            pass
+    else:
+        terms1 = get_terms_set(conn, [type1])
+
+    # Get type terms from DB variant
+    terms2 = get_terms_set(conn, [type2])
+
+    # Check for intersect
+    if len(terms2.intersection(terms1)) == 0:
+        return False
+
+    return True
+
+
 def compare_positional_variants(
+    conn: GraphKBConnection,
     variant: Union[PositionalVariant, ParsedVariant],
     reference_variant: Union[PositionalVariant, ParsedVariant],
     generic: bool = True,
@@ -391,6 +444,11 @@ def compare_positional_variants(
             if reference_variant["refSeq"].lower() != variant["refSeq"].lower():  # type: ignore
                 return False
         elif len(variant["refSeq"]) != len(reference_variant["refSeq"]):  # type: ignore
+            return False
+
+    # Equivalent types
+    if variant.get('type') and reference_variant.get('type'):
+        if not equivalent_types(conn, variant["type"], reference_variant["type"]):
             return False
 
     return True
@@ -613,10 +671,14 @@ def match_positional_variant(
     ):
         # TODO: Check if variant and reference_variant should be interchanged
         if compare_positional_variants(
-            variant=parsed, reference_variant=cast(PositionalVariant, row), generic=True
+            conn,
+            variant=parsed,
+            reference_variant=cast(PositionalVariant, row),
+            generic=True,
         ):
             filtered_similarAndGeneric.append(row)
             if compare_positional_variants(
+                conn,
                 variant=parsed,
                 reference_variant=cast(PositionalVariant, row),
                 generic=False,  # Similar variants only

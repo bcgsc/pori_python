@@ -7,7 +7,7 @@ import jsonschema.exceptions
 import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from typing import Dict, List, Sequence, Set
+from typing import Callable, Dict, List, Sequence, Set
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
@@ -47,6 +47,7 @@ from .ipr import (
     create_key_alterations,
     filter_structural_variants,
     germline_kb_matches,
+    multi_variant_filtering,
     select_expression_plots,
 )
 from .summary import auto_analyst_comments
@@ -255,9 +256,10 @@ def ipr_report(
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
     match_germline: bool = False,
-    custom_kb_match_filter=None,
+    custom_kb_match_filter: Callable = None,
     async_upload: bool = False,
     mins_to_wait: int = 5,
+    multi_variant_filter: bool = True,
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
 
@@ -281,6 +283,7 @@ def ipr_report(
         custom_kb_match_filter: function(List[kbMatch]) -> List[kbMatch]
         async_upload: use report_async endpoint to upload reports
         mins_to_wait: if using report_async, number of minutes to wait for success before exception raised
+        multi_variant_filter: filters out matches that doesn't match to all required variants on multi-variant statements
 
     Returns:
         ipr_conn.upload_report return dictionary
@@ -324,10 +327,11 @@ def ipr_report(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
 
-    # Setup connections
+    # IPR CONNECTION
     ipr_conn = IprConnection(username, password, ipr_url)
     ipr_spec = ipr_conn.get_spec()
 
+    # GKB CONNECTION
     if graphkb_url:
         logger.info(f"connecting to graphkb: {graphkb_url}")
         graphkb_conn = GraphKBConnection(graphkb_url)
@@ -339,9 +343,10 @@ def ipr_report(
 
     graphkb_conn.login(gkb_user, gkb_pass)
 
+    # GKB MATCHING
     gkb_matches: List[Hashabledict] = []
 
-    # tmb
+    # MATCHING TMB
     tmb_variant: IprVariant = {}  # type: ignore
     tmb_matches = []
     if "tmburMutationBurden" in content.keys():
@@ -375,7 +380,7 @@ def ipr_report(
                 gkb_matches.extend([Hashabledict(tmb_statement) for tmb_statement in tmb_matches])
                 logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
-    # msi
+    # MATCHING MSI
     msi = content.get("msi", [])
     msi_matches = []
     msi_variant: IprVariant = {}  # type: ignore
@@ -399,7 +404,7 @@ def ipr_report(
             gkb_matches.extend([Hashabledict(msi) for msi in msi_matches])
             logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
-    # signature category variants
+    # MATCHING SIGNATURE CATEGORY VARIANTS
     logger.info(f"annotating {len(signatureVariants)} signatures")
     gkb_matches.extend(
         annotate_signature_variants(
@@ -408,6 +413,7 @@ def ipr_report(
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
+    # MATCHING SMALL MUTATIONS
     logger.info(f"annotating {len(small_mutations)} small mutations")
     gkb_matches.extend(
         annotate_positional_variants(
@@ -416,6 +422,7 @@ def ipr_report(
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
+    # MATCHING STRUCTURAL VARIANTS
     logger.info(f"annotating {len(structural_variants)} structural variants")
     gkb_matches.extend(
         annotate_positional_variants(
@@ -424,6 +431,7 @@ def ipr_report(
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
+    # MATCHING COPY VARIANTS
     logger.info(f"annotating {len(copy_variants)} copy variants")
     gkb_matches.extend(
         [
@@ -435,6 +443,7 @@ def ipr_report(
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
+    # MATCHING EXPRESSION VARIANTS
     logger.info(f"annotating {len(expression_variants)} expression variants")
     gkb_matches.extend(
         [
@@ -446,6 +455,7 @@ def ipr_report(
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
+    # ALL VARIANTS
     all_variants: Sequence[IprVariant] = [
         *copy_variants,
         *expression_variants,
@@ -459,6 +469,7 @@ def ipr_report(
     if tmb_matches:
         all_variants.append(tmb_variant)  # type: ignore
 
+    # GKB_MATCHES FILTERING
     if match_germline:
         # verify germline kb statements matched germline observed variants, not somatic variants
         org_len = len(gkb_matches)
@@ -474,17 +485,28 @@ def ipr_report(
         gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
+    if multi_variant_filter:
+        logger.info(
+            f"Filtering out incomplete  matches on multi-variant statements for {len(gkb_matches)} matches"
+        )
+        gkb_matches = multi_variant_filtering(graphkb_conn, gkb_matches)
+        logger.info(f"multi_variant_filtering left {len(gkb_matches)} matches")
+
+    # KEY ALTERATIONS
     key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
 
+    # GENE INFORMATION
     logger.info("fetching gene annotations")
     gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
 
+    # THERAPEUTIC OPTIONS
     if generate_therapeutics:
         logger.info("generating therapeutic options")
         targets = create_therapeutic_options(graphkb_conn, gkb_matches, all_variants)
     else:
         targets = []
 
+    # ANALYST COMMENTS
     logger.info("generating analyst comments")
     if generate_comments:
         comments = {
@@ -495,6 +517,7 @@ def ipr_report(
     else:
         comments = {"comments": ""}
 
+    # OUTPUT CONTENT
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
     output.update(
@@ -532,6 +555,7 @@ def ipr_report(
     ipr_result = None
     upload_error = None
 
+    # UPLOAD TO IPR
     if ipr_upload:
         try:
             logger.info(f"Uploading to IPR {ipr_conn.url}")
@@ -541,11 +565,14 @@ def ipr_report(
         except Exception as err:
             upload_error = err
             logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
+
+    # SAVE TO JSON FILE
     if output_json_path:
         if always_write_output_json or not ipr_result:
             logger.info(f"Writing IPR upload json to: {output_json_path}")
             with open(output_json_path, "w") as fh:
                 fh.write(json.dumps(output))
+
     logger.info(f"made {graphkb_conn.request_count} requests to graphkb")
     logger.info(f"average load {int(graphkb_conn.load or 0)} req/s")
     if upload_error:
