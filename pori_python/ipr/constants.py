@@ -8,6 +8,5 @@ FAILED_REVIEW_STATUS = "failed"
 # Signatures
 COSMIC_SIGNATURE_VARIANT_TYPE = "high signature"
 HLA_SIGNATURE_VARIANT_TYPE = "signature present"
-DMMR_SIGNATURE_NAME = "mismatch repair deficiency"  # Comes as 'DMMR' from gsc_report
 TMB_HIGH = 10.0  # genomic mutations per mb - https://www.bcgsc.ca/jira/browse/GERO-296
 TMB_HIGH_CATEGORY = "high mutation burden"
