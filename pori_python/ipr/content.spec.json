@@ -103,7 +103,7 @@
                         "type": "string"
                     },
                     "cna": {
-                        "description": "The copy number alteration (CNA) ratio",
+                        "description": "Copy Number, Absolute (cna)",
                         "example": 1.22,
                         "type": [
                             "number",
