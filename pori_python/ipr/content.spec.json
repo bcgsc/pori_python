@@ -99,7 +99,7 @@
             "items": {
                 "properties": {
                     "chromosomeBand": {
-                        "example": "p12.2",
+                        "example": "Xp12.2",
                         "type": "string"
                     },
                     "cna": {
