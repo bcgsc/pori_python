@@ -11,6 +11,7 @@ from pori_python.graphkb.statement import categorize_relevance
 from pori_python.graphkb.util import convert_to_rid_list
 from pori_python.graphkb.vocab import get_term_tree
 from pori_python.ipr.inputs import create_graphkb_sv_notation
+from pori_python.ipr.connection import IprConnection
 from pori_python.types import Hashabledict, IprVariant, KbMatch, Ontology, Record, Statement
 
 from .util import (
@@ -364,6 +365,15 @@ def ipr_analyst_comments(
 
     match_set = list(set([item['kbVariant'] for item in matches]))
 
+    def prep_single_variant_comment(item):
+        cancer_type = ','.join(item['cancerType'])
+        if not cancer_type:
+            cancer_type = 'no specific cancer types'
+        cancer_type = f' ({cancer_type})'
+        section = [f"<h2>{item['variantName']}{cancer_type}</h2>"]
+        section.append(f"<p>{item['text']}</p>")
+        return section
+
     for variant in match_set:
         itemlist = ipr_conn.get('variant-text', data={
             'variantName': variant,
@@ -372,7 +382,13 @@ def ipr_analyst_comments(
         })
         if itemlist:
             for item in itemlist:
-                output.append(item['text'])
+                if not item['cancerType'] or disease_name in item['cancerType']:
+                    section = prep_single_variant_comment(item)
+                    output.extend(section)
+        else:
+            ipr_conn.get('variant-text')
+    if not output:
+        output = ['No comments found in IPR for these variants']
     return "\n".join(output)
 
 
