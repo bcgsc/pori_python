@@ -19,9 +19,18 @@ def get_test_file(name: str) -> str:
 @pytest.fixture(scope="module")
 def probe_upload_content() -> Dict:
     mock = MagicMock()
+
+    def side_effect_function(*args, **kwargs):
+        if "templates" in args[0]:
+            return [{"name": "genomic", "ident": "001"}]
+        elif args[0] == "project":
+            return [{"name": "TEST", "ident": "001"}]
+        else:
+            return []
+
     with patch.object(IprConnection, "upload_report", new=mock):
         with patch.object(IprConnection, "get_spec", return_value={}):
-            with patch.object(IprConnection, "get", return_value=[]):
+            with patch.object(IprConnection, "get", side_effect=side_effect_function):
                 create_report(
                     content={
                         "patientId": "PATIENT001",
@@ -41,8 +50,12 @@ def probe_upload_content() -> Dict:
                     password=os.environ["IPR_PASS"],
                     log_level="info",
                     ipr_url="http://fake.url.ca",
-                    graphkb_username=os.environ.get("GRAPHKB_USER", os.environ["IPR_USER"]),
-                    graphkb_password=os.environ.get("GRAPHKB_PASS", os.environ["IPR_PASS"]),
+                    graphkb_username=os.environ.get(
+                        "GRAPHKB_USER", os.environ["IPR_USER"]
+                    ),
+                    graphkb_password=os.environ.get(
+                        "GRAPHKB_PASS", os.environ["IPR_PASS"]
+                    ),
                     graphkb_url=os.environ.get("GRAPHKB_URL", False),
                 )
 
@@ -52,7 +65,9 @@ def probe_upload_content() -> Dict:
     return report_content
 
 
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+)
 class TestCreateReport:
     def test_found_probe_small_mutations(self, probe_upload_content: Dict) -> None:
         assert probe_upload_content["smallMutations"]
@@ -60,7 +75,9 @@ class TestCreateReport:
     @pytest.mark.skipif(
         EXCLUDE_BCGSC_TESTS, reason="excluding tests that depend on BCGSC-specific data"
     )
-    def test_found_probe_small_mutations_match(self, probe_upload_content: Dict) -> None:
+    def test_found_probe_small_mutations_match(
+        self, probe_upload_content: Dict
+    ) -> None:
         # verify each probe had a KB match
         for sm_probe in probe_upload_content["smallMutations"]:
             match_list = [
