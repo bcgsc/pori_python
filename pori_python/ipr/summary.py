@@ -343,12 +343,22 @@ def section_statements_by_genes(
     return genes
 
 
+def prep_single_ipr_variant_comment(item):
+    cancer_type = ','.join(item['cancerType'])
+    if not cancer_type:
+        cancer_type = 'no specific cancer types'
+    cancer_type = f' ({cancer_type})'
+    section = [f"<h2>{item['variantName']}{cancer_type}</h2>"]
+    section.append(f"<p>{item['text']}</p>")
+    return section
+
+
 def ipr_analyst_comments(
     ipr_conn: IprConnection,
     matches: Sequence[KbMatch] | Sequence[Hashabledict],
     disease_name: str,
     project_name: str,
-    report_type: str
+    report_type: str,
 ):
     output: List[str] = [
         "<h3>The comments below were automatically drawn from curated text stored in IPR for variant matches in this report, and have not been manually reviewed</h3>"
@@ -358,37 +368,27 @@ def ipr_analyst_comments(
 
     templates = ipr_conn.get(f'templates?name={report_type}')
     # if this is genomic expect two results - one 'pharmacogenomic'
-    template_ident = [item for item in templates if item['name']==report_type][0]['ident']
+    template_ident = [item for item in templates if item['name'] == report_type][0]['ident']
 
     projects = ipr_conn.get(f'project')
-    project_ident = [item for item in projects if item['name']==project_name][0]['ident']
+    project_ident = [item for item in projects if item['name'] == project_name][0]['ident']
 
     match_set = list(set([item['kbVariant'] for item in matches]))
 
-    def prep_single_variant_comment(item):
-        cancer_type = ','.join(item['cancerType'])
-        if not cancer_type:
-            cancer_type = 'no specific cancer types'
-        cancer_type = f' ({cancer_type})'
-        section = [f"<h2>{item['variantName']}{cancer_type}</h2>"]
-        section.append(f"<p>{item['text']}</p>")
-        return section
-
     for variant in match_set:
-        itemlist = ipr_conn.get('variant-text', data={
-            'variantName': variant,
-            'template': template_ident,
-            'project': project_ident
-        })
+        itemlist = ipr_conn.get(
+            'variant-text',
+            data={'variantName': variant, 'template': template_ident, 'project': project_ident},
+        )
         if itemlist:
             for item in itemlist:
                 if not item['cancerType'] or disease_name in item['cancerType']:
-                    section = prep_single_variant_comment(item)
+                    section = prep_single_ipr_variant_comment(item)
                     output.extend(section)
         else:
             ipr_conn.get('variant-text')
     if not output:
-        output = ['No comments found in IPR for these variants']
+        output = ['No comments found in IPR for variants in this report']
     return "\n".join(output)
 
 

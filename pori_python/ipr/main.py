@@ -450,16 +450,16 @@ def ipr_report(
 
     if generate_comments:
         graphkb_comments = auto_analyst_comments(
-                graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
-            )
+            graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
+        )
 
         ipr_comments = ipr_analyst_comments(
-                ipr_conn,
-                gkb_matches,
-                disease_name=kb_disease_match,
-                project_name=content['project'],
-                report_type=content['template']
-            )
+            ipr_conn,
+            gkb_matches,
+            disease_name=kb_disease_match,
+            project_name=content['project'],
+            report_type=content['template'],
+        )
         comments = {"comments": "\n".join([ipr_comments, graphkb_comments])}
     else:
         comments = {"comments": ""}
