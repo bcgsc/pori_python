@@ -47,7 +47,9 @@ def get_second_pass_variants(
     }
 
     for reference1, variant_type in inferred_variants:
-        variants = gkb_match.match_category_variant(graphkb_conn, reference1, variant_type)
+        variants = gkb_match.match_category_variant(
+            graphkb_conn, reference1, variant_type
+        )
 
         for variant in variants:
             all_inferred_matches[variant["@rid"]] = variant
@@ -66,8 +68,8 @@ def get_ipr_statements_from_variants(
     if not matches:
         return []
     rows = []
+
     statements = get_statements_from_variants(graphkb_conn, matches)
-    existing_statements = {s["@rid"] for s in statements}
 
     for ipr_row in convert_statements_to_alterations(
         graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
@@ -80,11 +82,15 @@ def get_ipr_statements_from_variants(
     inferred_statements = [
         s
         for s in get_statements_from_variants(graphkb_conn, inferred_matches)
-        if s["@rid"] not in existing_statements  # do not duplicate if non-inferred match
+        if s["@rid"]
+        not in existing_statements  # do not duplicate if non-inferred match
     ]
 
     for ipr_row in convert_statements_to_alterations(
-        graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches)
+        graphkb_conn,
+        inferred_statements,
+        disease_name,
+        convert_to_rid_set(inferred_matches),
     ):
         ipr_row["kbData"]["inferred"] = True
         rows.append(ipr_row)
@@ -122,7 +128,9 @@ def annotate_expression_variants(
             continue
         try:
             matches = gkb_match.match_expression_variant(graphkb_conn, gene, variant)
-            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+            for ipr_row in get_ipr_statements_from_variants(
+                graphkb_conn, matches, disease_name
+            ):
                 ipr_row["variant"] = row["key"]
                 ipr_row["variantType"] = row.get("variantType", "exp")
                 alterations.append(ipr_row)
@@ -171,11 +179,15 @@ def annotate_copy_variants(
         if variant not in REPORTED_COPY_VARIANTS:
             # https://www.bcgsc.ca/jira/browse/GERO-77
             skipped += 1
-            logger.debug(f"Dropping {gene} copy change '{variant}' - not in REPORTED_COPY_VARIANTS")
+            logger.debug(
+                f"Dropping {gene} copy change '{variant}' - not in REPORTED_COPY_VARIANTS"
+            )
             continue
         try:
             matches = gkb_match.match_copy_variant(graphkb_conn, gene, variant)
-            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+            for ipr_row in get_ipr_statements_from_variants(
+                graphkb_conn, matches, disease_name
+            ):
                 ipr_row["variant"] = row["key"]
                 ipr_row["variantType"] = row.get("variantType", "cnv")
                 alterations.append(ipr_row)
@@ -191,7 +203,9 @@ def annotate_copy_variants(
         )
     if problem_genes:
         logger.error(f"gene finding failures for copy variants {sorted(problem_genes)}")
-        logger.error(f"gene finding failure for {len(problem_genes)} copy variant genes")
+        logger.error(
+            f"gene finding failure for {len(problem_genes)} copy variant genes"
+        )
     logger.info(
         f"matched {len(variants)} copy category variants to {len(alterations)} graphkb annotations"
     )
@@ -249,7 +263,9 @@ def annotate_positional_variants(
                             f"Assuming malformed deletion variant {variant} is {variant[:-2] + 'del'}"
                         )
                         variant = variant[:-2] + "del"
-                        matches = gkb_match.match_positional_variant(graphkb_conn, variant)
+                        matches = gkb_match.match_positional_variant(
+                            graphkb_conn, variant
+                        )
                     else:
                         raise parse_err
 
@@ -282,7 +298,9 @@ def annotate_positional_variants(
 
     if problem_genes:
         logger.error(f"gene finding failures for {sorted(problem_genes)}")
-        logger.error(f"{len(problem_genes)} gene finding failures for positional variants")
+        logger.error(
+            f"{len(problem_genes)} gene finding failures for positional variants"
+        )
     if errors:
         logger.error(f"skipped {errors} positional variants due to errors")
 
@@ -318,7 +336,10 @@ def annotate_msi(
             "target": {
                 "target": "CategoryVariant",
                 "filters": {
-                    "reference1": {"target": "Signature", "filters": {"name": msi_category}}
+                    "reference1": {
+                        "target": "Signature",
+                        "filters": {"name": msi_category},
+                    }
                 },
             },
             "queryType": "similarTo",
@@ -327,7 +348,9 @@ def annotate_msi(
     )
     if msi_categories:
         msi_variants = [cast(Variant, var) for var in msi_categories]
-        for ipr_row in get_ipr_statements_from_variants(graphkb_conn, msi_variants, disease_name):
+        for ipr_row in get_ipr_statements_from_variants(
+            graphkb_conn, msi_variants, disease_name
+        ):
             ipr_row["variant"] = msi_category
             ipr_row["variantType"] = "msi"
             gkb_matches.append(ipr_row)
@@ -335,7 +358,9 @@ def annotate_msi(
 
 
 def annotate_tmb(
-    graphkb_conn: GraphKBConnection, disease_name: str = "cancer", category: str = TMB_HIGH_CATEGORY
+    graphkb_conn: GraphKBConnection,
+    disease_name: str = "cancer",
+    category: str = TMB_HIGH_CATEGORY,
 ) -> List[KbMatch]:
     """Annotate Tumour Mutation Burden (tmb) categories from GraphKB in the IPR alterations format.
 
@@ -356,7 +381,9 @@ def annotate_tmb(
                 "filters": {
                     "reference1": {
                         "target": "Signature",
-                        "filters": {"OR": [{"name": category}, {"displayName": category}]},
+                        "filters": {
+                            "OR": [{"name": category}, {"displayName": category}]
+                        },
                     }
                 },
             },
@@ -366,7 +393,9 @@ def annotate_tmb(
     )
     if categories:
         cat_variants = [cast(Variant, var) for var in categories]
-        for ipr_row in get_ipr_statements_from_variants(graphkb_conn, cat_variants, disease_name):
+        for ipr_row in get_ipr_statements_from_variants(
+            graphkb_conn, cat_variants, disease_name
+        ):
             ipr_row["variant"] = category
             ipr_row["variantType"] = "tmb"
             gkb_matches.append(ipr_row)
