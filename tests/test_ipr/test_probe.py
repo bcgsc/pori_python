@@ -50,12 +50,8 @@ def probe_upload_content() -> Dict:
                     password=os.environ["IPR_PASS"],
                     log_level="info",
                     ipr_url="http://fake.url.ca",
-                    graphkb_username=os.environ.get(
-                        "GRAPHKB_USER", os.environ["IPR_USER"]
-                    ),
-                    graphkb_password=os.environ.get(
-                        "GRAPHKB_PASS", os.environ["IPR_PASS"]
-                    ),
+                    graphkb_username=os.environ.get("GRAPHKB_USER", os.environ["IPR_USER"]),
+                    graphkb_password=os.environ.get("GRAPHKB_PASS", os.environ["IPR_PASS"]),
                     graphkb_url=os.environ.get("GRAPHKB_URL", False),
                 )
 
@@ -65,9 +61,7 @@ def probe_upload_content() -> Dict:
     return report_content
 
 
-@pytest.mark.skipif(
-    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
-)
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestCreateReport:
     def test_found_probe_small_mutations(self, probe_upload_content: Dict) -> None:
         assert probe_upload_content["smallMutations"]
@@ -75,9 +69,7 @@ class TestCreateReport:
     @pytest.mark.skipif(
         EXCLUDE_BCGSC_TESTS, reason="excluding tests that depend on BCGSC-specific data"
     )
-    def test_found_probe_small_mutations_match(
-        self, probe_upload_content: Dict
-    ) -> None:
+    def test_found_probe_small_mutations_match(self, probe_upload_content: Dict) -> None:
         # verify each probe had a KB match
         for sm_probe in probe_upload_content["smallMutations"]:
             match_list = [

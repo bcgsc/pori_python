@@ -48,24 +48,22 @@ def report_upload_content(tmp_path_factory) -> Dict:
                 "patientId": "PATIENT001",
                 "project": "TEST",
                 "expressionVariants": json.loads(
-                    pd.read_csv(
-                        get_test_file("expression.short.tab"), sep="\t"
-                    ).to_json(orient="records")
-                ),
-                "smallMutations": json.loads(
-                    pd.read_csv(
-                        get_test_file("small_mutations.short.tab"), sep="\t"
-                    ).to_json(orient="records")
-                ),
-                "copyVariants": json.loads(
-                    pd.read_csv(
-                        get_test_file("copy_variants.short.tab"), sep="\t"
-                    ).to_json(orient="records")
-                ),
-                "structuralVariants": json.loads(
-                    pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(
+                    pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(
                         orient="records"
                     )
+                ),
+                "smallMutations": json.loads(
+                    pd.read_csv(get_test_file("small_mutations.short.tab"), sep="\t").to_json(
+                        orient="records"
+                    )
+                ),
+                "copyVariants": json.loads(
+                    pd.read_csv(get_test_file("copy_variants.short.tab"), sep="\t").to_json(
+                        orient="records"
+                    )
+                ),
+                "structuralVariants": json.loads(
+                    pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(orient="records")
                 ),
                 "kbDiseaseMatch": "colorectal cancer",
             },
@@ -105,9 +103,7 @@ def report_upload_content(tmp_path_factory) -> Dict:
     ):
         with patch.object(IprConnection, "upload_report", new=mock):
             with patch.object(IprConnection, "get_spec", return_value=get_test_spec()):
-                with patch.object(
-                    IprConnection, "get", side_effect=side_effect_function
-                ):
+                with patch.object(IprConnection, "get", side_effect=side_effect_function):
                     command_interface()
 
     assert mock.called
@@ -116,9 +112,7 @@ def report_upload_content(tmp_path_factory) -> Dict:
     return report_content
 
 
-@pytest.mark.skipif(
-    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
-)
+@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestCreateReport:
     def test_main_sections_present(self, report_upload_content: Dict) -> None:
         sections = set(report_upload_content.keys())
@@ -134,10 +128,7 @@ class TestCreateReport:
             assert section in sections
 
     def test_kept_low_quality_fusion(self, report_upload_content: Dict) -> None:
-        fusions = [
-            (sv["gene1"], sv["gene2"])
-            for sv in report_upload_content["structuralVariants"]
-        ]
+        fusions = [(sv["gene1"], sv["gene2"]) for sv in report_upload_content["structuralVariants"]]
         if (
             EXCLUDE_BCGSC_TESTS
         ):  # may be missing statements assoc with SUZ12 if no access to bcgsc data
@@ -154,17 +145,13 @@ class TestCreateReport:
         # eg, A1BG
         assert any([g.get("knownFusionPartner", False) for g in genes])
 
-    @pytest.mark.skipif(
-        EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data"
-    )
+    @pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data")
     def test_found_oncogene(self, report_upload_content: Dict) -> None:
         genes = report_upload_content["genes"]
         # eg, ZBTB20
         assert any([g.get("oncogene", False) for g in genes])
 
-    @pytest.mark.skipif(
-        EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data)"
-    )
+    @pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data)")
     def test_found_tumour_supressor(self, report_upload_content: Dict) -> None:
         genes = report_upload_content["genes"]
         # eg, ZNRF3
@@ -174,11 +161,7 @@ class TestCreateReport:
         genes = report_upload_content["genes"]
         assert any([g.get("kbStatementRelated", False) for g in genes])
 
-    @pytest.mark.skipif(
-        EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data"
-    )
-    def test_found_cancer_gene_list_match_gene(
-        self, report_upload_content: Dict
-    ) -> None:
+    @pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason="excluding tests that depend on oncokb data")
+    def test_found_cancer_gene_list_match_gene(self, report_upload_content: Dict) -> None:
         genes = report_upload_content["genes"]
         assert any([g.get("cancerGeneListMatch", False) for g in genes])
