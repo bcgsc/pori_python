@@ -234,9 +234,15 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
                 "tmburMutationBurden"
             ].get("kbCategory", "")
 
+    # TODO: check this is still necessary
     for row in upload_content["kbMatches"]:
-        del row["kbContextId"]
-        del row["kbRelevanceId"]
+        if "kbContextId" in row:
+            del row["kbContextId"]
+        if "kbRelevanceId" in row:
+            del row["kbRelevanceId"]
+        if "requiredKbMatches" in row:
+            del row["requiredKbMatches"]
+
     return upload_content
 
 
@@ -490,11 +496,11 @@ def ipr_report(
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
     # TODO: remove this
-    gkb_matches_head = gkb_matches[0:3]
-    gkb_matches_head.extend(
-        [item for item in gkb_matches if len(item["requiredKbMatches"]) > 1]
-    )
-    gkb_matches = gkb_matches_head
+    # gkb_matches_head = gkb_matches[0:3]
+    # gkb_matches_head.extend(
+    #    [item for item in gkb_matches if len(item["requiredKbMatches"]) > 1]
+    # )
+    # gkb_matches = gkb_matches_head
 
     if multi_variant_filter and False:
         logger.info(
@@ -513,7 +519,7 @@ def ipr_report(
                 "kbVariantId": item["kbVariantId"],
             }
             kbVariants[str(kbv)] = kbv
-        return kbVariants.values()
+        return [*kbVariants.values()]
 
     def get_kbMatchedStatements(gkb_matches):
         kbMatchedStatements = {}
@@ -536,7 +542,7 @@ def ipr_report(
             ]:
                 kbs[field] = item[field]
             kbMatchedStatements[str(kbs)] = kbs
-        return kbMatchedStatements.values()
+        return [*kbMatchedStatements.values()]
 
     def get_kbStatementMatchedConditions(gkb_matches, kbVariants, kbMatchedStatements):
         kbMatchedStatementConditions = {}
@@ -619,7 +625,7 @@ def ipr_report(
             ]
             add_condition_sets(conditionSets)
 
-        return kbMatchedStatementConditions.values()
+        return [*kbMatchedStatementConditions.values()]
 
     kbVariants = get_kbVariants(gkb_matches)
     kbMatchedStatements = get_kbMatchedStatements(gkb_matches)
@@ -660,8 +666,14 @@ def ipr_report(
     # OUTPUT CONTENT
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
+    import pdb
+
+    pdb.set_trace()
     output.update(
         {
+            # "kbVariants": kbVariants,
+            # "kbMatchedStatements": kbMatchedStatements,
+            # "kbMatchedStatementConditions": kbStatementMatchedConditions,
             "kbMatches": [trim_empty_values(a) for a in gkb_matches],  # type: ignore
             "copyVariants": [
                 trim_empty_values(c)
