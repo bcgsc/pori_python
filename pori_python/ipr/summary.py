@@ -364,63 +364,113 @@ def section_statements_by_genes(
     return genes
 
 
-def prep_single_ipr_variant_comment(item):
-    cancer_type = ",".join(item["cancerType"])
+def prep_single_ipr_variant_comment(variant_text):
+    """Formats single item of custom variant text for inclusion in the analyst comments.
+
+    Params:
+        variant_text:
+
+    Returns:
+        section: html-formatted string
+    """
+    cancer_type = ",".join(variant_text["cancerType"])
     if not cancer_type:
         cancer_type = "no specific cancer types"
     cancer_type = f" ({cancer_type})"
-    section = [f"<h2>{item['variantName']}{cancer_type}</h2>"]
-    section.append(f"<p>{item['text']}</p>")
+    section = [f"<h2>{variant_text['variantName']}{cancer_type}</h2>"]
+    section.append(f"<p>{variant_text['text']}</p>")
     return section
 
 
-def ipr_analyst_comments(
+def get_ipr_analyst_comments(
     ipr_conn: IprConnection,
     matches: Sequence[KbMatch] | Sequence[Hashabledict],
     disease_name: str,
     project_name: str,
     report_type: str,
-):
-    output: List[str] = [
-        "<h3>The comments below were automatically drawn from curated text stored in IPR for variant matches in this report, and have not been manually reviewed</h3>"
-    ]
+    include_nonspecific_disease: bool = False,
+    include_nonspecific_project: bool = False,
+    include_nonspecific_template: bool = False,
+) -> str:
+    """
+    Given a list of kbmatches, checks the variant_texts table in IPR-API to get any
+    pre-prepared text for this variant for inclusion in the analyst comments.
+    Matches on template, project and variant_name. Matches on project, disease and template
+    if possible. If no match is found and the related include_nonspecific arg is True,
+    uses a result with no specified value for that field if a result is found (eg
+    a result with no cancer type specified, if it exists).
 
-    template_ident = None
-    templates = ipr_conn.get(f"templates?name={report_type}")
-    # if this is genomic expect two results - one 'pharmacogenomic', which must be removed
-    if templates:
-        template_idents = [item for item in templates if item["name"] == report_type]
-        if template_idents:
-            template_ident = template_idents[0]["ident"]
-
-    project_ident = None
-    projects = ipr_conn.get(f"project")
-    if projects:
-        project_idents = [item for item in projects if item["name"] == project_name]
-        if project_idents:
-            project_ident = project_idents[0]["ident"]
-
+    Params:
+        ipr_conn: connection to the ipr db
+        matches: list of kbmatches which will be included in the report
+        disease_name: str, eg 'colorectal cancer'
+        project_name: str, eg TEST or pog
+        report_type: str, eg genomic or rapid
+        include_nonspecific_disease: bool - true if variant texts that don't explicitly
+            name a cancer type should be included
+        include_nonspecific_project: bool - true if variant texts that don't explicitly
+            name a project should be included
+        include_nonspecific_template: bool - true if variant texts that don't explicitly
+            name a project should be included
+    Returns:
+        html-formatted string
+    """
+    output_header = "<h3>The comments below were automatically drawn from curated text stored in IPR for variant matches in this report, and have not been manually reviewed</h3>"
+    no_comments_found_output = "No comments found in IPR for variants in this report"
+    output = []
+    # get the list of variants to check for custom text for
     match_set = list(set([item["kbVariant"] for item in matches]))
 
-    if project_ident and template_ident:
-        for variant in match_set:
-            itemlist = ipr_conn.get(
-                "variant-text",
-                data={
-                    "variantName": variant,
-                    "template": template_ident,
-                    "project": project_ident,
-                },
-            )
-            if itemlist:
-                for item in itemlist:
-                    # include matching cancer type OR no cancer type specified
-                    if not item["cancerType"] or disease_name in item["cancerType"]:
-                        section = prep_single_ipr_variant_comment(item)
-                        output.extend(section)
+    for variant in match_set:
+        data = {
+            "variantName": variant,
+        }
+        itemlist: list[dict] = []
+        itemlist = ipr_conn.get("variant-text", data=data)  # type: ignore
+        if itemlist:
+            import pdb
+
+            pdb.set_trace()
+
+            project_matches = [
+                item
+                for item in itemlist
+                if 'project' in item.keys() and item['project']['name'] == project_name
+            ]
+            if project_matches:
+                itemlist = project_matches
+            elif include_nonspecific_project:
+                itemlist = [item for item in itemlist if 'project' not in item.keys()]
+            else:
+                itemlist = []
+
+            template_matches = [
+                item
+                for item in itemlist
+                if 'template' in item.keys() and item['template']['name'] == report_type
+            ]
+            if template_matches:
+                itemlist = template_matches
+            elif include_nonspecific_template:
+                itemlist = [item for item in itemlist if 'template' not in item.keys()]
+            else:
+                itemlist = []
+
+            disease_matches = [item for item in itemlist if disease_name in item['cancerType']]
+            if disease_matches:
+                itemlist = disease_matches
+            elif include_nonspecific_disease:
+                itemlist = [item for item in itemlist if not item['cancerType']]
+            else:
+                itemlist = []
+
+            for item in itemlist:
+                section = prep_single_ipr_variant_comment(item)
+                output.extend(section)
 
     if not output:
-        output = ["No comments found in IPR for variants in this report"]
+        return no_comments_found_output
+    output.insert(0, output_header)
     return "\n".join(output)
 
 

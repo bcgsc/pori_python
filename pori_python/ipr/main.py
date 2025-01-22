@@ -37,7 +37,7 @@ from .ipr import (
     germline_kb_matches,
     select_expression_plots,
 )
-from .summary import auto_analyst_comments, ipr_analyst_comments
+from .summary import auto_analyst_comments, get_ipr_analyst_comments
 from .therapeutic_options import create_therapeutic_options
 from .util import LOG_LEVELS, logger, trim_empty_values
 
@@ -247,6 +247,10 @@ def ipr_report(
     custom_kb_match_filter=None,
     async_upload: bool = False,
     mins_to_wait: int = 5,
+    include_ipr_variant_text: bool = True,
+    include_nonspecific_disease: bool = False,
+    include_nonspecific_project: bool = False,
+    include_nonspecific_template: bool = False,
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
 
@@ -270,6 +274,10 @@ def ipr_report(
         custom_kb_match_filter: function(List[kbMatch]) -> List[kbMatch]
         async_upload: use report_async endpoint to upload reports
         mins_to_wait: if using report_async, number of minutes to wait for success before exception raised
+        include_ipr_variant_text: if True, include output from the ipr variant-texts endpoint in analysis comments
+        include_nonspecific_disease: if include_ipr_variant_text is True, if no disease match is found use disease-nonspecific variant comment
+        include_nonspecific_project: if include_ipr_variant_text is True, if no project match is found use project-nonspecific variant comment
+        include_nonspecific_template: if include_ipr_variant_text is True, if no template match is found use template-nonspecific variant comment
 
     Returns:
         ipr_conn.upload_report return dictionary
@@ -448,21 +456,26 @@ def ipr_report(
 
     logger.info("generating analyst comments")
 
+    comments_list = []
     if generate_comments:
         graphkb_comments = auto_analyst_comments(
             graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
         )
+        comments_list.append(graphkb_comments)
 
-        ipr_comments = ipr_analyst_comments(
+    if include_ipr_variant_text:
+        ipr_comments = get_ipr_analyst_comments(
             ipr_conn,
             gkb_matches,
             disease_name=kb_disease_match,
             project_name=content['project'],
             report_type=content['template'],
+            include_nonspecific_disease=include_nonspecific_disease,
+            include_nonspecific_project=include_nonspecific_project,
+            include_nonspecific_template=include_nonspecific_template,
         )
-        comments = {"comments": "\n".join([ipr_comments, graphkb_comments])}
-    else:
-        comments = {"comments": ""}
+        comments_list.append(ipr_comments)
+    comments = "\n".join(comments_list)
 
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
