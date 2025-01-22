@@ -87,6 +87,44 @@ class KbMatch(TypedDict):
     externalStatementId: str
     reviewStatus: str
     kbData: Dict
+    requiredKbMatches: List[str]
+
+
+class KbVariantMatch(TypedDict):
+    variantKey: str
+    variantType: str
+    kbVariant: str
+    kbVariantId: str
+
+class KbMatchedStatement(TypedDict):
+    approvedTherapy: bool
+    category: str
+    context: str
+    kbContextId: str
+    disease: str
+    evidenceLevel: str
+    iprEvidenceLevel: Optional[str]
+    kbStatementId: str
+    matchedCancer: bool
+    reference: str
+    relevance: str
+    kbRelevanceId: str
+    externalSource: str
+    externalStatementId: str
+    reviewStatus: str
+    kbData: Dict
+    requiredKbMatches: List[str]
+
+
+class KbMatchedStatementConditionSet(TypedDict):
+    kbStatementId: str
+    observedVariantKeys: List[str]
+
+
+class KbMatchSections(TypedDict):
+    kbMatchedStatements: List[KbMatchedStatement]
+    kbMatchedVariants: List[KbVariantMatch]
+    kbMatchedStatementConditions: List[KbMatchedStatementConditionSet]
 
 
 class Hashabledict(dict):
