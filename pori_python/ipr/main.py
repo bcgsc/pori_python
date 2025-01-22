@@ -11,7 +11,7 @@ from typing import Dict, List, Sequence
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
-from pori_python.types import Hashabledict, IprVariant
+from pori_python.types import Hashabledict, IprVariant, KbMatchSections
 
 from .annotate import (
     annotate_copy_variants,
@@ -37,6 +37,10 @@ from .ipr import (
     germline_kb_matches,
     multi_variant_filtering,
     select_expression_plots,
+    get_kb_matches_sections,
+    get_kb_variants,
+    get_kb_matched_statements,
+    get_kb_statement_matched_conditions,
 )
 from .summary import auto_analyst_comments
 from .therapeutic_options import create_therapeutic_options
@@ -52,9 +56,7 @@ RENAMED_GENE_PROPERTIES = {
 
 def file_path(path: str) -> str:
     if not os.path.exists(path):
-        raise argparse.ArgumentTypeError(
-            f"{repr(path)} is not a valid filename. does not exist"
-        )
+        raise argparse.ArgumentTypeError(f"{repr(path)} is not a valid filename. does not exist")
     return path
 
 
@@ -71,9 +73,7 @@ def command_interface() -> None:
         default=os.environ.get("USER"),
         help="username to use connecting to graphkb/ipr",
     )
-    req.add_argument(
-        "--password", required=True, help="password to use connecting to graphkb/ipr"
-    )
+    req.add_argument("--password", required=True, help="password to use connecting to graphkb/ipr")
     req.add_argument(
         "-c", "--content", required=True, type=file_path, help="Report Content as JSON"
     )
@@ -161,9 +161,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         and "genesCreate" in ipr_spec["components"]["schemas"].keys()
         and "properties" in ipr_spec["components"]["schemas"]["genesCreate"].keys()
     ):
-        genes_spec = ipr_spec["components"]["schemas"]["genesCreate"][
-            "properties"
-        ].keys()
+        genes_spec = ipr_spec["components"]["schemas"]["genesCreate"]["properties"].keys()
 
         # check what ipr report upload expects and adjust contents to match
         for old_name, new_name in RENAMED_GENE_PROPERTIES.items():
@@ -198,9 +196,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
                     removed_keys[key] = 1
                 gene.pop(key)
         for key, count in removed_keys.items():
-            logger.warning(
-                f"IPR unsupported property '{key}' removed from {count} genes."
-            )
+            logger.warning(f"IPR unsupported property '{key}' removed from {count} genes.")
 
     drop_columns = ["variant", "variantType", "histogramImage"]
     # DEVSU-2034 - use a 'displayName'
@@ -216,9 +212,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         for variant in upload_content.get(variant_list_section, []):
             if not variant.get("displayName"):
                 variant["displayName"] = (
-                    variant.get("variant")
-                    or variant.get("kbCategory")
-                    or variant.get("key", "")
+                    variant.get("variant") or variant.get("kbCategory") or variant.get("key", "")
                 )
             if variant_list_section == "probeResults":
                 # currently probeResults will error if they do NOT have a 'variant' column.
@@ -247,9 +241,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
 
 
 def create_report(**kwargs) -> Dict:
-    logger.warning(
-        "Deprecated function 'create_report' called - use ipr_report instead"
-    )
+    logger.warning("Deprecated function 'create_report' called - use ipr_report instead")
     return ipr_report(**kwargs)
 
 
@@ -273,7 +265,9 @@ def ipr_report(
     custom_kb_match_filter=None,
     async_upload: bool = False,
     mins_to_wait: int = 5,
-    multi_variant_filter: bool = True,
+    multi_variant_filter: bool = True,  # TODO probably can remove
+    infer_possible_matches: bool = False,
+    allow_partial_matches: bool = False,
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
 
@@ -298,7 +292,7 @@ def ipr_report(
         async_upload: use report_async endpoint to upload reports
         mins_to_wait: if using report_async, number of minutes to wait for success before exception raised
         multi_variant_filter: filters out matches that doesn't match to all required variants on multi-variant statements
-
+        # TODO: add infer_possible_matches and allow_partial_matches
     Returns:
         ipr_conn.upload_report return dictionary
     """
@@ -312,22 +306,16 @@ def ipr_report(
     try:
         validate_report_content(content)
     except jsonschema.exceptions.ValidationError as err:
-        logger.error(
-            "Failed schema check - report variants may be corrupted or unmatched."
-        )
+        logger.error("Failed schema check - report variants may be corrupted or unmatched.")
         logger.error(f"Failed schema check: {err}")
 
     kb_disease_match = content["kbDiseaseMatch"]
 
     # validate the input variants
     small_mutations = preprocess_small_mutations(content.get("smallMutations", []))
-    structural_variants = preprocess_structural_variants(
-        content.get("structuralVariants", [])
-    )
+    structural_variants = preprocess_structural_variants(content.get("structuralVariants", []))
     copy_variants = preprocess_copy_variants(content.get("copyVariants", []))
-    expression_variants = preprocess_expression_variants(
-        content.get("expressionVariants", [])
-    )
+    expression_variants = preprocess_expression_variants(content.get("expressionVariants", []))
     if expression_variants:
         check_comparators(content, expression_variants)
 
@@ -376,9 +364,7 @@ def ipr_report(
                 tmb["kbCategory"] = TMB_HIGH_CATEGORY
 
             # GERO-296 - try matching to graphkb
-            tmb_matches = annotate_tmb(
-                graphkb_conn, kb_disease_match, TMB_HIGH_CATEGORY
-            )
+            tmb_matches = annotate_tmb(graphkb_conn, kb_disease_match, TMB_HIGH_CATEGORY)
             if tmb_matches:
                 tmb_variant["kbCategory"] = TMB_HIGH_CATEGORY  # type: ignore
                 tmb_variant["variant"] = TMB_HIGH_CATEGORY
@@ -387,9 +373,7 @@ def ipr_report(
                 logger.info(
                     f"GERO-296 '{TMB_HIGH_CATEGORY}' matches {len(tmb_matches)} statements."
                 )
-                gkb_matches.extend(
-                    [Hashabledict(tmb_statement) for tmb_statement in tmb_matches]
-                )
+                gkb_matches.extend([Hashabledict(tmb_statement) for tmb_statement in tmb_matches])
                 logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     # MATCHING MSI
@@ -412,9 +396,7 @@ def ipr_report(
             msi_variant["variant"] = msi_cat
             msi_variant["key"] = msi_cat
             msi_variant["variantType"] = "msi"
-            logger.info(
-                f"GERO-295 '{msi_cat}' matches {len(msi_matches)} msi statements."
-            )
+            logger.info(f"GERO-295 '{msi_cat}' matches {len(msi_matches)} msi statements.")
             gkb_matches.extend([Hashabledict(msi) for msi in msi_matches])
             logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
@@ -479,161 +461,24 @@ def ipr_report(
         # verify germline kb statements matched germline observed variants, not somatic variants
         org_len = len(gkb_matches)
         gkb_matches = [
-            Hashabledict(match)
-            for match in germline_kb_matches(gkb_matches, all_variants)
+            Hashabledict(match) for match in germline_kb_matches(gkb_matches, all_variants)
         ]
         num_removed = org_len - len(gkb_matches)
         if num_removed:
-            logger.info(
-                f"Removing {num_removed} germline events without medical matches."
-            )
+            logger.info(f"Removing {num_removed} germline events without medical matches.")
 
     if custom_kb_match_filter:
         logger.info(f"custom_kb_match_filter on {len(gkb_matches)} variants")
-        gkb_matches = [
-            Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)
-        ]
+        gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
-    # TODO: remove this
-    # gkb_matches_head = gkb_matches[0:3]
-    # gkb_matches_head.extend(
-    #    [item for item in gkb_matches if len(item["requiredKbMatches"]) > 1]
-    # )
-    # gkb_matches = gkb_matches_head
-
+    # TODO: can probably be removed with change to kbmatch processing, but double check
     if multi_variant_filter and False:
         logger.info(
             f"Filtering out incomplete  matches on multi-variant statements for {len(gkb_matches)} matches"
         )
         gkb_matches = multi_variant_filtering(graphkb_conn, gkb_matches)
         logger.info(f"multi_variant_filtering left {len(gkb_matches)} matches")
-
-    def get_kbVariants(gkb_matches):
-        kbVariants = {}
-        for item in gkb_matches:
-            kbv = {
-                "kbVariant": item["kbVariant"],
-                "variantKey": item["variant"],
-                "variantType": item["variantType"],
-                "kbVariantId": item["kbVariantId"],
-            }
-            kbVariants[str(kbv)] = kbv
-        return [*kbVariants.values()]
-
-    def get_kbMatchedStatements(gkb_matches):
-        kbMatchedStatements = {}
-        for item in gkb_matches:
-            kbs = {}
-            for field in [
-                "approvedTherapy",
-                "category",
-                "context",
-                "disease",
-                "kbStatementId",
-                "matchedCancer",
-                "reference",
-                "relevance",
-                "iprEvidenceLevel",
-                "externalSource",
-                "reviewStatus",
-                "kbData",
-                "requiredKbMatches",
-            ]:
-                kbs[field] = item[field]
-            kbMatchedStatements[str(kbs)] = kbs
-        return [*kbMatchedStatements.values()]
-
-    def get_kbStatementMatchedConditions(gkb_matches, kbVariants, kbMatchedStatements):
-        kbMatchedStatementConditions = {}
-        # we want to be sure that every specified 1-1 match is included and any that
-        # have already been omitted, are omitted - so wherever possible
-        # just get the 1-1 match from gkb_match statementId/variantId instead of
-        # figuring it out from requiredKbMatches
-
-        def add_condition_sets(conditionSets):
-            for conditionSet in conditionSets:
-                # remove Nones
-                observedVariantKeys = [
-                    item for item in conditionSet["observedVariantKeys"] if item
-                ]
-                observedVariantKeys.sort()
-                kbmc = {
-                    "kbStatementId": conditionSet["kbStatementId"],
-                    "observedVariantKeys": observedVariantKeys,
-                }
-                kbMatchedStatementConditions[str(kbmc)] = kbmc
-
-        singleVariantStmts = [
-            item["kbStatementId"]
-            for item in kbMatchedStatements
-            if len(item["requiredKbMatches"]) == 1
-        ]
-        multiVariantStmts = [
-            item["kbStatementId"]
-            for item in kbMatchedStatements
-            if len(item["requiredKbMatches"]) > 1
-        ]
-
-        # we expect there not to be any overlap - but make sure:
-        uncertainVariantCountStmts = set(singleVariantStmts).intersection(
-            set(multiVariantStmts)
-        )
-        if len(uncertainVariantCountStmts) > 0:
-            raise Exception(
-                f"unexpected inconsistency between reported required kb matches for gkb statements: {uncertainVariantCountStmts}"
-            )
-
-        conditionSets = []
-        for stmt in [
-            item for item in gkb_matches if item["kbStatementId"] in singleVariantStmts
-        ]:
-            conditionSets.append(
-                {
-                    "kbStatementId": stmt["kbStatementId"],
-                    "observedVariantKeys": [stmt["variant"]],
-                }
-            )
-        add_condition_sets(conditionSets)
-
-        for kbStatementId in multiVariantStmts:
-            stmts = [
-                item for item in gkb_matches if item["kbStatementId"] == kbStatementId
-            ]
-            requirements = {}
-
-            # accept as satisfying the conditions only variants that are matched 1-1
-            # with the statementId elsewhere in gkb_matches
-            for requirement in stmts[0][
-                "requiredKbMatches"
-            ]:  # this should be the same for all elements.... but maybe add a check smoewhere
-                if not requirements.get(requirement, False):
-                    requirements[requirement] = [
-                        item["variantKey"]
-                        for item in kbVariants
-                        if item["kbVariantId"] == requirement
-                    ]
-                    if not requirements[requirement]:
-                        requirements[requirement] = [None]
-
-            import itertools
-
-            variantConditionSets = list(itertools.product(*requirements.values()))
-            conditionSets = [
-                {"kbStatementId": kbStatementId, "observedVariantKeys": item}
-                for item in variantConditionSets
-            ]
-            add_condition_sets(conditionSets)
-
-        return [*kbMatchedStatementConditions.values()]
-
-    kbVariants = get_kbVariants(gkb_matches)
-    kbMatchedStatements = get_kbMatchedStatements(gkb_matches)
-    kbStatementMatchedConditions = get_kbStatementMatchedConditions(
-        gkb_matches, kbVariants, kbMatchedStatements
-    )
-
-    # TODO: add these to the json, and add make sure there are multivariant statements in tests
 
     # KEY ALTERATIONS
     key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
@@ -666,19 +511,19 @@ def ipr_report(
     # OUTPUT CONTENT
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
-    import pdb
 
-    pdb.set_trace()
+    kb_matched_sections = get_kb_matches_sections(
+        gkb_matches, infer_possible_matches, allow_partial_matches
+    )
+    output.update(kb_matched_sections)
+
     output.update(
         {
-            # "kbVariants": kbVariants,
-            # "kbMatchedStatements": kbMatchedStatements,
-            # "kbMatchedStatementConditions": kbStatementMatchedConditions,
+            # TODO
+            # remove kbMatches
             "kbMatches": [trim_empty_values(a) for a in gkb_matches],  # type: ignore
             "copyVariants": [
-                trim_empty_values(c)
-                for c in copy_variants
-                if c["gene"] in genes_with_variants
+                trim_empty_values(c) for c in copy_variants if c["gene"] in genes_with_variants
             ],
             "smallMutations": [trim_empty_values(s) for s in small_mutations],
             "expressionVariants": [
@@ -702,9 +547,7 @@ def ipr_report(
             "therapeuticTarget": targets,
         }
     )
-    output.setdefault("images", []).extend(
-        select_expression_plots(gkb_matches, all_variants)
-    )
+    output.setdefault("images", []).extend(select_expression_plots(gkb_matches, all_variants))
 
     output = clean_unsupported_content(output, ipr_spec)
     ipr_result = None
