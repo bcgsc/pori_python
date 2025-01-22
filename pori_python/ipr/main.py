@@ -245,7 +245,10 @@ def create_report(**kwargs) -> Dict:
     return ipr_report(**kwargs)
 
 
-# TODO for DEVSU-2550
+# TODO DEVSU-2550: not sure if the below variable is actually meaningful outside of the report;
+# would not expect a kbvariant/observed variant pair to appear for one statement and not another
+# because the kbvariant/observed variant pairing is done here. maybe remove option
+# infer_possible_matches: allow matches to statements where observed variant is not explicitly linked to the stmt id
 def ipr_report(
     username: str,
     password: str,
@@ -292,7 +295,9 @@ def ipr_report(
         async_upload: use report_async endpoint to upload reports
         mins_to_wait: if using report_async, number of minutes to wait for success before exception raised
         multi_variant_filter: filters out matches that doesn't match to all required variants on multi-variant statements
-        # TODO: add infer_possible_matches and allow_partial_matches
+        # TODO: possibly, remove multi_variant_filter
+        infer_possible_matches: allow matches to statements where observed variant is not explicitly linked to the stmt id
+        allow_partial_matches: allow matches to statements where not all conditions are satisfied
     Returns:
         ipr_conn.upload_report return dictionary
     """
