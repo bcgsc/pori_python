@@ -428,10 +428,6 @@ def get_ipr_analyst_comments(
         itemlist: list[dict] = []
         itemlist = ipr_conn.get("variant-text", data=data)  # type: ignore
         if itemlist:
-            import pdb
-
-            pdb.set_trace()
-
             project_matches = [
                 item
                 for item in itemlist
