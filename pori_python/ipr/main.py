@@ -37,6 +37,7 @@ from .ipr import (
     germline_kb_matches,
     multi_variant_filtering,
     select_expression_plots,
+    assign_kb_match_tables
 )
 from .summary import auto_analyst_comments
 from .therapeutic_options import create_therapeutic_options
@@ -478,6 +479,8 @@ def ipr_report(
     else:
         comments = {"comments": ""}
 
+    gkb_matches = assign_kb_match_tables(gkb_matches)
+
     # OUTPUT CONTENT
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
@@ -519,6 +522,7 @@ def ipr_report(
     if ipr_upload:
         try:
             logger.info(f"Uploading to IPR {ipr_conn.url}")
+            import pdb; pdb.set_trace()
             ipr_result = ipr_conn.upload_report(output, mins_to_wait, async_upload)
             logger.info(ipr_result)
             output.update(ipr_result)

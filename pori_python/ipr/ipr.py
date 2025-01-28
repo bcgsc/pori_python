@@ -462,3 +462,54 @@ def multi_variant_filtering(
     return [
         match for match in gkb_matches if match['kbStatementId'] in complete_matching_statements
     ]
+
+THERAPEUTIC = 'therapeutic'
+BEST_THERAPEUTIC = 'best_therapeutic'
+PCP = 'pcp'
+DIAGNOSTIC='diagnostic'
+PROGNOSTIC = 'prognostic'
+BIOLOGICAL= 'biological'
+OTHER = 'other'
+
+def assign_kb_match_tables(gkb_matches):
+    for item in gkb_matches:
+        """
+        this does not handle 'approvedTherapy' = True but category != 'therapeutic',
+        but this situation is already not handled in ipr. here, the value of approvedTherapy
+        is ignored if the category is not therapeutic.
+
+        there are no cases in the db where approvedTherapy=True and category != therapeutic.
+
+        TODO: handle this bit from the client
+                    targetedGermlineGenes: coalesceEntries([
+              ...pharmacogenomicResp,
+              ...cancerPredisResp.filter(({ kbMatches }) => (kbMatches as any)?.variant?.germline),
+            ]), -> normal - this is the pcp table where it's germline. but what happens
+            to the nongermline variants?
+            there are no pharmacogenomic, nongermline variants,
+            but there ARE MANY cancer predisposition nongermline variants - it looks like they may
+            just not be displayed. other it is
+
+            # leave this one in - it's a different endpoint
+            targetedSomaticGenes: targetedSomaticGenesResp.filter((tg) => !/germline/.test(tg?.sample)),
+        """
+        if item['category'] == 'therapeutic':
+            #approvedTherapy=true&category=therapeutic&matchedCancer=true&iprEvidenceLevel=IPR-A,IPR-B
+            if item['approvedTherapy'] and item['matchedCancer'] and item['iprEvidenceLevel'] in ['IPR-A', 'IPR-B']:
+                kbmatch_tag = BEST_THERAPEUTIC
+            kbmatch_tag = THERAPEUTIC
+        elif item['category'] in ['pharmacogenomic', 'cancer-predisposition']:
+            if item['germline']:
+                kbmatch_tag = PCP
+            else:
+                kbmatch_tag = OTHER
+        elif item['category'] == 'diagnostic':
+            kbmatch_tag = DIAGNOSTIC
+        elif item['category'] == 'prognostic':
+            kbmatch_tag= PROGNOSTIC
+        elif item['category'] == 'biological':
+            kbmatch_tag= BIOLOGICAL
+        else: # category == 'unknown' or 'novel'
+            kbmatch_tag = OTHER
+        item['kbData']['kbmatchTag'] = kbmatch_tag
+    return gkb_matches
