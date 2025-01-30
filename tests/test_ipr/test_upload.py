@@ -16,6 +16,7 @@ from .constants import EXCLUDE_INTEGRATION_TESTS
 EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
 EXCLUDE_ONCOKB_TESTS = os.environ.get("EXCLUDE_ONCOKB_TESTS") == "1"
 INCLUDE_UPLOAD_TESTS = os.environ.get("INCLUDE_UPLOAD_TESTS", 0) == "1"
+CLEANUP_TEST_UPLOADS = os.environ.get("CLEANUP_TEST_UPLOADS", 1) == "1"
 
 
 def get_test_spec():
@@ -66,7 +67,9 @@ def loaded_reports(tmp_path_factory) -> Generator:
             },
         ],
         "expressionVariants": json.loads(
-            pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(orient="records")
+            pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(
+                orient="records"
+            )
         ),
         "smallMutations": json.loads(
             pd.read_csv(get_test_file("small_mutations.short.tab"), sep="\t").to_json(
@@ -79,7 +82,9 @@ def loaded_reports(tmp_path_factory) -> Generator:
             )
         ),
         "structuralVariants": json.loads(
-            pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(orient="records")
+            pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(
+                orient="records"
+            )
         ),
         "kbDiseaseMatch": "colorectal cancer",
     }
@@ -140,8 +145,9 @@ def loaded_reports(tmp_path_factory) -> Generator:
         "async": (async_patient_id, async_loaded_report),
     }
     yield loaded_reports_result
-    ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
-    ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
+    if CLEANUP_TEST_UPLOADS:
+        ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
+        ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
 
 
 def get_section(loaded_report, section_name):
@@ -180,7 +186,9 @@ def compare_sections(section1, section2):
 @pytest.mark.skipif(
     not INCLUDE_UPLOAD_TESTS, reason="excluding tests of upload to live ipr instance"
 )
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+)
 class TestCreateReport:
     def test_patient_id_loaded_once(self, loaded_reports) -> None:
         sync_patient_id = loaded_reports["sync"][0]
@@ -200,7 +208,9 @@ class TestCreateReport:
     def test_structural_variants_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports["sync"], "structural-variants")
         kbmatched = [item for item in section if item["kbMatches"]]
-        assert "(EWSR1,FLI1):fusion(e.7,e.4)" in [item["displayName"] for item in kbmatched]
+        assert "(EWSR1,FLI1):fusion(e.7,e.4)" in [
+            item["displayName"] for item in kbmatched
+        ]
         async_section = get_section(loaded_reports["async"], "structural-variants")
         assert compare_sections(section, async_section)
 
@@ -246,7 +256,9 @@ class TestCreateReport:
         assert compare_sections(section, async_section)
 
     def test_genomic_alterations_identified_loaded(self, loaded_reports) -> None:
-        section = get_section(loaded_reports["sync"], "summary/genomic-alterations-identified")
+        section = get_section(
+            loaded_reports["sync"], "summary/genomic-alterations-identified"
+        )
         variants = set([item["geneVariant"] for item in section])
         for variant in [
             "FGFR2:p.R421C",
