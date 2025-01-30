@@ -44,9 +44,13 @@ def filter_structural_variants(
     Filter structural variants to remove non-high quality events unless they are matched/annotated or
     they involve a gene that is a known fusion partner
     """
-    matched_svs = {match["variant"] for match in kb_matches if match["variantType"] == "sv"}
+    matched_svs = {
+        match["variant"] for match in kb_matches if match["variantType"] == "sv"
+    }
     fusion_genes = {
-        gene["name"] for gene in gene_annotations if gene.get("knownFusionPartner", False)
+        gene["name"]
+        for gene in gene_annotations
+        if gene.get("knownFusionPartner", False)
     }
 
     result = []
@@ -84,7 +88,9 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
 
     # Filter IPR EvidenceLevel and map each outgoing CrossReferenceOf to displayName
     ipr_source_rid = graphkb_conn.get_source("ipr")["@rid"]
-    ipr_evidence_levels = filter(lambda d: d.get("source") == ipr_source_rid, evidence_levels)
+    ipr_evidence_levels = filter(
+        lambda d: d.get("source") == ipr_source_rid, evidence_levels
+    )
     cross_references_mapping: Dict[str, str] = dict()
     ipr_rids_to_displayname: Dict[str, str] = dict()
     for level in ipr_evidence_levels:
@@ -132,7 +138,9 @@ def convert_statements_to_alterations(
     """
     disease_matches = {
         r["@rid"]
-        for r in gkb_vocab.get_term_tree(graphkb_conn, disease_name, ontology_class="Disease")
+        for r in gkb_vocab.get_term_tree(
+            graphkb_conn, disease_name, ontology_class="Disease"
+        )
     }
 
     if not disease_matches:
@@ -145,7 +153,9 @@ def convert_statements_to_alterations(
 
     # get the recruitment status for any trial associated with a statement
     clinical_trials = [
-        s["subject"]["@rid"] for s in statements if s["subject"]["@class"] == "ClinicalTrial"
+        s["subject"]["@rid"]
+        for s in statements
+        if s["subject"]["@class"] == "ClinicalTrial"
     ]
     recruitment_statuses = {}
     if clinical_trials:
@@ -162,7 +172,9 @@ def convert_statements_to_alterations(
 
     for statement in statements:
         variants = [
-            cast(Variant, c) for c in statement["conditions"] if c["@class"] in VARIANT_CLASSES
+            cast(Variant, c)
+            for c in statement["conditions"]
+            if c["@class"] in VARIANT_CLASSES
         ]
         diseases = [c for c in statement["conditions"] if c["@class"] == "Disease"]
         disease_match = len(diseases) == 1 and diseases[0]["@rid"] in disease_matches
@@ -183,8 +195,12 @@ def convert_statements_to_alterations(
 
         evidence_level_str = display_evidence_levels(statement)
         evidence_levels = statement.get("evidenceLevel") or []
-        ipr_evidence_levels = [ev_map[el.get("@rid", "")] for el in evidence_levels if el]
-        ipr_evidence_levels_str = ";".join(sorted(set([el for el in ipr_evidence_levels])))
+        ipr_evidence_levels = [
+            ev_map[el.get("@rid", "")] for el in evidence_levels if el
+        ]
+        ipr_evidence_levels_str = ";".join(
+            sorted(set([el for el in ipr_evidence_levels]))
+        )
 
         for variant in variants:
             if variant["@rid"] not in variant_matches:
@@ -194,10 +210,16 @@ def convert_statements_to_alterations(
                     "approvedTherapy": approved_therapy or False,
                     "category": ipr_section or "unknown",
                     "context": (
-                        statement["subject"]["displayName"] if statement["subject"] else ""
+                        statement["subject"]["displayName"]
+                        if statement["subject"]
+                        else ""
                     ),
-                    "kbContextId": (statement["subject"]["@rid"] if statement["subject"] else ""),
-                    "disease": ";".join(sorted(d.get("displayName", "") for d in diseases)),
+                    "kbContextId": (
+                        statement["subject"]["@rid"] if statement["subject"] else ""
+                    ),
+                    "disease": ";".join(
+                        sorted(d.get("displayName", "") for d in diseases)
+                    ),
                     "evidenceLevel": evidence_level_str or "",
                     "iprEvidenceLevel": ipr_evidence_levels_str or "",
                     "kbStatementId": statement["@rid"],
@@ -259,7 +281,9 @@ def select_expression_plots(
         gene = str(variant.get("gene", ""))
         hist = str(variant.get("histogramImage", ""))
         if hist:
-            images_by_gene[gene] = ImageDefinition({"key": f"expDensity.{gene}", "path": hist})
+            images_by_gene[gene] = ImageDefinition(
+                {"key": f"expDensity.{gene}", "path": hist}
+            )
     return [images_by_gene[gene] for gene in selected_genes if gene in images_by_gene]
 
 
@@ -302,7 +326,9 @@ def create_key_alterations(
         counts[type_mapping[variant_type]].add(variant_key)
 
         if variant_type == "exp":
-            alterations.append(f'{variant.get("gene","")} ({variant.get("expressionState")})')
+            alterations.append(
+                f'{variant.get("gene","")} ({variant.get("expressionState")})'
+            )
         elif variant_type == "cnv":
             alterations.append(f'{variant.get("gene","")} ({variant.get("cnvState")})')
         # only show germline if relevant
@@ -326,7 +352,9 @@ def create_key_alterations(
 
 
 def germline_kb_matches(
-    kb_matches: List[Hashabledict], all_variants: Sequence[IprVariant], assume_somatic: bool = True
+    kb_matches: List[Hashabledict],
+    all_variants: Sequence[IprVariant],
+    assume_somatic: bool = True,
 ) -> List[Hashabledict]:
     """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
 
@@ -377,7 +405,9 @@ def germline_kb_matches(
         # Remove any matches to germline events
         for alt in somatic_alts:
             var_list = [v for v in all_variants if v["key"] == alt["variant"]]
-            somatic_var_list = [v for v in var_list if not v.get("germline", not assume_somatic)]
+            somatic_var_list = [
+                v for v in var_list if not v.get("germline", not assume_somatic)
+            ]
             if var_list and not somatic_var_list:
                 logger.debug(
                     f"Dropping germline match to somatic statement kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
@@ -385,7 +415,9 @@ def germline_kb_matches(
             elif somatic_var_list:
                 ret_list.append(alt)  # match to somatic variant
             else:
-                ret_list.append(alt)  # alteration not in any specific keys matches to check.
+                ret_list.append(
+                    alt
+                )  # alteration not in any specific keys matches to check.
 
     return ret_list
 
@@ -393,7 +425,7 @@ def germline_kb_matches(
 def multi_variant_filtering(
     graphkb_conn: GraphKBConnection,
     gkb_matches: List[KbMatch],
-    excludedTypes: List[str] = ['wildtype'],
+    excludedTypes: List[str] = ["wildtype"],
 ) -> List[KbMatch]:
     """Filters out GraphKB matches that doesn't match to all required variants on multi-variant statements
 
@@ -413,8 +445,8 @@ def multi_variant_filtering(
         filtered list of KbMatch statements
     """
     # All matching statements & variants (GKB RIDs)
-    matching_statement_rids = {match['kbStatementId'] for match in gkb_matches}
-    matching_variant_rids = {match['kbVariantId'] for match in gkb_matches}
+    matching_statement_rids = {match["kbStatementId"] for match in gkb_matches}
+    matching_variant_rids = {match["kbVariantId"] for match in gkb_matches}
 
     # Get conditions detail on all matching statements
     res = graphkb_conn.post(
@@ -423,7 +455,7 @@ def multi_variant_filtering(
             "target": "Statement",
             "filters": {
                 "@rid": list(matching_statement_rids),
-                "operator": 'IN',
+                "operator": "IN",
             },
             "history": True,
             "returnProperties": [
@@ -434,21 +466,21 @@ def multi_variant_filtering(
             ],
         },
     )
-    statements = res['result']
+    statements = res["result"]
 
     # Get set of excluded Vocabulary RIDs for variant types
     excluded = {}
-    if len(excludedTypes) != 0 and excludedTypes[0] != '':
+    if len(excludedTypes) != 0 and excludedTypes[0] != "":
         excluded = gkb_vocab.get_terms_set(graphkb_conn, excludedTypes)
 
     # Mapping statements to their conditional variants
     # (discarding non-variant conditions & variant conditions from excluded types)
     statement_to_variants = {}
     for statement in statements:
-        statement_to_variants[statement['@rid']] = {
-            el['@rid']
-            for el in statement['conditions']
-            if (el['@class'] in VARIANT_CLASSES and el.get('type', '') not in excluded)
+        statement_to_variants[statement["@rid"]] = {
+            el["@rid"]
+            for el in statement["conditions"]
+            if (el["@class"] in VARIANT_CLASSES and el.get("type", "") not in excluded)
         }
 
     # Set of statements with complete matching
@@ -460,56 +492,54 @@ def multi_variant_filtering(
 
     # Filtering out incompleted matches of gkb_matches
     return [
-        match for match in gkb_matches if match['kbStatementId'] in complete_matching_statements
+        match
+        for match in gkb_matches
+        if match["kbStatementId"] in complete_matching_statements
     ]
 
-THERAPEUTIC = 'therapeutic'
-BEST_THERAPEUTIC = 'best_therapeutic'
-PCP = 'pcp'
-DIAGNOSTIC='diagnostic'
-PROGNOSTIC = 'prognostic'
-BIOLOGICAL= 'biological'
-OTHER = 'other'
 
-def assign_kb_match_tables(gkb_matches):
+THERAPEUTIC = "therapeutic"
+BEST_THERAPEUTIC = "best_therapeutic"
+PCP = "pcp"
+DIAGNOSTIC = "diagnostic"
+PROGNOSTIC = "prognostic"
+BIOLOGICAL = "biological"
+OTHER = "other"
+
+
+def assign_kb_match_tables(gkb_matches: List[KbMatch]) -> List[KbMatch]:
+    """
+    Adds property kbsectionTag to kbData for kb statements. This property is used to
+    determine which table in the kbmatches section the statement will be displayed in.
+
+    NB the value of approvedTherapy is ignored if the category is not therapeutic.
+
+    Params:
+        gkb_matches: KbMatch statements to be filtered
+    Returns:
+        list of KbMatch statements
+    """
     for item in gkb_matches:
-        """
-        this does not handle 'approvedTherapy' = True but category != 'therapeutic',
-        but this situation is already not handled in ipr. here, the value of approvedTherapy
-        is ignored if the category is not therapeutic.
-
-        there are no cases in the db where approvedTherapy=True and category != therapeutic.
-
-        TODO: handle this bit from the client
-                    targetedGermlineGenes: coalesceEntries([
-              ...pharmacogenomicResp,
-              ...cancerPredisResp.filter(({ kbMatches }) => (kbMatches as any)?.variant?.germline),
-            ]), -> normal - this is the pcp table where it's germline. but what happens
-            to the nongermline variants?
-            there are no pharmacogenomic, nongermline variants,
-            but there ARE MANY cancer predisposition nongermline variants - it looks like they may
-            just not be displayed. other it is
-
-            # leave this one in - it's a different endpoint
-            targetedSomaticGenes: targetedSomaticGenesResp.filter((tg) => !/germline/.test(tg?.sample)),
-        """
-        if item['category'] == 'therapeutic':
-            #approvedTherapy=true&category=therapeutic&matchedCancer=true&iprEvidenceLevel=IPR-A,IPR-B
-            if item['approvedTherapy'] and item['matchedCancer'] and item['iprEvidenceLevel'] in ['IPR-A', 'IPR-B']:
+        if item["category"] == "therapeutic":
+            if (
+                item["approvedTherapy"]
+                and item["matchedCancer"]
+                and item["iprEvidenceLevel"] in ["IPR-A", "IPR-B"]
+            ):
                 kbmatch_tag = BEST_THERAPEUTIC
             kbmatch_tag = THERAPEUTIC
-        elif item['category'] in ['pharmacogenomic', 'cancer-predisposition']:
-            if item['germline']:
+        elif item["category"] in ["pharmacogenomic", "cancer-predisposition"]:
+            if item["germline"]:
                 kbmatch_tag = PCP
             else:
                 kbmatch_tag = OTHER
-        elif item['category'] == 'diagnostic':
+        elif item["category"] == "diagnostic":
             kbmatch_tag = DIAGNOSTIC
-        elif item['category'] == 'prognostic':
-            kbmatch_tag= PROGNOSTIC
-        elif item['category'] == 'biological':
-            kbmatch_tag= BIOLOGICAL
-        else: # category == 'unknown' or 'novel'
+        elif item["category"] == "prognostic":
+            kbmatch_tag = PROGNOSTIC
+        elif item["category"] == "biological":
+            kbmatch_tag = BIOLOGICAL
+        else:  # category == 'unknown' or 'novel'
             kbmatch_tag = OTHER
-        item['kbData']['kbmatchTag'] = kbmatch_tag
+        item["kbData"]["kbmatchTag"] = kbmatch_tag
     return gkb_matches
