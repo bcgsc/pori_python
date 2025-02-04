@@ -70,6 +70,7 @@ def get_ipr_statements_from_variants(
     rows = []
 
     statements = get_statements_from_variants(graphkb_conn, matches)
+    existing_statements = {s["@rid"] for s in statements}
 
     for ipr_row in convert_statements_to_alterations(
         graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
