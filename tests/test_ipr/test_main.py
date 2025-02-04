@@ -40,7 +40,10 @@ def report_upload_content(tmp_path_factory) -> Dict:
                     {"analysisRole": "expression (disease)", "name": "1"},
                     {"analysisRole": "expression (primary site)", "name": "2"},
                     {"analysisRole": "expression (biopsy site)", "name": "3"},
-                    {"analysisRole": "expression (internal pancancer cohort)", "name": "4"},
+                    {
+                        "analysisRole": "expression (internal pancancer cohort)",
+                        "name": "4",
+                    },
                 ],
                 "patientId": "PATIENT001",
                 "project": "TEST",
@@ -67,6 +70,15 @@ def report_upload_content(tmp_path_factory) -> Dict:
             allow_nan=False,
         )
     )
+
+    def side_effect_function(*args, **kwargs):
+        if 'templates' in args[0]:
+            return [{"name": "genomic", "ident": "001"}]
+        elif args[0] == "project":
+            return [{"name": "TEST", "ident": "001"}]
+        else:
+            return []
+
     with patch.object(
         sys,
         "argv",
@@ -91,7 +103,8 @@ def report_upload_content(tmp_path_factory) -> Dict:
     ):
         with patch.object(IprConnection, "upload_report", new=mock):
             with patch.object(IprConnection, "get_spec", return_value=get_test_spec()):
-                command_interface()
+                with patch.object(IprConnection, "get", side_effect=side_effect_function):
+                    command_interface()
 
     assert mock.called
 
