@@ -450,22 +450,23 @@ GKB_MATCHES = [
 ]
 
 BASIC_GKB_MATCH = {
-        'approvedTherapy': False,
-        'category': 'test',
-        'context': 'test',
-        'kbContextId': '#124:24761',
-        'disease': 'test',
-        'evidenceLevel': 'test',
-        'iprEvidenceLevel': 'test',
-        'matchedCancer': False,
-        'reference': 'test',
-        'relevance': 'test',
-        'kbRelevanceId': '#148:31',
-        'externalSource': '',
-        'externalStatementId': '',
-        'reviewStatus': 'passed',
-        'kbData': {},
-    }
+    'approvedTherapy': False,
+    'category': 'test',
+    'context': 'test',
+    'kbContextId': '#124:24761',
+    'disease': 'test',
+    'evidenceLevel': 'test',
+    'iprEvidenceLevel': 'test',
+    'matchedCancer': False,
+    'reference': 'test',
+    'relevance': 'test',
+    'kbRelevanceId': '#148:31',
+    'externalSource': '',
+    'externalStatementId': '',
+    'reviewStatus': 'passed',
+    'kbData': {},
+}
+
 
 def create_gkb_matches(input_fields):
     matches = []
@@ -480,7 +481,7 @@ class TestKbMatchSectionPrep:
     def test_matched_variant_pairs_extracted_only_once_for_multiple_statements(self):
         input_fields = [
             {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'test1'},
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'test2'}, # diff statement
+            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'test2'},  # diff statement
         ]
         for item in input_fields:  # we don't care about these for this test
             item['variantType'] = 'test'
@@ -559,7 +560,7 @@ class TestKbMatchSectionPrep:
         assert kbcs == [['A', 'B'], ['A', 'C']]
 
     def test_do_not_infer_possible_matches(self):
-        """ edge case - when infer_possible_matches is false, do not allow var/kbvar
+        """edge case - when infer_possible_matches is false, do not allow var/kbvar
         pairs to satisfy conditions for statements they are not explicitly linked
         to in the input"""
         input_fields = [
@@ -577,7 +578,7 @@ class TestKbMatchSectionPrep:
         assert kbcs == ["X,['A']", "Y,['B']"]
 
     def test_infer_possible_matches(self):
-        """ edge case - when infer_possible_matches is true, allow var/kbvar pairs
+        """edge case - when infer_possible_matches is true, allow var/kbvar pairs
         to satisfy conditions for statements not explicitly linked to in the input"""
         input_fields = [
             {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'X'},
@@ -591,10 +592,10 @@ class TestKbMatchSectionPrep:
         kbcs = get_kb_statement_matched_conditions(gkb_matches, infer_possible_matches=True)
         kbcs = [f"{item['kbStatementId']},{item['observedVariantKeys']}" for item in kbcs]
         kbcs.sort()
-        assert len(kbcs)==4 # A-X, A-Y, B-Y, B-X
+        assert len(kbcs) == 4  # A-X, A-Y, B-Y, B-X
 
     def test_no_dupes_when_requiredKbMatches_not_sorted(self):
-        """ edge case - check that a variant is not used to satisfy a condition
+        """edge case - check that a variant is not used to satisfy a condition
         for a statement if that variant-statement pair is not in the input, even
         if in other statements it is used to satisfy the same condition -
         ie if observed variant a satisfies condition x for statement 1,
@@ -605,12 +606,11 @@ class TestKbMatchSectionPrep:
             {'variant': 'B', 'kbVariantId': 'test2', 'requiredKbMatches': ['test1', 'test2']},
             {'variant': 'A', 'kbVariantId': 'test1', 'requiredKbMatches': ['test2', 'test1']},
             {'variant': 'B', 'kbVariantId': 'test2', 'requiredKbMatches': ['test2', 'test1']},
-
         ]
         for item in input_fields:  # we don't care about these for this test
             item['variantType'] = 'test'
             item['kbVariant'] = 'test'
-            item['kbStatementId'] =  'X'
+            item['kbStatementId'] = 'X'
         gkb_matches = create_gkb_matches(input_fields)
         stmts = get_kb_matched_statements(gkb_matches)
         kbcs = get_kb_statement_matched_conditions(gkb_matches)
@@ -618,11 +618,26 @@ class TestKbMatchSectionPrep:
         assert len(kbcs) == 1
 
     def test_partial_matches_omitted(self):
-        """ check statements only partially supported are omitted when allow_partial_matches=False"""
+        """check statements only partially supported are omitted when allow_partial_matches=False"""
         input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'X','requiredKbMatches': ['test1', 'test2']},
-            {'variant': 'B', 'kbVariantId': 'test2', 'kbStatementId': 'X','requiredKbMatches': ['test1', 'test2']},
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'Y','requiredKbMatches': ['test1', 'test3']},
+            {
+                'variant': 'A',
+                'kbVariantId': 'test1',
+                'kbStatementId': 'X',
+                'requiredKbMatches': ['test1', 'test2'],
+            },
+            {
+                'variant': 'B',
+                'kbVariantId': 'test2',
+                'kbStatementId': 'X',
+                'requiredKbMatches': ['test1', 'test2'],
+            },
+            {
+                'variant': 'A',
+                'kbVariantId': 'test1',
+                'kbStatementId': 'Y',
+                'requiredKbMatches': ['test1', 'test3'],
+            },
         ]
         for item in input_fields:  # we don't care about these for this test
             item['variantType'] = 'test'
@@ -631,19 +646,39 @@ class TestKbMatchSectionPrep:
         stmts = get_kb_matched_statements(gkb_matches)
         kbcs = get_kb_statement_matched_conditions(gkb_matches)
         assert len(stmts) == 2
-        assert len(kbcs) == 1 # X only
+        assert len(kbcs) == 1  # X only
         assert kbcs[0]['kbStatementId'] == 'X'
 
     def test_partial_matches_omitted_even_when_var_used_elsewhere(self):
-        """ edge case - checks that vars that satisfy other conditions but aren't explicitly used
+        """edge case - checks that vars that satisfy other conditions but aren't explicitly used
         to satisfy conditions for some statement in the input,
         are not used in the satisfying condition sets for the statement
         so that it shows up in the results when it otherwise wouldn't"""
         input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'X','requiredKbMatches': ['test1', 'test2']},
-            {'variant': 'B', 'kbVariantId': 'test2', 'kbStatementId': 'X','requiredKbMatches': ['test1', 'test2']},
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'Y','requiredKbMatches': ['test1', 'test3']},
-            {'variant': 'C', 'kbVariantId': 'test3', 'kbStatementId': 'Z','requiredKbMatches': ['test3']},
+            {
+                'variant': 'A',
+                'kbVariantId': 'test1',
+                'kbStatementId': 'X',
+                'requiredKbMatches': ['test1', 'test2'],
+            },
+            {
+                'variant': 'B',
+                'kbVariantId': 'test2',
+                'kbStatementId': 'X',
+                'requiredKbMatches': ['test1', 'test2'],
+            },
+            {
+                'variant': 'A',
+                'kbVariantId': 'test1',
+                'kbStatementId': 'Y',
+                'requiredKbMatches': ['test1', 'test3'],
+            },
+            {
+                'variant': 'C',
+                'kbVariantId': 'test3',
+                'kbStatementId': 'Z',
+                'requiredKbMatches': ['test3'],
+            },
         ]
         for item in input_fields:  # we don't care about these for this test
             item['variantType'] = 'test'
@@ -652,15 +687,30 @@ class TestKbMatchSectionPrep:
         stmts = get_kb_matched_statements(gkb_matches)
         kbcs = get_kb_statement_matched_conditions(gkb_matches)
         assert len(stmts) == 3
-        assert len(kbcs) == 2 # X and Z but not Y
+        assert len(kbcs) == 2  # X and Z but not Y
         assert 'Y' not in [item['kbStatementId'] for item in kbcs]
 
     def test_partial_matches_included(self):
-        """ check statements only partially supported are omitted when allow_partial_matches=True"""
+        """check statements only partially supported are omitted when allow_partial_matches=True"""
         input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'X','requiredKbMatches': ['test1', 'test2']},
-            {'variant': 'B', 'kbVariantId': 'test2', 'kbStatementId': 'X','requiredKbMatches': ['test1', 'test2']},
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'Y','requiredKbMatches': ['test1', 'test3']},
+            {
+                'variant': 'A',
+                'kbVariantId': 'test1',
+                'kbStatementId': 'X',
+                'requiredKbMatches': ['test1', 'test2'],
+            },
+            {
+                'variant': 'B',
+                'kbVariantId': 'test2',
+                'kbStatementId': 'X',
+                'requiredKbMatches': ['test1', 'test2'],
+            },
+            {
+                'variant': 'A',
+                'kbVariantId': 'test1',
+                'kbStatementId': 'Y',
+                'requiredKbMatches': ['test1', 'test3'],
+            },
         ]
         for item in input_fields:  # we don't care about these for this test
             item['variantType'] = 'test'
@@ -668,5 +718,5 @@ class TestKbMatchSectionPrep:
         gkb_matches = create_gkb_matches(input_fields)
         stmts = get_kb_matched_statements(gkb_matches)
         kbcs = get_kb_statement_matched_conditions(gkb_matches, allow_partial_matches=True)
-        assert len(stmts) == 2 # X and Y
+        assert len(stmts) == 2  # X and Y
         assert len(kbcs) == 2

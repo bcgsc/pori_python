@@ -96,6 +96,7 @@ class KbVariantMatch(TypedDict):
     kbVariant: str
     kbVariantId: str
 
+
 class KbMatchedStatement(TypedDict):
     approvedTherapy: bool
     category: str
