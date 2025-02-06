@@ -7,7 +7,7 @@ from __future__ import annotations
 from itertools import product
 from copy import copy
 from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
-
+import uuid
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
@@ -49,9 +49,13 @@ def filter_structural_variants(
     Filter structural variants to remove non-high quality events unless they are matched/annotated or
     they involve a gene that is a known fusion partner
     """
-    matched_svs = {match["variant"] for match in kb_matches if match["variantType"] == "sv"}
+    matched_svs = {
+        match["variant"] for match in kb_matches if match["variantType"] == "sv"
+    }
     fusion_genes = {
-        gene["name"] for gene in gene_annotations if gene.get("knownFusionPartner", False)
+        gene["name"]
+        for gene in gene_annotations
+        if gene.get("knownFusionPartner", False)
     }
 
     result = []
@@ -89,7 +93,9 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
 
     # Filter IPR EvidenceLevel and map each outgoing CrossReferenceOf to displayName
     ipr_source_rid = graphkb_conn.get_source("ipr")["@rid"]
-    ipr_evidence_levels = filter(lambda d: d.get("source") == ipr_source_rid, evidence_levels)
+    ipr_evidence_levels = filter(
+        lambda d: d.get("source") == ipr_source_rid, evidence_levels
+    )
     cross_references_mapping: Dict[str, str] = dict()
     ipr_rids_to_displayname: Dict[str, str] = dict()
     for level in ipr_evidence_levels:
@@ -138,7 +144,9 @@ def convert_statements_to_alterations(
     """
     disease_matches = {
         r["@rid"]
-        for r in gkb_vocab.get_term_tree(graphkb_conn, disease_name, ontology_class="Disease")
+        for r in gkb_vocab.get_term_tree(
+            graphkb_conn, disease_name, ontology_class="Disease"
+        )
     }
 
     if not disease_matches:
@@ -151,7 +159,9 @@ def convert_statements_to_alterations(
 
     # get the recruitment status for any trial associated with a statement
     clinical_trials = [
-        s["subject"]["@rid"] for s in statements if s["subject"]["@class"] == "ClinicalTrial"
+        s["subject"]["@rid"]
+        for s in statements
+        if s["subject"]["@class"] == "ClinicalTrial"
     ]
     recruitment_statuses = {}
     if clinical_trials:
@@ -168,7 +178,9 @@ def convert_statements_to_alterations(
 
     for statement in statements:
         variants = [
-            cast(Variant, c) for c in statement["conditions"] if c["@class"] in VARIANT_CLASSES
+            cast(Variant, c)
+            for c in statement["conditions"]
+            if c["@class"] in VARIANT_CLASSES
         ]
         diseases = [c for c in statement["conditions"] if c["@class"] == "Disease"]
         disease_match = len(diseases) == 1 and diseases[0]["@rid"] in disease_matches
@@ -189,8 +201,12 @@ def convert_statements_to_alterations(
 
         evidence_level_str = display_evidence_levels(statement)
         evidence_levels = statement.get("evidenceLevel") or []
-        ipr_evidence_levels = [ev_map[el.get("@rid", "")] for el in evidence_levels if el]
-        ipr_evidence_levels_str = ";".join(sorted(set([el for el in ipr_evidence_levels])))
+        ipr_evidence_levels = [
+            ev_map[el.get("@rid", "")] for el in evidence_levels if el
+        ]
+        ipr_evidence_levels_str = ";".join(
+            sorted(set([el for el in ipr_evidence_levels]))
+        )
 
         for variant in variants:
             if variant["@rid"] not in variant_matches:
@@ -200,10 +216,16 @@ def convert_statements_to_alterations(
                     "approvedTherapy": approved_therapy or False,
                     "category": ipr_section or "unknown",
                     "context": (
-                        statement["subject"]["displayName"] if statement["subject"] else ""
+                        statement["subject"]["displayName"]
+                        if statement["subject"]
+                        else ""
                     ),
-                    "kbContextId": (statement["subject"]["@rid"] if statement["subject"] else ""),
-                    "disease": ";".join(sorted(d.get("displayName", "") for d in diseases)),
+                    "kbContextId": (
+                        statement["subject"]["@rid"] if statement["subject"] else ""
+                    ),
+                    "disease": ";".join(
+                        sorted(d.get("displayName", "") for d in diseases)
+                    ),
                     "evidenceLevel": evidence_level_str or "",
                     "iprEvidenceLevel": ipr_evidence_levels_str or "",
                     "kbStatementId": statement["@rid"],
@@ -232,67 +254,6 @@ def convert_statements_to_alterations(
                 )
             rows.append(row)
     return rows
-
-
-"""
-    "kbMatchedStatements": [
-        {
-            "approvedTherapy": false,
-            "category": "therapeutic",
-            "context": "test multivariant statement",
-            "disease": "colorectal cancer [DOID:9256]",
-            "kbStatementId": "#999:999",
-            "matchedCancer": true,
-            "reference": "pmid:TEST1",
-            "relevance": "resistance",
-            "iprEvidenceLevel": "IPR-D",
-            "externalSource": "IPRKB",
-            "reviewStatus": "pending",
-            "kbData": {},
-            "requiredKbMatches": [
-                "#158:1343",
-                "#999:9999"
-            ]
-        }
-    ],
-    "kbStatementMatchedConditions": [
-        {
-            "kbStatementId": "#999:999",
-            "observedVariantKeys": [
-                "TEST3",
-                "TEST1"
-            ]
-        },
-        {
-            "kbStatementId": "#999:999",
-            "observedVariantKeys": [
-                "TEST2",
-                "TEST1"
-            ]
-        }
-    ],
-    "kbVariants": [
-        {
-            "kbVariant": "APC mutation",
-            "variantKey": "TEST3",
-            "variantType": "mut",
-            "kbVariantId": "#158:1343"
-        },
-        {
-            "kbVariant": "APC mutation",
-            "variantKey": "TEST2",
-            "variantType": "mut",
-            "kbVariantId": "#158:1343"
-        },
-        {
-            "kbVariant": "ZFP36L2:p.Q401del",
-            "variant": "TEST1",
-            "variantType": "mut",
-            "kbVariantId": "#999:9999"
-        }
-    ],
-
- """
 
 
 def select_expression_plots(
@@ -327,7 +288,9 @@ def select_expression_plots(
         gene = str(variant.get("gene", ""))
         hist = str(variant.get("histogramImage", ""))
         if hist:
-            images_by_gene[gene] = ImageDefinition({"key": f"expDensity.{gene}", "path": hist})
+            images_by_gene[gene] = ImageDefinition(
+                {"key": f"expDensity.{gene}", "path": hist}
+            )
     return [images_by_gene[gene] for gene in selected_genes if gene in images_by_gene]
 
 
@@ -370,7 +333,9 @@ def create_key_alterations(
         counts[type_mapping[variant_type]].add(variant_key)
 
         if variant_type == "exp":
-            alterations.append(f'{variant.get("gene","")} ({variant.get("expressionState")})')
+            alterations.append(
+                f'{variant.get("gene","")} ({variant.get("expressionState")})'
+            )
         elif variant_type == "cnv":
             alterations.append(f'{variant.get("gene","")} ({variant.get("cnvState")})')
         # only show germline if relevant
@@ -447,7 +412,9 @@ def germline_kb_matches(
         # Remove any matches to germline events
         for alt in somatic_alts:
             var_list = [v for v in all_variants if v["key"] == alt["variant"]]
-            somatic_var_list = [v for v in var_list if not v.get("germline", not assume_somatic)]
+            somatic_var_list = [
+                v for v in var_list if not v.get("germline", not assume_somatic)
+            ]
             if var_list and not somatic_var_list:
                 logger.debug(
                     f"Dropping germline match to somatic statement kbStatementId:{alt['kbStatementId']}: {alt['kbVariant']} {alt['category']}"
@@ -455,7 +422,9 @@ def germline_kb_matches(
             elif somatic_var_list:
                 ret_list.append(alt)  # match to somatic variant
             else:
-                ret_list.append(alt)  # alteration not in any specific keys matches to check.
+                ret_list.append(
+                    alt
+                )  # alteration not in any specific keys matches to check.
 
     return ret_list
 
@@ -530,7 +499,9 @@ def multi_variant_filtering(
 
     # Filtering out incompleted matches of gkb_matches
     return [
-        match for match in gkb_matches if match["kbStatementId"] in complete_matching_statements
+        match
+        for match in gkb_matches
+        if match["kbStatementId"] in complete_matching_statements
     ]
 
 
@@ -576,7 +547,9 @@ def get_kb_matched_statements(
     for item in gkb_matches:
         stmt = copy(item)
         stmt["requiredKbMatches"].sort()
-        kbs = KbMatchedStatement({key: val for (key, val) in stmt.items() if key in kbs_keys})
+        kbs = KbMatchedStatement(
+            {key: val for (key, val) in stmt.items() if key in kbs_keys}
+        )
         dict_key = str(kbs)
         kbMatchedStatements[dict_key] = kbs
     return [*kbMatchedStatements.values()]
@@ -585,23 +558,22 @@ def get_kb_matched_statements(
 def get_kb_statement_matched_conditions(
     gkb_matches: List[KbMatch] | List[Hashabledict],
     allow_partial_matches: bool = False,
-    infer_possible_matches: bool = False,
 ) -> List[KbMatchedStatementConditionSet]:
     """
     Prepares the kbMatchedStatementConditions section, with expected format
-    kbStatementId: str
-    observedVariantKeys: [str]
+    kbStatementId: #999:999
+    observedVariantKeys: [{'observedVariantKey': 'test1', 'kbVariantId': '#111:111'}]
 
     where the kbStatementId is a gkb statement rid
-    and each of the observed variant keys is a 'variantKey' field from one
-    of the records in kbVariants.
+    and each of the observed variant keys is a reference to
+    a kbMatch (ie, an observed variant/kb variant pair).
 
     Each record in the output from this function should represent
     one set of observed variants that satisfies the gkb variants in the
     conditions of the statement.
 
     If more than one set of observed variants satisfies the gkb variant conditions of the
-    statement, the output should include one record for each possible set.
+    statement, the output from this function should include one record for each possible set.
 
     Eg if the stmt requires gkb variants A and B, and the observed variants include
     X which matches A, and Y and Z which both match B,
@@ -611,43 +583,42 @@ def get_kb_statement_matched_conditions(
     Params:
         gkb_matches: KbMatch statements to be processed
         allow_partial_matches: include statements where not all requirements are satisfied
-        infer_possible_matches: allow variants to be used to support statements even when
-            the connection is not made explicit in the input data
     Returns:
         list of KbStatementMatchedConditionSet records
     """
 
-    kbVariants = get_kb_variants(gkb_matches)
     kbMatchedStatements = get_kb_matched_statements(gkb_matches)
     kbMatchedStatementConditions = {}
 
     for kbStmt in kbMatchedStatements:
-        stmts = [item for item in gkb_matches if item["kbStatementId"] == kbStmt["kbStatementId"]]
+        stmts = [
+            item
+            for item in gkb_matches
+            if item["kbStatementId"] == kbStmt["kbStatementId"]
+        ]
+
         requirements = {}
         for requirement in stmts[0]["requiredKbMatches"]:
             if not requirements.get(requirement, False):
-                if infer_possible_matches:
-                    # if true, use all possible links between kbVariantId and kbStatement
-                    reqlist = [
-                        item["variantKey"]
-                        for item in kbVariants
-                        if item["kbVariantId"] == requirement
-                    ]
-                else:
-                    # only use explicit variant/statement links
-                    reqlist = [
-                        item["variant"]
-                        for item in gkb_matches
-                        if (
-                            item["kbVariantId"] == requirement
-                            and item["kbStatementId"] == kbStmt["kbStatementId"]
-                        )
-                    ]
+                # only use explicit variant/statement links
+                reqlist = [
+                    {
+                        "kbVariantId": requirement,
+                        "observedVariantKey": item["variant"],
+                    }
+                    for item in gkb_matches
+                    if (
+                        item["kbVariantId"] == requirement
+                        and item["kbStatementId"] == kbStmt["kbStatementId"]
+                    )
+                ]
                 requirements[requirement] = reqlist
 
-        # remove empty sets for requirements if allowing partial matches
+        # remove empty sets from requirements if allowing partial matches
         if allow_partial_matches:
-            requirements = {key: val for (key, val) in requirements.items() if val}
+            requirements = {
+                key: val for (key, val) in requirements.items() if len(val) > 0
+            }
 
         variantConditionSets = list(product(*requirements.values()))
         conditionSets = [
@@ -655,29 +626,31 @@ def get_kb_statement_matched_conditions(
             for item in variantConditionSets
         ]
         for conditionSet in conditionSets:
-            # remove Nones
-            observedVariantKeys = [item for item in conditionSet["observedVariantKeys"] if item]
-            observedVariantKeys.sort()
+            observedVariantKeys = sorted(
+                conditionSet["observedVariantKeys"],
+                key=lambda x: (x["kbVariantId"], x["observedVariantKey"]),
+            )
             kbmc = KbMatchedStatementConditionSet(
                 {
                     "kbStatementId": conditionSet["kbStatementId"],
                     "observedVariantKeys": observedVariantKeys,
                 }
             )
-            kbMatchedStatementConditions[str(kbmc)] = kbmc
-
+            key = str(
+                uuid.uuid5(uuid.NAMESPACE_DNS, str(kbmc))
+            )  # to make it more readable when debugging
+            kbMatchedStatementConditions[key] = kbmc
     return [*kbMatchedStatementConditions.values()]
 
 
 def get_kb_matches_sections(
     gkb_matches: List[KbMatch] | List[Hashabledict],
     allow_partial_matches=False,
-    infer_possible_matches=False,
 ) -> KbMatchSections:
     kb_variants = get_kb_variants(gkb_matches)
     kb_matched_statements = get_kb_matched_statements(gkb_matches)
     kb_statement_matched_conditions = get_kb_statement_matched_conditions(
-        gkb_matches, allow_partial_matches, infer_possible_matches
+        gkb_matches, allow_partial_matches
     )
     return {
         "kbMatchedVariants": kb_variants,

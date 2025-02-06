@@ -151,18 +151,21 @@ SOMATIC_KB_MATCHES = [
 
 KB_MATCHES_STATEMENTS = [
     {
-        '@rid': SOMATIC_KB_MATCHES[0]['kbStatementId'],
-        'conditions': [
-            {'@class': 'PositionalVariant', '@rid': SOMATIC_KB_MATCHES[0]['kbVariantId']},
-            {'@class': 'CategoryVariant', '@rid': SOMATIC_KB_MATCHES[1]['kbVariantId']},
-            {'@class': 'Disease', '@rid': ''},
+        "@rid": SOMATIC_KB_MATCHES[0]["kbStatementId"],
+        "conditions": [
+            {
+                "@class": "PositionalVariant",
+                "@rid": SOMATIC_KB_MATCHES[0]["kbVariantId"],
+            },
+            {"@class": "CategoryVariant", "@rid": SOMATIC_KB_MATCHES[1]["kbVariantId"]},
+            {"@class": "Disease", "@rid": ""},
         ],
     },
     {
-        '@rid': SOMATIC_KB_MATCHES[1]['kbStatementId'],
-        'conditions': [
-            {'@class': 'CategoryVariant', '@rid': SOMATIC_KB_MATCHES[1]['kbVariantId']},
-            {'@class': 'PositionalVariant', '@rid': '157:0', 'type': '#999:99'},
+        "@rid": SOMATIC_KB_MATCHES[1]["kbStatementId"],
+        "conditions": [
+            {"@class": "CategoryVariant", "@rid": SOMATIC_KB_MATCHES[1]["kbVariantId"]},
+            {"@class": "PositionalVariant", "@rid": "157:0", "type": "#999:99"},
         ],
     },
 ]
@@ -179,27 +182,39 @@ def graphkb_conn():
 
         def __call__(self, *args, **kwargs):
             self.index += 1
-            ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
+            ret_val = (
+                self.return_values[self.index]
+                if self.index < len(self.return_values)
+                else []
+            )
             return ret_val
 
     class PostMock:
         def __call__(self, *args, **kwargs):
             # custom return tailored for multi_variant_filtering() testing
-            return {'result': KB_MATCHES_STATEMENTS}
+            return {"result": KB_MATCHES_STATEMENTS}
 
     def mock_get_source(source):
         return {"@rid": 0}
 
-    conn = Mock(query=QueryMock(), cache={}, get_source=mock_get_source, post=PostMock())
+    conn = Mock(
+        query=QueryMock(), cache={}, get_source=mock_get_source, post=PostMock()
+    )
 
     return conn
 
 
-def base_graphkb_statement(disease_id: str = "disease", relevance_rid: str = "other") -> Statement:
+def base_graphkb_statement(
+    disease_id: str = "disease", relevance_rid: str = "other"
+) -> Statement:
     statement = Statement(  # type: ignore
         {
             "conditions": [
-                {"@class": "Disease", "@rid": disease_id, "displayName": "disease_display_name"},
+                {
+                    "@class": "Disease",
+                    "@rid": disease_id,
+                    "displayName": "disease_display_name",
+                },
                 {
                     "@class": "CategoryVariant",
                     "@rid": "variant_rid",
@@ -236,7 +251,7 @@ def mock_get_term_tree(monkeypatch):
 @pytest.fixture(autouse=True)
 def get_terms_set(monkeypatch):
     def mock_func(*pos, **kwargs):
-        return {'#999:99'}
+        return {"#999:99"}
 
     monkeypatch.setattr(gkb_vocab, "get_terms_set", mock_func)
 
@@ -330,7 +345,9 @@ class TestConvertStatementsToAlterations:
         assert row["category"] == "diagnostic"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
-    def test_unapproved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
+    def test_unapproved_therapeutic(
+        self, mock_get_evidencelevel_mapping, graphkb_conn
+    ) -> None:
         mock_get_evidencelevel_mapping.return_value = {"other": "test"}
 
         statement = base_graphkb_statement()
@@ -345,8 +362,12 @@ class TestConvertStatementsToAlterations:
         assert row["category"] == "therapeutic"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
-    def test_approved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
-        mock_get_evidencelevel_mapping.return_value = {APPROVED_EVIDENCE_RIDS[0]: "test"}
+    def test_approved_therapeutic(
+        self, mock_get_evidencelevel_mapping, graphkb_conn
+    ) -> None:
+        mock_get_evidencelevel_mapping.return_value = {
+            APPROVED_EVIDENCE_RIDS[0]: "test"
+        }
 
         statement = base_graphkb_statement()
         statement["relevance"]["@rid"] = "therapeutic"
@@ -378,10 +399,10 @@ class TestKbmatchFilters:
     def test_multi_variant_filtering(self, graphkb_conn):
         assert (
             len(multi_variant_filtering(graphkb_conn, SOMATIC_KB_MATCHES, [])) == 1
-        ), 'Incomplete matches filtered, without excluded types'
+        ), "Incomplete matches filtered, without excluded types"
         assert (
             len(multi_variant_filtering(graphkb_conn, SOMATIC_KB_MATCHES)) == 2
-        ), 'Incomplete matches filtered, with default excluded types'
+        ), "Incomplete matches filtered, with default excluded types"
 
 
 GKB_MATCHES = [
@@ -450,21 +471,21 @@ GKB_MATCHES = [
 ]
 
 BASIC_GKB_MATCH = {
-    'approvedTherapy': False,
-    'category': 'test',
-    'context': 'test',
-    'kbContextId': '#124:24761',
-    'disease': 'test',
-    'evidenceLevel': 'test',
-    'iprEvidenceLevel': 'test',
-    'matchedCancer': False,
-    'reference': 'test',
-    'relevance': 'test',
-    'kbRelevanceId': '#148:31',
-    'externalSource': '',
-    'externalStatementId': '',
-    'reviewStatus': 'passed',
-    'kbData': {},
+    "approvedTherapy": False,
+    "category": "test",
+    "context": "test",
+    "kbContextId": "#124:24761",
+    "disease": "test",
+    "evidenceLevel": "test",
+    "iprEvidenceLevel": "test",
+    "matchedCancer": False,
+    "reference": "test",
+    "relevance": "test",
+    "kbRelevanceId": "#148:31",
+    "externalSource": "",
+    "externalStatementId": "",
+    "reviewStatus": "passed",
+    "kbData": {},
 }
 
 
@@ -477,140 +498,154 @@ def create_gkb_matches(input_fields):
     return matches
 
 
+def get_condition_set_string_rep(condition_set):
+    for item in condition_set:
+        item["observedKeysStrs"] = [
+            "-".join([elem["kbVariantId"], elem["observedVariantKey"]])
+            for elem in item["observedVariantKeys"]
+        ]
+        item["observedKeysStrs"].sort()
+        item["observedKeysStr"] = ",".join(item["observedKeysStrs"])
+    condition_set = [
+        f"{item['kbStatementId']},{item['observedKeysStr']}" for item in condition_set
+    ]
+    condition_set.sort()
+    return condition_set
+
+
 class TestKbMatchSectionPrep:
     def test_matched_variant_pairs_extracted_only_once_for_multiple_statements(self):
         input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'test1'},
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'test2'},  # diff statement
+            {"variant": "A", "kbVariantId": "test1", "kbStatementId": "test1"},
+            {
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "test2",
+            },  # diff statement
         ]
         for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
-            item['requiredKbMatches'] = ['test1', 'test2']
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
+            item["requiredKbMatches"] = ["test1", "test2"]
         gkb_matches = create_gkb_matches(input_fields)
         kb_variants = get_kb_variants(gkb_matches)
-        found_variants = [f"{item['variantKey']},{item['kbVariantId']}" for item in kb_variants]
+        found_variants = [
+            f"{item['variantKey']},{item['kbVariantId']}" for item in kb_variants
+        ]
         found_variants.sort()
-        assert found_variants == ['A,test1']
+        assert found_variants == ["A,test1"]
 
     def test_all_distinct_observed_and_matched_variant_pairs_extracted(self):
         input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'test1'},
-            {'variant': 'A', 'kbVariantId': 'test2', 'kbStatementId': 'test1'},
-            {'variant': 'B', 'kbVariantId': 'test1', 'kbStatementId': 'test1'},
+            {"variant": "A", "kbVariantId": "test1", "kbStatementId": "test1"},
+            {"variant": "A", "kbVariantId": "test2", "kbStatementId": "test1"},
+            {"variant": "B", "kbVariantId": "test1", "kbStatementId": "test1"},
+            {"variant": "B", "kbVariantId": "test1", "kbStatementId": "test1"},
         ]
         for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
-            item['requiredKbMatches'] = ['test1', 'test2']
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
+            item["requiredKbMatches"] = ["test1", "test2"]
         gkb_matches = create_gkb_matches(input_fields)
         kb_variants = get_kb_variants(gkb_matches)
-        found_variants = [f"{item['variantKey']},{item['kbVariantId']}" for item in kb_variants]
+        found_variants = [
+            f"{item['variantKey']},{item['kbVariantId']}" for item in kb_variants
+        ]
         found_variants.sort()
-        assert found_variants == ['A,test1', 'A,test2', 'B,test1']
+        assert found_variants == ["A,test1", "A,test2", "B,test1"]
 
     def test_statements_extracted_only_once(self):
         input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'X'},
-            {'variant': 'A', 'kbVariantId': 'test2', 'kbStatementId': 'X'},
-            {'variant': 'B', 'kbVariantId': 'test1', 'kbStatementId': 'X'},
-            {'variant': 'B', 'kbVariantId': 'test2', 'kbStatementId': 'X'},
-            {'variant': 'C', 'kbVariantId': 'test1', 'kbStatementId': 'Y'},
+            {"variant": "A", "kbVariantId": "test1", "kbStatementId": "X"},
+            {"variant": "A", "kbVariantId": "test2", "kbStatementId": "X"},
+            {"variant": "B", "kbVariantId": "test1", "kbStatementId": "X"},
+            {"variant": "B", "kbVariantId": "test2", "kbStatementId": "X"},
+            {"variant": "C", "kbVariantId": "test1", "kbStatementId": "Y"},
         ]
         for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
-            item['requiredKbMatches'] = ['test1', 'test2']
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
+            item["requiredKbMatches"] = ["test1", "test2"]
         gkb_matches = create_gkb_matches(input_fields)
         kb_stmts = get_kb_matched_statements(gkb_matches)
-        kb_stmts = [item['kbStatementId'] for item in kb_stmts]
+        kb_stmts = [item["kbStatementId"] for item in kb_stmts]
         kb_stmts.sort()
-        assert kb_stmts == ['X', 'Y']
+        assert kb_stmts == ["X", "Y"]
 
     def test_singlevar_statements_with_multiple_satisfying_condition_sets(self):
         input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'X'},
-            {'variant': 'B', 'kbVariantId': 'test1', 'kbStatementId': 'X'},
-            {'variant': 'C', 'kbVariantId': 'test1', 'kbStatementId': 'X'},
+            {"variant": "A", "kbVariantId": "test1", "kbStatementId": "X"},
+            {"variant": "B", "kbVariantId": "test1", "kbStatementId": "X"},
+            {"variant": "C", "kbVariantId": "test1", "kbStatementId": "X"},
         ]
         for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
-            item['requiredKbMatches'] = ['test1']
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
+            item["requiredKbMatches"] = ["test1"]
         gkb_matches = create_gkb_matches(input_fields)
         kbcs = get_kb_statement_matched_conditions(gkb_matches)
-        kbcs = [item['observedVariantKeys'] for item in kbcs]
-        kbcs.sort()
-        assert kbcs == [['A'], ['B'], ['C']]
+        kbcs_string_rep = get_condition_set_string_rep(kbcs)
+        assert kbcs_string_rep == ["X,test1-A", "X,test1-B", "X,test1-C"]
 
     def test_multivar_statements_with_multiple_satisfying_condition_sets(self):
         input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'X'},
-            {'variant': 'B', 'kbVariantId': 'test2', 'kbStatementId': 'X'},
-            {'variant': 'C', 'kbVariantId': 'test2', 'kbStatementId': 'X'},
+            {"variant": "A", "kbVariantId": "test1", "kbStatementId": "X"},
+            {"variant": "B", "kbVariantId": "test2", "kbStatementId": "X"},
+            {"variant": "C", "kbVariantId": "test2", "kbStatementId": "X"},
         ]
         for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
-            item['requiredKbMatches'] = ['test1', 'test2']
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
+            item["requiredKbMatches"] = ["test1", "test2"]
         gkb_matches = create_gkb_matches(input_fields)
         kbcs = get_kb_statement_matched_conditions(gkb_matches)
-        kbcs = [item['observedVariantKeys'] for item in kbcs]
-        kbcs.sort()
-        assert kbcs == [['A', 'B'], ['A', 'C']]
+        kbcs_string_rep = get_condition_set_string_rep(kbcs)
+        assert kbcs_string_rep == ["X,test1-A,test2-B", "X,test1-A,test2-C"]
 
     def test_do_not_infer_possible_matches(self):
         """edge case - when infer_possible_matches is false, do not allow var/kbvar
         pairs to satisfy conditions for statements they are not explicitly linked
         to in the input"""
         input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'X'},
-            {'variant': 'B', 'kbVariantId': 'test1', 'kbStatementId': 'Y'},
+            {"variant": "A", "kbVariantId": "test1", "kbStatementId": "X"},
+            {"variant": "B", "kbVariantId": "test1", "kbStatementId": "Y"},
         ]
         for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
-            item['requiredKbMatches'] = ['test1']
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
+            item["requiredKbMatches"] = ["test1"]
         gkb_matches = create_gkb_matches(input_fields)
         kbcs = get_kb_statement_matched_conditions(gkb_matches)
-        kbcs = [f"{item['kbStatementId']},{item['observedVariantKeys']}" for item in kbcs]
-        kbcs.sort()
-        assert kbcs == ["X,['A']", "Y,['B']"]
-
-    def test_infer_possible_matches(self):
-        """edge case - when infer_possible_matches is true, allow var/kbvar pairs
-        to satisfy conditions for statements not explicitly linked to in the input"""
-        input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'kbStatementId': 'X'},
-            {'variant': 'B', 'kbVariantId': 'test1', 'kbStatementId': 'Y'},
-        ]
-        for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
-            item['requiredKbMatches'] = ['test1']
-        gkb_matches = create_gkb_matches(input_fields)
-        kbcs = get_kb_statement_matched_conditions(gkb_matches, infer_possible_matches=True)
-        kbcs = [f"{item['kbStatementId']},{item['observedVariantKeys']}" for item in kbcs]
-        kbcs.sort()
-        assert len(kbcs) == 4  # A-X, A-Y, B-Y, B-X
+        kbcs_string_rep = get_condition_set_string_rep(kbcs)
+        assert kbcs_string_rep == ["X,test1-A", "Y,test1-B"]
 
     def test_no_dupes_when_requiredKbMatches_not_sorted(self):
-        """edge case - check that a variant is not used to satisfy a condition
-        for a statement if that variant-statement pair is not in the input, even
-        if in other statements it is used to satisfy the same condition -
-        ie if observed variant a satisfies condition x for statement 1,
-        but is not reported to satisfy condition x for statement 2,
-        don't add it to the possible matched condition sets"""
         input_fields = [
-            {'variant': 'A', 'kbVariantId': 'test1', 'requiredKbMatches': ['test1', 'test2']},
-            {'variant': 'B', 'kbVariantId': 'test2', 'requiredKbMatches': ['test1', 'test2']},
-            {'variant': 'A', 'kbVariantId': 'test1', 'requiredKbMatches': ['test2', 'test1']},
-            {'variant': 'B', 'kbVariantId': 'test2', 'requiredKbMatches': ['test2', 'test1']},
+            {
+                "variant": "A",
+                "kbVariantId": "test1",
+                "requiredKbMatches": ["test1", "test2"],
+            },
+            {
+                "variant": "B",
+                "kbVariantId": "test2",
+                "requiredKbMatches": ["test1", "test2"],
+            },
+            {
+                "variant": "A",
+                "kbVariantId": "test1",
+                "requiredKbMatches": ["test2", "test1"],
+            },
+            {
+                "variant": "B",
+                "kbVariantId": "test2",
+                "requiredKbMatches": ["test2", "test1"],
+            },
         ]
         for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
-            item['kbStatementId'] = 'X'
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
+            item["kbStatementId"] = "X"
         gkb_matches = create_gkb_matches(input_fields)
         stmts = get_kb_matched_statements(gkb_matches)
         kbcs = get_kb_statement_matched_conditions(gkb_matches)
@@ -618,105 +653,113 @@ class TestKbMatchSectionPrep:
         assert len(kbcs) == 1
 
     def test_partial_matches_omitted(self):
-        """check statements only partially supported are omitted when allow_partial_matches=False"""
+        """check statements that are only partially supported
+        are omitted when allow_partial_matches=False"""
         input_fields = [
             {
-                'variant': 'A',
-                'kbVariantId': 'test1',
-                'kbStatementId': 'X',
-                'requiredKbMatches': ['test1', 'test2'],
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "X",
+                "requiredKbMatches": ["test1", "test2"],
             },
             {
-                'variant': 'B',
-                'kbVariantId': 'test2',
-                'kbStatementId': 'X',
-                'requiredKbMatches': ['test1', 'test2'],
+                "variant": "B",
+                "kbVariantId": "test2",
+                "kbStatementId": "X",
+                "requiredKbMatches": ["test1", "test2"],
             },
             {
-                'variant': 'A',
-                'kbVariantId': 'test1',
-                'kbStatementId': 'Y',
-                'requiredKbMatches': ['test1', 'test3'],
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "Y",
+                "requiredKbMatches": ["test1", "test3"],
             },
         ]
         for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
         gkb_matches = create_gkb_matches(input_fields)
         stmts = get_kb_matched_statements(gkb_matches)
         kbcs = get_kb_statement_matched_conditions(gkb_matches)
         assert len(stmts) == 2
         assert len(kbcs) == 1  # X only
-        assert kbcs[0]['kbStatementId'] == 'X'
+        assert kbcs[0]["kbStatementId"] == "X"
 
     def test_partial_matches_omitted_even_when_var_used_elsewhere(self):
-        """edge case - checks that vars that satisfy other conditions but aren't explicitly used
+        """edge case -
+        checks that vars that satisfy other conditions, but aren't explicitly used
         to satisfy conditions for some statement in the input,
         are not used in the satisfying condition sets for the statement
-        so that it shows up in the results when it otherwise wouldn't"""
+        so that it shows up in the results when it otherwise wouldn't.
+        Eg here for statement Y, requirement test1 is satisfied
+        but requirement test3 is not considered satisfied, even though it is
+        satisfied for statement Z"""
         input_fields = [
             {
-                'variant': 'A',
-                'kbVariantId': 'test1',
-                'kbStatementId': 'X',
-                'requiredKbMatches': ['test1', 'test2'],
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "X",
+                "requiredKbMatches": ["test1", "test2"],
             },
             {
-                'variant': 'B',
-                'kbVariantId': 'test2',
-                'kbStatementId': 'X',
-                'requiredKbMatches': ['test1', 'test2'],
+                "variant": "B",
+                "kbVariantId": "test2",
+                "kbStatementId": "X",
+                "requiredKbMatches": ["test1", "test2"],
             },
             {
-                'variant': 'A',
-                'kbVariantId': 'test1',
-                'kbStatementId': 'Y',
-                'requiredKbMatches': ['test1', 'test3'],
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "Y",
+                "requiredKbMatches": ["test1", "test3"],
             },
             {
-                'variant': 'C',
-                'kbVariantId': 'test3',
-                'kbStatementId': 'Z',
-                'requiredKbMatches': ['test3'],
+                "variant": "C",
+                "kbVariantId": "test3",
+                "kbStatementId": "Z",
+                "requiredKbMatches": ["test3"],
             },
         ]
         for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
         gkb_matches = create_gkb_matches(input_fields)
         stmts = get_kb_matched_statements(gkb_matches)
         kbcs = get_kb_statement_matched_conditions(gkb_matches)
         assert len(stmts) == 3
         assert len(kbcs) == 2  # X and Z but not Y
-        assert 'Y' not in [item['kbStatementId'] for item in kbcs]
+        assert "Y" not in [item["kbStatementId"] for item in kbcs]
 
     def test_partial_matches_included(self):
-        """check statements only partially supported are omitted when allow_partial_matches=True"""
+        """check statements that are only partially supported
+        are included when allow_partial_matches=True"""
         input_fields = [
             {
-                'variant': 'A',
-                'kbVariantId': 'test1',
-                'kbStatementId': 'X',
-                'requiredKbMatches': ['test1', 'test2'],
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "X",
+                "requiredKbMatches": ["test1", "test2"],
             },
             {
-                'variant': 'B',
-                'kbVariantId': 'test2',
-                'kbStatementId': 'X',
-                'requiredKbMatches': ['test1', 'test2'],
+                "variant": "B",
+                "kbVariantId": "test2",
+                "kbStatementId": "X",
+                "requiredKbMatches": ["test1", "test2"],
             },
             {
-                'variant': 'A',
-                'kbVariantId': 'test1',
-                'kbStatementId': 'Y',
-                'requiredKbMatches': ['test1', 'test3'],
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "Y",
+                "requiredKbMatches": ["test1", "test3"],
             },
         ]
         for item in input_fields:  # we don't care about these for this test
-            item['variantType'] = 'test'
-            item['kbVariant'] = 'test'
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
         gkb_matches = create_gkb_matches(input_fields)
         stmts = get_kb_matched_statements(gkb_matches)
-        kbcs = get_kb_statement_matched_conditions(gkb_matches, allow_partial_matches=True)
+        kbcs = get_kb_statement_matched_conditions(
+            gkb_matches, allow_partial_matches=True
+        )
         assert len(stmts) == 2  # X and Y
         assert len(kbcs) == 2
