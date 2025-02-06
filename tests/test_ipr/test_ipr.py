@@ -182,11 +182,7 @@ def graphkb_conn():
 
         def __call__(self, *args, **kwargs):
             self.index += 1
-            ret_val = (
-                self.return_values[self.index]
-                if self.index < len(self.return_values)
-                else []
-            )
+            ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
             return ret_val
 
     class PostMock:
@@ -197,16 +193,12 @@ def graphkb_conn():
     def mock_get_source(source):
         return {"@rid": 0}
 
-    conn = Mock(
-        query=QueryMock(), cache={}, get_source=mock_get_source, post=PostMock()
-    )
+    conn = Mock(query=QueryMock(), cache={}, get_source=mock_get_source, post=PostMock())
 
     return conn
 
 
-def base_graphkb_statement(
-    disease_id: str = "disease", relevance_rid: str = "other"
-) -> Statement:
+def base_graphkb_statement(disease_id: str = "disease", relevance_rid: str = "other") -> Statement:
     statement = Statement(  # type: ignore
         {
             "conditions": [
@@ -345,9 +337,7 @@ class TestConvertStatementsToAlterations:
         assert row["category"] == "diagnostic"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
-    def test_unapproved_therapeutic(
-        self, mock_get_evidencelevel_mapping, graphkb_conn
-    ) -> None:
+    def test_unapproved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
         mock_get_evidencelevel_mapping.return_value = {"other": "test"}
 
         statement = base_graphkb_statement()
@@ -362,12 +352,8 @@ class TestConvertStatementsToAlterations:
         assert row["category"] == "therapeutic"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
-    def test_approved_therapeutic(
-        self, mock_get_evidencelevel_mapping, graphkb_conn
-    ) -> None:
-        mock_get_evidencelevel_mapping.return_value = {
-            APPROVED_EVIDENCE_RIDS[0]: "test"
-        }
+    def test_approved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
+        mock_get_evidencelevel_mapping.return_value = {APPROVED_EVIDENCE_RIDS[0]: "test"}
 
         statement = base_graphkb_statement()
         statement["relevance"]["@rid"] = "therapeutic"
@@ -506,9 +492,7 @@ def get_condition_set_string_rep(condition_set):
         ]
         item["observedKeysStrs"].sort()
         item["observedKeysStr"] = ",".join(item["observedKeysStrs"])
-    condition_set = [
-        f"{item['kbStatementId']},{item['observedKeysStr']}" for item in condition_set
-    ]
+    condition_set = [f"{item['kbStatementId']},{item['observedKeysStr']}" for item in condition_set]
     condition_set.sort()
     return condition_set
 
@@ -529,9 +513,7 @@ class TestKbMatchSectionPrep:
             item["requiredKbMatches"] = ["test1", "test2"]
         gkb_matches = create_gkb_matches(input_fields)
         kb_variants = get_kb_variants(gkb_matches)
-        found_variants = [
-            f"{item['variantKey']},{item['kbVariantId']}" for item in kb_variants
-        ]
+        found_variants = [f"{item['variantKey']},{item['kbVariantId']}" for item in kb_variants]
         found_variants.sort()
         assert found_variants == ["A,test1"]
 
@@ -548,9 +530,7 @@ class TestKbMatchSectionPrep:
             item["requiredKbMatches"] = ["test1", "test2"]
         gkb_matches = create_gkb_matches(input_fields)
         kb_variants = get_kb_variants(gkb_matches)
-        found_variants = [
-            f"{item['variantKey']},{item['kbVariantId']}" for item in kb_variants
-        ]
+        found_variants = [f"{item['variantKey']},{item['kbVariantId']}" for item in kb_variants]
         found_variants.sort()
         assert found_variants == ["A,test1", "A,test2", "B,test1"]
 
@@ -758,8 +738,6 @@ class TestKbMatchSectionPrep:
             item["kbVariant"] = "test"
         gkb_matches = create_gkb_matches(input_fields)
         stmts = get_kb_matched_statements(gkb_matches)
-        kbcs = get_kb_statement_matched_conditions(
-            gkb_matches, allow_partial_matches=True
-        )
+        kbcs = get_kb_statement_matched_conditions(gkb_matches, allow_partial_matches=True)
         assert len(stmts) == 2  # X and Y
         assert len(kbcs) == 2
