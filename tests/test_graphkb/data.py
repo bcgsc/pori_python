@@ -1,8 +1,8 @@
 """_summary_
-    matches:
-        Array of variants (diplayName and type) that MUST be matching, but not restricted to
-    does_not_matches:
-        Array of variants (diplayName and type) that MUST NOT be matching, but not restricted to
+matches:
+    Array of variants (diplayName and type) that MUST be matching, but not restricted to
+does_not_matches:
+    Array of variants (diplayName and type) that MUST NOT be matching, but not restricted to
 """
 
 # Screening structural variant to rule out small events [KBDEV_1056]
