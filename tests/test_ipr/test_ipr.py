@@ -488,7 +488,7 @@ def get_condition_set_string_rep(condition_set):
     for item in condition_set:
         item["observedKeysStrs"] = [
             "-".join([elem["kbVariantId"], elem["observedVariantKey"]])
-            for elem in item["observedVariantKeys"]
+            for elem in item["matchedConditions"]
         ]
         item["observedKeysStrs"].sort()
         item["observedKeysStr"] = ",".join(item["observedKeysStrs"])
