@@ -141,6 +141,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
         "async": (async_patient_id, async_loaded_report),
     }
     yield loaded_reports_result
+    return
     ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
     ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
 
@@ -155,27 +156,29 @@ def get_section(loaded_report, section_name):
     return ipr_conn.get(uri=f"reports/{ident}/{section_name}")
 
 
-def compare_sections(section1, section2):
-    """Removes values that will be distinct from sections, then checks if they
-    are otherwise equal"""
-    for key in ("ident", "updatedAt", "createdAt", "deletedAt"):
-        for section in [section1, section2]:
-            [item.pop(key, None) for item in section]
-            for item in section:
-                for subitem in item.keys():
-                    if isinstance(item[subitem], dict):
-                        item[subitem].pop(key, None)
-                    if isinstance(item[subitem], list):
-                        [subsubitem.pop(key, None) for subsubitem in item[subitem]]
-                        if item[subitem] != []:
-                            item[subitem] = sorted(item[subitem], key=lambda d: str(d))
-    if isinstance(section1, list):
-        section2_items = [str(item) for item in section2]
-        section2_items.sort()
-        section1_items = [str(item) for item in section1]
-        section1_items.sort()
-        return str(section2_items) == str(section1_items)
-    return str(section1) == str(section2)
+def stringify_sorted(obj):
+    """
+    stringifies a (json) object
+    in such a way that it can be compared for equality
+    with another json object """
+    if isinstance(obj, list):
+        obj = [stringify_sorted(item) for item in obj]
+        obj.sort()
+        return str(obj)
+    elif isinstance(obj, dict):
+        for key in ("ident", "updatedAt", "createdAt", "deletedAt"):
+            obj.pop(key, None)
+        keys = obj.keys()
+        for key in keys:
+            if isinstance(obj[key], list):
+                obj[key] = stringify_sorted(obj[key])
+            elif isinstance(obj[key], dict):
+                obj[key] = stringify_sorted(obj[key])
+        return str(obj)
+    elif isinstance(obj, str):
+        return obj
+    else:
+        return str(obj)
 
 
 @pytest.mark.skipif(
@@ -196,14 +199,16 @@ class TestCreateReport:
         kbmatched = [item for item in section if item["kbMatches"]]
         assert "PTP4A3" in [item["gene"]["name"] for item in kbmatched]
         async_section = get_section(loaded_reports["async"], "expression-variants")
-        assert compare_sections(section, async_section)
+        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        assert async_equals_sync
 
     def test_structural_variants_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports["sync"], "structural-variants")
         kbmatched = [item for item in section if item["kbMatches"]]
         assert "(EWSR1,FLI1):fusion(e.7,e.4)" in [item["displayName"] for item in kbmatched]
         async_section = get_section(loaded_reports["async"], "structural-variants")
-        assert compare_sections(section, async_section)
+        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        assert async_equals_sync
 
     def test_small_mutations_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports["sync"], "small-mutations")
@@ -211,7 +216,8 @@ class TestCreateReport:
         assert "FGFR2:p.R421C" in [item["displayName"] for item in kbmatched]
         assert "CDKN2A:p.T18M" in [item["displayName"] for item in kbmatched]
         async_section = get_section(loaded_reports["async"], "small-mutations")
-        assert compare_sections(section, async_section)
+        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        assert async_equals_sync
 
     def test_copy_variants_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports["sync"], "copy-variants")
@@ -220,7 +226,8 @@ class TestCreateReport:
             (item["gene"]["name"], item["displayName"]) for item in kbmatched
         ]
         async_section = get_section(loaded_reports["async"], "copy-variants")
-        assert compare_sections(section, async_section)
+        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        assert async_equals_sync
 
     def test_kb_matches_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports["sync"], "kb-matches")
@@ -236,7 +243,8 @@ class TestCreateReport:
         ]:
             assert pair in observed_and_matched
         async_section = get_section(loaded_reports["async"], "kb-matches")
-        assert compare_sections(section, async_section)
+        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        assert async_equals_sync
 
     def test_therapeutic_targets_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports["sync"], "therapeutic-targets")
@@ -244,7 +252,8 @@ class TestCreateReport:
         for gene in ["CDKN2A", "ERBB2", "FGFR2", "PTP4A3"]:
             assert gene in therapeutic_target_genes
         async_section = get_section(loaded_reports["async"], "therapeutic-targets")
-        assert compare_sections(section, async_section)
+        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        assert async_equals_sync
 
     def test_genomic_alterations_identified_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports["sync"], "summary/genomic-alterations-identified")
@@ -260,7 +269,8 @@ class TestCreateReport:
         async_section = get_section(
             loaded_reports["async"], "summary/genomic-alterations-identified"
         )
-        assert compare_sections(section, async_section)
+        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        assert async_equals_sync
 
     def test_analyst_comments_loaded(self, loaded_reports) -> None:
         sync_section = get_section(loaded_reports["sync"], "summary/analyst-comments")
@@ -272,4 +282,51 @@ class TestCreateReport:
     def test_sample_info_loaded(self, loaded_reports) -> None:
         sync_section = get_section(loaded_reports["sync"], "sample-info")
         async_section = get_section(loaded_reports["async"], "sample-info")
-        assert compare_sections(sync_section, async_section)
+        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        assert async_equals_sync
+
+    def test_multivariant_multiconditionset_statements_loaded(self, loaded_reports) -> None:
+        """
+        Checks that multivariant statements and multiple condition sets prepared correctly
+        by this package are handled as expected by the api.
+
+        This test depends on the presence of a record for pmid:27302369 in the graphkb.
+        This statement has three required variants. Two are present in the test data
+        for test_upload.py. allow_partial_matches is passed as an arg so
+        that this statement gets matched even though only 2/3 requirements
+        are met.
+        This is also a test of multiple condition sets since there are two variants
+        in the test data that satisfy one of the conditions (the APC mutation). """
+        section = get_section(loaded_reports["sync"], "kb-matches/kb-matched-statements")
+        multivariant_stmts = [item for item in section if item['reference'] == 'pmid:27302369']
+
+        # if this statement is entered more than once there may be multiple sets of records to
+        # check, so to make sure the count checks work, go stmt_id by stmt_id:
+        stmt_ids = list(set([item['kbStatementId'] for item in multivariant_stmts]))
+        for stmt_id in stmt_ids:
+            stmts = [item for item in multivariant_stmts if item['kbStatementId'] == stmt_id]
+
+            # we expect two stmts, one for each condition set
+            assert len(stmts) == 2
+
+            # we expect each condition set to have two kb variants in it
+            # we expect the two kb variants to be the same in each stmt
+            assert len(stmts[0]['kbMatches']) == 2
+            assert len(stmts[1]['kbMatches']) == 2
+            kbmatches1 = [item['kbVariant'] for item in stmts[0]['kbMatches']]
+            kbmatches2 = [item['kbVariant'] for item in stmts[1]['kbMatches']]
+            kbmatches1.sort()
+            kbmatches2.sort()
+            assert kbmatches1 == kbmatches2 == ['APC mutation', 'KRAS mutation']
+
+            # we expect the two stmts to have different observed variant sets
+            observedVariants1 = [item['variant']['ident'] for item in stmts[0]['kbMatches']]
+            observedVariants2 = [item['variant']['ident'] for item in stmts[1]['kbMatches']]
+            observedVariants1.sort()
+            observedVariants2.sort()
+            assert observedVariants1 != observedVariants2
+
+            # we expect the two observed variant sets to have one element in common
+            # (the kras mutation)
+            assert len(observedVariants1) == len(observedVariants2) == 2
+            assert len((set(observedVariants1 + observedVariants2))) == 3
