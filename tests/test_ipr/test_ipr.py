@@ -513,7 +513,7 @@ class TestKbMatchSectionPrep:
             item["requiredKbMatches"] = ["test1", "test2"]
         gkb_matches = create_gkb_matches(input_fields)
         kb_variants = get_kb_variants(gkb_matches)
-        found_variants = [f"{item['variantKey']},{item['kbVariantId']}" for item in kb_variants]
+        found_variants = [f"{item['variant']},{item['kbVariantId']}" for item in kb_variants]
         found_variants.sort()
         assert found_variants == ["A,test1"]
 
@@ -530,7 +530,7 @@ class TestKbMatchSectionPrep:
             item["requiredKbMatches"] = ["test1", "test2"]
         gkb_matches = create_gkb_matches(input_fields)
         kb_variants = get_kb_variants(gkb_matches)
-        found_variants = [f"{item['variantKey']},{item['kbVariantId']}" for item in kb_variants]
+        found_variants = [f"{item['variant']},{item['kbVariantId']}" for item in kb_variants]
         found_variants.sort()
         assert found_variants == ["A,test1", "A,test2", "B,test1"]
 
