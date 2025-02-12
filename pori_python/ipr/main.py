@@ -241,6 +241,13 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         if "requiredKbMatches" in row:
             del row["requiredKbMatches"]
 
+    for row in upload_content["kbMatchedStatements"]:
+        if "kbContextId" in row:
+            del row["kbContextId"]
+        if "kbRelevanceId" in row:
+            del row["kbRelevanceId"]
+
+
     return upload_content
 
 
@@ -540,12 +547,8 @@ def ipr_report(
         gkb_matches, allow_partial_matches=allow_partial_matches
     )
     output.update(kb_matched_sections)
-
     output.update(
         {
-            # TODO
-            # remove after testing
-            # "kbMatches": [trim_empty_values(a) for a in gkb_matches],  # type: ignore
             "copyVariants": [
                 trim_empty_values(c) for c in copy_variants if c["gene"] in genes_with_variants
             ],

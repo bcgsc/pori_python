@@ -119,7 +119,7 @@ class KbMatchedStatement(TypedDict):
 
 class KbMatchedStatementConditionSet(TypedDict):
     kbStatementId: str
-    observedVariantKeys: List[Dict]
+    matchedConditions: List[Dict]
 
 
 class KbMatchSections(TypedDict):

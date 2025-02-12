@@ -489,7 +489,7 @@ def get_kb_variants(
         kbv = KbVariantMatch(
             {
                 "kbVariant": item["kbVariant"],
-                "variantKey": item["variant"],
+                "variant": item["variant"],
                 "variantType": item["variantType"],
                 "kbVariantId": item["kbVariantId"],
             }
@@ -528,7 +528,7 @@ def get_kb_statement_matched_conditions(
     """
     Prepares the kbMatchedStatementConditions section, with expected format
     kbStatementId: #999:999
-    observedVariantKeys: [{'observedVariantKey': 'test1', 'kbVariantId': '#111:111'}]
+    matchedConditions: [{'observedVariantKey': 'test1', 'kbVariantId': '#111:111'}]
 
     where the kbStatementId is a gkb statement rid
     and each of the observed variant keys is a reference to
@@ -544,13 +544,29 @@ def get_kb_statement_matched_conditions(
     Eg if the stmt requires gkb variants A and B, and the observed variants include
     X which matches A, and Y and Z which both match B,
     then we expect two records for that statement in the output of this function,
-    one with observedVariantKeys = [X, Y] and one with [X, Z].
+    one with matchedConditions = [X, Y] and one with [X, Z].
+
+    Expected format of one kbMatchedStatementCondition element:
+    {
+        "kbStatementId": "#multivariantstmt_singleconditionset",
+        "matchedConditions": [
+            {
+                "observedVariantKey": "test1",
+                "kbVariantId": "#111:111"
+            },
+            {
+                "observedVariantKey": "tmb",
+                "kbVariantId": "#333:333"
+            }
+        ]
+    }
 
     Params:
         gkb_matches: KbMatch statements to be processed
         allow_partial_matches: include statements where not all requirements are satisfied
     Returns:
         list of KbStatementMatchedConditionSet records
+
     """
 
     kbMatchedStatements = get_kb_matched_statements(gkb_matches)
@@ -558,7 +574,6 @@ def get_kb_statement_matched_conditions(
 
     for kbStmt in kbMatchedStatements:
         stmts = [item for item in gkb_matches if item["kbStatementId"] == kbStmt["kbStatementId"]]
-
         requirements = {}
         for requirement in stmts[0]["requiredKbMatches"]:
             if not requirements.get(requirement, False):
@@ -582,18 +597,18 @@ def get_kb_statement_matched_conditions(
 
         variantConditionSets = list(product(*requirements.values()))
         conditionSets = [
-            {"kbStatementId": kbStmt["kbStatementId"], "observedVariantKeys": item}
+            {"kbStatementId": kbStmt["kbStatementId"], "matchedConditions": item}
             for item in variantConditionSets
         ]
         for conditionSet in conditionSets:
-            observedVariantKeys = sorted(
-                conditionSet["observedVariantKeys"],
+            matchedConditions = sorted(
+                conditionSet["matchedConditions"],
                 key=lambda x: (x["kbVariantId"], x["observedVariantKey"]),
             )
             kbmc = KbMatchedStatementConditionSet(
                 {
                     "kbStatementId": conditionSet["kbStatementId"],
-                    "observedVariantKeys": observedVariantKeys,
+                    "matchedConditions": matchedConditions,
                 }
             )
             key = str(
@@ -613,7 +628,7 @@ def get_kb_matches_sections(
         gkb_matches, allow_partial_matches
     )
     return {
-        "kbMatchedVariants": kb_variants,
+        "kbMatches": kb_variants,
         "kbMatchedStatements": kb_matched_statements,
-        "kbMatchedStatementConditions": kb_statement_matched_conditions,
+        "kbStatementMatchedConditions": kb_statement_matched_conditions,
     }
