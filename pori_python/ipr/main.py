@@ -247,7 +247,6 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         if "kbRelevanceId" in row:
             del row["kbRelevanceId"]
 
-
     return upload_content
 
 

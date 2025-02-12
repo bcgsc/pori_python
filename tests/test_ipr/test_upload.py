@@ -160,7 +160,7 @@ def stringify_sorted(obj):
     """
     stringifies a (json) object
     in such a way that it can be compared for equality
-    with another json object """
+    with another json object"""
     if isinstance(obj, list):
         obj = [stringify_sorted(item) for item in obj]
         obj.sort()
@@ -296,7 +296,7 @@ class TestCreateReport:
         that this statement gets matched even though only 2/3 requirements
         are met.
         This is also a test of multiple condition sets since there are two variants
-        in the test data that satisfy one of the conditions (the APC mutation). """
+        in the test data that satisfy one of the conditions (the APC mutation)."""
         section = get_section(loaded_reports["sync"], "kb-matches/kb-matched-statements")
         multivariant_stmts = [item for item in section if item['reference'] == 'pmid:27302369']
 
