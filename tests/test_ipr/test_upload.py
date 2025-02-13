@@ -141,7 +141,6 @@ def loaded_reports(tmp_path_factory) -> Generator:
         "async": (async_patient_id, async_loaded_report),
     }
     yield loaded_reports_result
-    return
     ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
     ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
 
@@ -282,7 +281,7 @@ class TestCreateReport:
     def test_sample_info_loaded(self, loaded_reports) -> None:
         sync_section = get_section(loaded_reports["sync"], "sample-info")
         async_section = get_section(loaded_reports["async"], "sample-info")
-        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        async_equals_sync = stringify_sorted(sync_section) == stringify_sorted(async_section)
         assert async_equals_sync
 
     def test_multivariant_multiconditionset_statements_loaded(self, loaded_reports) -> None:
