@@ -50,7 +50,7 @@ from .ipr import (
     multi_variant_filtering,
     select_expression_plots,
 )
-from .summary import auto_analyst_comments
+from .summary import auto_analyst_comments, get_ipr_analyst_comments
 from .therapeutic_options import create_therapeutic_options
 from .util import LOG_LEVELS, logger, trim_empty_values
 
@@ -207,6 +207,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         "copyVariants",
         "structuralVariants",
         "probeResults",
+        "signatureVariants",
         "msi",
     ]
     for variant_list_section in VARIANT_LIST_KEYS:
@@ -259,6 +260,10 @@ def ipr_report(
     custom_kb_match_filter: Callable = None,
     async_upload: bool = False,
     mins_to_wait: int = 5,
+    include_ipr_variant_text: bool = True,
+    include_nonspecific_disease: bool = False,
+    include_nonspecific_project: bool = False,
+    include_nonspecific_template: bool = False,
     multi_variant_filter: bool = True,
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
@@ -283,6 +288,10 @@ def ipr_report(
         custom_kb_match_filter: function(List[kbMatch]) -> List[kbMatch]
         async_upload: use report_async endpoint to upload reports
         mins_to_wait: if using report_async, number of minutes to wait for success before exception raised
+        include_ipr_variant_text: if True, include output from the ipr variant-texts endpoint in analysis comments
+        include_nonspecific_disease: if include_ipr_variant_text is True, if no disease match is found use disease-nonspecific variant comment
+        include_nonspecific_project: if include_ipr_variant_text is True, if no project match is found use project-nonspecific variant comment
+        include_nonspecific_template: if include_ipr_variant_text is True, if no template match is found use template-nonspecific variant comment
         multi_variant_filter: filters out matches that doesn't match to all required variants on multi-variant statements
 
     Returns:
@@ -508,14 +517,27 @@ def ipr_report(
 
     # ANALYST COMMENTS
     logger.info("generating analyst comments")
+
+    comments_list = []
     if generate_comments:
-        comments = {
-            "comments": auto_analyst_comments(
-                graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
-            )
-        }
-    else:
-        comments = {"comments": ""}
+        graphkb_comments = auto_analyst_comments(
+            graphkb_conn, gkb_matches, disease_name=kb_disease_match, variants=all_variants
+        )
+        comments_list.append(graphkb_comments)
+
+    if include_ipr_variant_text:
+        ipr_comments = get_ipr_analyst_comments(
+            ipr_conn,
+            gkb_matches,
+            disease_name=kb_disease_match,
+            project_name=content['project'],
+            report_type=content['template'],
+            include_nonspecific_disease=include_nonspecific_disease,
+            include_nonspecific_project=include_nonspecific_project,
+            include_nonspecific_template=include_nonspecific_template,
+        )
+        comments_list.append(ipr_comments)
+    comments = {'comments': "\n".join(comments_list)}
 
     # OUTPUT CONTENT
     # thread safe deep-copy the original content

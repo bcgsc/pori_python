@@ -99,12 +99,11 @@
             "items": {
                 "properties": {
                     "chromosomeBand": {
-                        "example": "X:p12.2",
-                        "pattern": "^(\\S+:\\S+?)?$",
+                        "example": "Xp12.2",
                         "type": "string"
                     },
                     "cna": {
-                        "description": "The copy number alteration (CNA) ratio",
+                        "description": "Copy Number, Absolute (cna)",
                         "example": 1.22,
                         "type": [
                             "number",
