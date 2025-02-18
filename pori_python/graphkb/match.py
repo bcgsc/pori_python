@@ -170,16 +170,13 @@ def match_category_variant(
                 f"unable to find the gene ({reference_name}) or any equivalent representations"
             )
     if reference_class == 'Signature':
-        # TODO: tree-traversal for equivalent signatures; KBDEV-1263
         references = convert_to_rid_list(
-            conn.query(
-                {
-                    "target": "Signature",
-                    "filters": {"name": reference_name.lower()},
-                    "returnProperties": ["@rid"],
-                },
+            get_equivalent_terms(
+                conn,
+                reference_name.lower(),
+                ontology_class='Signature',
                 ignore_cache=ignore_cache,
-            ),
+            )
         )
 
     # get the list of terms that we should match
