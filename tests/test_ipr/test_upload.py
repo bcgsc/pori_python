@@ -83,14 +83,10 @@ def loaded_reports(tmp_path_factory) -> Generator:
         ),
         "kbDiseaseMatch": "colorectal cancer",
         "cosmicSicnatures": json.loads(
-            pd.read_csv(get_test_file("cosmic_variants.tab"), sep="\t").to_json(
-                orient="records"
-            )
+            pd.read_csv(get_test_file("cosmic_variants.tab"), sep="\t").to_json(orient="records")
         ),
         "hlaTypes": json.loads(
-            pd.read_csv(get_test_file("hla_variants.tab"), sep="\t").to_json(
-                orient="records"
-            )
+            pd.read_csv(get_test_file("hla_variants.tab"), sep="\t").to_json(orient="records")
         ),
     }
     json_file.write_text(
@@ -239,7 +235,7 @@ class TestCreateReport:
     #         (item["signatureName"], item["variantTypeName"]) for item in kbmatched
     #     ]
     #     async_section = get_section(loaded_reports["async"], "signature-variants")
-    #     assert compare_sections(section, async_section) 
+    #     assert compare_sections(section, async_section)
 
     def test_kb_matches_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports["sync"], "kb-matches")
