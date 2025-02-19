@@ -6,7 +6,6 @@ from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.ipr.ipr import (
     convert_statements_to_alterations,
     germline_kb_matches,
-    multi_variant_filtering,
     get_kb_matched_statements,
     get_kb_statement_matched_conditions,
     get_kb_variants,
@@ -381,14 +380,6 @@ class TestKbmatchFilters:
         assert not germline_kb_matches(
             SOMATIC_KB_MATCHES, GERMLINE_VARIANTS
         ), "Germline variant matched to KB somatic statement."
-
-    def test_multi_variant_filtering(self, graphkb_conn):
-        assert (
-            len(multi_variant_filtering(graphkb_conn, SOMATIC_KB_MATCHES, [])) == 1
-        ), "Incomplete matches filtered, without excluded types"
-        assert (
-            len(multi_variant_filtering(graphkb_conn, SOMATIC_KB_MATCHES)) == 2
-        ), "Incomplete matches filtered, with default excluded types"
 
 
 GKB_MATCHES = [

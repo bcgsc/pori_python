@@ -35,7 +35,6 @@ from .ipr import (
     create_key_alterations,
     filter_structural_variants,
     germline_kb_matches,
-    multi_variant_filtering,
     select_expression_plots,
     get_kb_matches_sections,
 )
@@ -278,7 +277,6 @@ def ipr_report(
     include_nonspecific_disease: bool = False,
     include_nonspecific_project: bool = False,
     include_nonspecific_template: bool = False,
-    multi_variant_filter: bool = True,  # TODO possibly redundant
     allow_partial_matches: bool = False,
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
@@ -307,8 +305,6 @@ def ipr_report(
         include_nonspecific_disease: if include_ipr_variant_text is True, if no disease match is found use disease-nonspecific variant comment
         include_nonspecific_project: if include_ipr_variant_text is True, if no project match is found use project-nonspecific variant comment
         include_nonspecific_template: if include_ipr_variant_text is True, if no template match is found use template-nonspecific variant comment
-        multi_variant_filter: filters out matches that doesn't match to all required variants on multi-variant statements
-        # TODO: possibly, remove multi_variant_filter
         allow_partial_matches: allow matches to statements where not all conditions are satisfied
     Returns:
         ipr_conn.upload_report return dictionary
@@ -488,14 +484,6 @@ def ipr_report(
         logger.info(f"custom_kb_match_filter on {len(gkb_matches)} variants")
         gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
-
-    # TODO: can probably be removed with change to kbmatch processing, but double check
-    if multi_variant_filter and False:
-        logger.info(
-            f"Filtering out incomplete  matches on multi-variant statements for {len(gkb_matches)} matches"
-        )
-        gkb_matches = multi_variant_filtering(graphkb_conn, gkb_matches)
-        logger.info(f"multi_variant_filtering left {len(gkb_matches)} matches")
 
     # KEY ALTERATIONS
     key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)

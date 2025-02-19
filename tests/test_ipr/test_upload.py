@@ -66,7 +66,9 @@ def loaded_reports(tmp_path_factory) -> Generator:
             },
         ],
         "expressionVariants": json.loads(
-            pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(orient="records")
+            pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(
+                orient="records"
+            )
         ),
         "smallMutations": json.loads(
             pd.read_csv(get_test_file("small_mutations.short.tab"), sep="\t").to_json(
@@ -79,7 +81,9 @@ def loaded_reports(tmp_path_factory) -> Generator:
             )
         ),
         "structuralVariants": json.loads(
-            pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(orient="records")
+            pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(
+                orient="records"
+            )
         ),
         "kbDiseaseMatch": "colorectal cancer",
     }
@@ -141,6 +145,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
         "async": (async_patient_id, async_loaded_report),
     }
     yield loaded_reports_result
+    return
     ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
     ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
 
@@ -183,7 +188,9 @@ def stringify_sorted(obj):
 @pytest.mark.skipif(
     not INCLUDE_UPLOAD_TESTS, reason="excluding tests of upload to live ipr instance"
 )
-@pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
+@pytest.mark.skipif(
+    EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests"
+)
 class TestCreateReport:
     def test_patient_id_loaded_once(self, loaded_reports) -> None:
         sync_patient_id = loaded_reports["sync"][0]
@@ -204,7 +211,9 @@ class TestCreateReport:
     def test_structural_variants_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports["sync"], "structural-variants")
         kbmatched = [item for item in section if item["kbMatches"]]
-        assert "(EWSR1,FLI1):fusion(e.7,e.4)" in [item["displayName"] for item in kbmatched]
+        assert "(EWSR1,FLI1):fusion(e.7,e.4)" in [
+            item["displayName"] for item in kbmatched
+        ]
         async_section = get_section(loaded_reports["async"], "structural-variants")
         async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
         assert async_equals_sync
@@ -255,7 +264,9 @@ class TestCreateReport:
         assert async_equals_sync
 
     def test_genomic_alterations_identified_loaded(self, loaded_reports) -> None:
-        section = get_section(loaded_reports["sync"], "summary/genomic-alterations-identified")
+        section = get_section(
+            loaded_reports["sync"], "summary/genomic-alterations-identified"
+        )
         variants = set([item["geneVariant"] for item in section])
         for variant in [
             "FGFR2:p.R421C",
@@ -281,10 +292,14 @@ class TestCreateReport:
     def test_sample_info_loaded(self, loaded_reports) -> None:
         sync_section = get_section(loaded_reports["sync"], "sample-info")
         async_section = get_section(loaded_reports["async"], "sample-info")
-        async_equals_sync = stringify_sorted(sync_section) == stringify_sorted(async_section)
+        async_equals_sync = stringify_sorted(sync_section) == stringify_sorted(
+            async_section
+        )
         assert async_equals_sync
 
-    def test_multivariant_multiconditionset_statements_loaded(self, loaded_reports) -> None:
+    def test_multivariant_multiconditionset_statements_loaded(
+        self, loaded_reports
+    ) -> None:
         """
         Checks that multivariant statements and multiple condition sets prepared correctly
         by this package are handled as expected by the api.
@@ -296,31 +311,41 @@ class TestCreateReport:
         are met.
         This is also a test of multiple condition sets since there are two variants
         in the test data that satisfy one of the conditions (the APC mutation)."""
-        section = get_section(loaded_reports["sync"], "kb-matches/kb-matched-statements")
-        multivariant_stmts = [item for item in section if item['reference'] == 'pmid:27302369']
+        section = get_section(
+            loaded_reports["sync"], "kb-matches/kb-matched-statements"
+        )
+        multivariant_stmts = [
+            item for item in section if item["reference"] == "pmid:27302369"
+        ]
 
         # if this statement is entered more than once there may be multiple sets of records to
         # check, so to make sure the count checks work, go stmt_id by stmt_id:
-        stmt_ids = list(set([item['kbStatementId'] for item in multivariant_stmts]))
+        stmt_ids = list(set([item["kbStatementId"] for item in multivariant_stmts]))
         for stmt_id in stmt_ids:
-            stmts = [item for item in multivariant_stmts if item['kbStatementId'] == stmt_id]
+            stmts = [
+                item for item in multivariant_stmts if item["kbStatementId"] == stmt_id
+            ]
 
             # we expect two stmts, one for each condition set
             assert len(stmts) == 2
 
             # we expect each condition set to have two kb variants in it
             # we expect the two kb variants to be the same in each stmt
-            assert len(stmts[0]['kbMatches']) == 2
-            assert len(stmts[1]['kbMatches']) == 2
-            kbmatches1 = [item['kbVariant'] for item in stmts[0]['kbMatches']]
-            kbmatches2 = [item['kbVariant'] for item in stmts[1]['kbMatches']]
+            assert len(stmts[0]["kbMatches"]) == 2
+            assert len(stmts[1]["kbMatches"]) == 2
+            kbmatches1 = [item["kbVariant"] for item in stmts[0]["kbMatches"]]
+            kbmatches2 = [item["kbVariant"] for item in stmts[1]["kbMatches"]]
             kbmatches1.sort()
             kbmatches2.sort()
-            assert kbmatches1 == kbmatches2 == ['APC mutation', 'KRAS mutation']
+            assert kbmatches1 == kbmatches2 == ["APC mutation", "KRAS mutation"]
 
             # we expect the two stmts to have different observed variant sets
-            observedVariants1 = [item['variant']['ident'] for item in stmts[0]['kbMatches']]
-            observedVariants2 = [item['variant']['ident'] for item in stmts[1]['kbMatches']]
+            observedVariants1 = [
+                item["variant"]["ident"] for item in stmts[0]["kbMatches"]
+            ]
+            observedVariants2 = [
+                item["variant"]["ident"] for item in stmts[1]["kbMatches"]
+            ]
             observedVariants1.sort()
             observedVariants2.sort()
             assert observedVariants1 != observedVariants2
