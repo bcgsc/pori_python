@@ -233,6 +233,10 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
     for row in upload_content["kbMatches"]:
         del row["kbContextId"]
         del row["kbRelevanceId"]
+
+    # Removing cosmicSignatures. Temporary
+    del upload_content["cosmicSignatures"]
+
     return upload_content
 
 

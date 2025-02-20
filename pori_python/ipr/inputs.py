@@ -407,6 +407,11 @@ def preprocess_signature_variants(rows: Iterable[Dict]) -> List[IprSignatureVari
     variants = validate_variant_rows(rows, SIGV_REQ, SIGV_OPTIONAL, row_key)
     result = [cast(IprSignatureVariant, var) for var in variants]
 
+    # Adding additional required properties
+    for row in result:
+        row["variant"] = row["displayName"]
+        row["variantType"] = "sigv"
+
     return result
 
 
