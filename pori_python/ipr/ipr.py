@@ -4,9 +4,10 @@ by other reporting systems
 """
 
 from __future__ import annotations
-
+from itertools import product
+from copy import copy
 from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
-
+import uuid
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
@@ -19,6 +20,10 @@ from pori_python.types import (
     KbMatch,
     Statement,
     Variant,
+    KbVariantMatch,
+    KbMatchedStatement,
+    KbMatchedStatementConditionSet,
+    KbMatchSections,
 )
 
 from .constants import GERMLINE_BASE_TERMS, VARIANT_CLASSES
@@ -107,6 +112,7 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
     return evidence_levels_mapping  # type: ignore
 
 
+# TODO for DEVSU-2550
 def convert_statements_to_alterations(
     graphkb_conn: GraphKBConnection,
     statements: List[Statement],
@@ -214,6 +220,7 @@ def convert_statements_to_alterations(
                         if statement["source"]
                         else ""
                     ),
+                    "requiredKbMatches": [item["@rid"] for item in variants],
                     "externalStatementId": statement.get("sourceId", "") or "",
                     "reviewStatus": statement.get("reviewStatus", "") or "",
                     "kbData": {},
@@ -326,7 +333,9 @@ def create_key_alterations(
 
 
 def germline_kb_matches(
-    kb_matches: List[Hashabledict], all_variants: Sequence[IprVariant], assume_somatic: bool = True
+    kb_matches: List[Hashabledict],
+    all_variants: Sequence[IprVariant],
+    assume_somatic: bool = True,
 ) -> List[Hashabledict]:
     """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
 
@@ -393,7 +402,7 @@ def germline_kb_matches(
 def multi_variant_filtering(
     graphkb_conn: GraphKBConnection,
     gkb_matches: List[KbMatch],
-    excludedTypes: List[str] = ['wildtype'],
+    excludedTypes: List[str] = ["wildtype"],
 ) -> List[KbMatch]:
     """Filters out GraphKB matches that doesn't match to all required variants on multi-variant statements
 
@@ -413,8 +422,8 @@ def multi_variant_filtering(
         filtered list of KbMatch statements
     """
     # All matching statements & variants (GKB RIDs)
-    matching_statement_rids = {match['kbStatementId'] for match in gkb_matches}
-    matching_variant_rids = {match['kbVariantId'] for match in gkb_matches}
+    matching_statement_rids = {match["kbStatementId"] for match in gkb_matches}
+    matching_variant_rids = {match["kbVariantId"] for match in gkb_matches}
 
     # Get conditions detail on all matching statements
     res = graphkb_conn.post(
@@ -423,7 +432,7 @@ def multi_variant_filtering(
             "target": "Statement",
             "filters": {
                 "@rid": list(matching_statement_rids),
-                "operator": 'IN',
+                "operator": "IN",
             },
             "history": True,
             "returnProperties": [
@@ -434,21 +443,21 @@ def multi_variant_filtering(
             ],
         },
     )
-    statements = res['result']
+    statements = res["result"]
 
     # Get set of excluded Vocabulary RIDs for variant types
     excluded = {}
-    if len(excludedTypes) != 0 and excludedTypes[0] != '':
+    if len(excludedTypes) != 0 and excludedTypes[0] != "":
         excluded = gkb_vocab.get_terms_set(graphkb_conn, excludedTypes)
 
     # Mapping statements to their conditional variants
     # (discarding non-variant conditions & variant conditions from excluded types)
     statement_to_variants = {}
     for statement in statements:
-        statement_to_variants[statement['@rid']] = {
-            el['@rid']
-            for el in statement['conditions']
-            if (el['@class'] in VARIANT_CLASSES and el.get('type', '') not in excluded)
+        statement_to_variants[statement["@rid"]] = {
+            el["@rid"]
+            for el in statement["conditions"]
+            if (el["@class"] in VARIANT_CLASSES and el.get("type", "") not in excluded)
         }
 
     # Set of statements with complete matching
@@ -460,5 +469,166 @@ def multi_variant_filtering(
 
     # Filtering out incompleted matches of gkb_matches
     return [
-        match for match in gkb_matches if match['kbStatementId'] in complete_matching_statements
+        match for match in gkb_matches if match["kbStatementId"] in complete_matching_statements
     ]
+
+
+def get_kb_variants(
+    gkb_matches: List[KbMatch] | List[Hashabledict],
+) -> List[KbVariantMatch]:
+    """Extracts the set of distinct kb variant records from the input
+    list of gkb_matches records, which combine statement and variant matches.
+
+    Params:
+        gkb_matches: KbMatch statements to be processed
+    Returns:
+        set of distinct kbVariant records
+    """
+    kbVariants = {}
+    for item in gkb_matches:
+        kbv = KbVariantMatch(
+            {
+                "kbVariant": item["kbVariant"],
+                "variant": item["variant"],
+                "variantType": item["variantType"],
+                "kbVariantId": item["kbVariantId"],
+            }
+        )
+        kbVariants[str(kbv)] = kbv
+
+    return [item for item in kbVariants.values()]
+
+
+def get_kb_matched_statements(
+    gkb_matches: List[KbMatch] | List[Hashabledict],
+) -> List[KbMatchedStatement]:
+    """Extracts the set of distinct kb statement records from the input
+    list of gkb_matches records, which combine statement and variant matches.
+
+    Params:
+        gkb_matches: KbMatch statements to be processed
+    Returns:
+        set of distinct kbMatchedStatement records
+    """
+    kbMatchedStatements = {}
+    kbs_keys = KbMatchedStatement.__annotations__.keys()
+    for item in gkb_matches:
+        stmt = copy(item)
+        stmt["requiredKbMatches"].sort()
+        kbs = KbMatchedStatement({key: val for (key, val) in stmt.items() if key in kbs_keys})
+        dict_key = str(kbs)
+        kbMatchedStatements[dict_key] = kbs
+    return [*kbMatchedStatements.values()]
+
+
+def get_kb_statement_matched_conditions(
+    gkb_matches: List[KbMatch] | List[Hashabledict],
+    allow_partial_matches: bool = False,
+) -> List[KbMatchedStatementConditionSet]:
+    """
+    Prepares the kbMatchedStatementConditions section, with expected format
+    kbStatementId: #999:999
+    matchedConditions: [{'observedVariantKey': 'test1', 'kbVariantId': '#111:111'}]
+
+    where the kbStatementId is a gkb statement rid
+    and each of the observed variant keys is a reference to
+    a kbMatch (ie, an observed variant/kb variant pair).
+
+    Each record in the output from this function should represent
+    one set of observed variants that satisfies the gkb variants in the
+    conditions of the statement.
+
+    If more than one set of observed variants satisfies the gkb variant conditions of the
+    statement, the output from this function should include one record for each possible set.
+
+    Eg if the stmt requires gkb variants A and B, and the observed variants include
+    X which matches A, and Y and Z which both match B,
+    then we expect two records for that statement in the output of this function,
+    one with matchedConditions = [X, Y] and one with [X, Z].
+
+    Expected format of one kbMatchedStatementCondition element:
+    {
+        "kbStatementId": "#multivariantstmt_singleconditionset",
+        "matchedConditions": [
+            {
+                "observedVariantKey": "test1",
+                "kbVariantId": "#111:111"
+            },
+            {
+                "observedVariantKey": "tmb",
+                "kbVariantId": "#333:333"
+            }
+        ]
+    }
+
+    Params:
+        gkb_matches: KbMatch statements to be processed
+        allow_partial_matches: include statements where not all requirements are satisfied
+    Returns:
+        list of KbStatementMatchedConditionSet records
+
+    """
+
+    kbMatchedStatements = get_kb_matched_statements(gkb_matches)
+    kbMatchedStatementConditions = {}
+
+    for kbStmt in kbMatchedStatements:
+        stmts = [item for item in gkb_matches if item["kbStatementId"] == kbStmt["kbStatementId"]]
+        requirements = {}
+        for requirement in stmts[0]["requiredKbMatches"]:
+            if not requirements.get(requirement, False):
+                # only use explicit variant/statement links
+                reqlist = [
+                    {
+                        "kbVariantId": requirement,
+                        "observedVariantKey": item["variant"],
+                    }
+                    for item in gkb_matches
+                    if (
+                        item["kbVariantId"] == requirement
+                        and item["kbStatementId"] == kbStmt["kbStatementId"]
+                    )
+                ]
+                requirements[requirement] = reqlist
+
+        # remove empty sets from requirements if allowing partial matches
+        if allow_partial_matches:
+            requirements = {key: val for (key, val) in requirements.items() if len(val) > 0}
+
+        variantConditionSets = list(product(*requirements.values()))
+        conditionSets = [
+            {"kbStatementId": kbStmt["kbStatementId"], "matchedConditions": item}
+            for item in variantConditionSets
+        ]
+        for conditionSet in conditionSets:
+            matchedConditions = sorted(
+                conditionSet["matchedConditions"],
+                key=lambda x: (x["kbVariantId"], x["observedVariantKey"]),
+            )
+            kbmc = KbMatchedStatementConditionSet(
+                {
+                    "kbStatementId": conditionSet["kbStatementId"],
+                    "matchedConditions": matchedConditions,
+                }
+            )
+            key = str(
+                uuid.uuid5(uuid.NAMESPACE_DNS, str(kbmc))
+            )  # to make it more readable when debugging
+            kbMatchedStatementConditions[key] = kbmc
+    return [*kbMatchedStatementConditions.values()]
+
+
+def get_kb_matches_sections(
+    gkb_matches: List[KbMatch] | List[Hashabledict],
+    allow_partial_matches=False,
+) -> KbMatchSections:
+    kb_variants = get_kb_variants(gkb_matches)
+    kb_matched_statements = get_kb_matched_statements(gkb_matches)
+    kb_statement_matched_conditions = get_kb_statement_matched_conditions(
+        gkb_matches, allow_partial_matches
+    )
+    return {
+        "kbMatches": kb_variants,
+        "kbMatchedStatements": kb_matched_statements,
+        "kbStatementMatchedConditions": kb_statement_matched_conditions,
+    }
