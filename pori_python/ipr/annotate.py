@@ -67,6 +67,7 @@ def get_ipr_statements_from_variants(
     if not matches:
         return []
     rows = []
+
     statements = get_statements_from_variants(graphkb_conn, matches)
     existing_statements = {s["@rid"] for s in statements}
 
@@ -85,7 +86,10 @@ def get_ipr_statements_from_variants(
     ]
 
     for ipr_row in convert_statements_to_alterations(
-        graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches)
+        graphkb_conn,
+        inferred_statements,
+        disease_name,
+        convert_to_rid_set(inferred_matches),
     ):
         ipr_row["kbData"]["inferred"] = True
         rows.append(ipr_row)
@@ -319,7 +323,10 @@ def annotate_msi(
             "target": {
                 "target": "CategoryVariant",
                 "filters": {
-                    "reference1": {"target": "Signature", "filters": {"name": msi_category}}
+                    "reference1": {
+                        "target": "Signature",
+                        "filters": {"name": msi_category},
+                    }
                 },
             },
             "queryType": "similarTo",
@@ -336,7 +343,9 @@ def annotate_msi(
 
 
 def annotate_tmb(
-    graphkb_conn: GraphKBConnection, disease_name: str = "cancer", category: str = TMB_HIGH_CATEGORY
+    graphkb_conn: GraphKBConnection,
+    disease_name: str = "cancer",
+    category: str = TMB_HIGH_CATEGORY,
 ) -> List[KbMatch]:
     """Annotate Tumour Mutation Burden (tmb) categories from GraphKB in the IPR alterations format.
 
