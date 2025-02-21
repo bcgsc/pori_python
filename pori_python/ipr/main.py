@@ -7,17 +7,27 @@ import jsonschema.exceptions
 import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from typing import Dict, List, Sequence
+from typing import Callable, Dict, List, Sequence, Set
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
-from pori_python.types import Hashabledict, IprVariant, KbMatchSections
+from pori_python.types import (
+    Hashabledict,
+    IprCopyVariant,
+    IprExprVariant,
+    IprFusionVariant,
+    IprSignatureVariant,
+    IprSmallMutationVariant,
+    IprVariant,
+    KbMatchSections,
+)
 
 from .annotate import (
     annotate_copy_variants,
     annotate_expression_variants,
     annotate_msi,
     annotate_positional_variants,
+    annotate_signature_variants,
     annotate_tmb,
 )
 from .connection import IprConnection
@@ -26,7 +36,10 @@ from .inputs import (
     check_comparators,
     check_variant_links,
     preprocess_copy_variants,
+    preprocess_cosmic,
     preprocess_expression_variants,
+    preprocess_hla,
+    preprocess_signature_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
     validate_report_content,
@@ -35,8 +48,8 @@ from .ipr import (
     create_key_alterations,
     filter_structural_variants,
     germline_kb_matches,
-    select_expression_plots,
     get_kb_matches_sections,
+    select_expression_plots,
 )
 from .summary import auto_analyst_comments, get_ipr_analyst_comments
 from .therapeutic_options import create_therapeutic_options
@@ -246,6 +259,9 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         if "kbRelevanceId" in row:
             del row["kbRelevanceId"]
 
+    # Removing cosmicSignatures. Temporary
+    upload_content.pop("cosmicSignatures", None)
+
     return upload_content
 
 
@@ -270,7 +286,7 @@ def ipr_report(
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
     match_germline: bool = False,
-    custom_kb_match_filter=None,
+    custom_kb_match_filter: Callable = None,
     async_upload: bool = False,
     mins_to_wait: int = 5,
     include_ipr_variant_text: bool = True,
@@ -325,14 +341,26 @@ def ipr_report(
     kb_disease_match = content["kbDiseaseMatch"]
 
     # validate the input variants
-    small_mutations = preprocess_small_mutations(content.get("smallMutations", []))
-    structural_variants = preprocess_structural_variants(content.get("structuralVariants", []))
-    copy_variants = preprocess_copy_variants(content.get("copyVariants", []))
-    expression_variants = preprocess_expression_variants(content.get("expressionVariants", []))
+    signatureVariants: List[IprSignatureVariant] = preprocess_signature_variants(
+        [
+            *preprocess_cosmic(content.get("cosmicSignatures", [])),
+            *preprocess_hla(content.get("hlaTypes", [])),
+        ]
+    )
+    small_mutations: List[IprSmallMutationVariant] = preprocess_small_mutations(
+        content.get("smallMutations", [])
+    )
+    structural_variants: List[IprFusionVariant] = preprocess_structural_variants(
+        content.get("structuralVariants", [])
+    )
+    copy_variants: List[IprCopyVariant] = preprocess_copy_variants(content.get("copyVariants", []))
+    expression_variants: List[IprExprVariant] = preprocess_expression_variants(
+        content.get("expressionVariants", [])
+    )
     if expression_variants:
         check_comparators(content, expression_variants)
 
-    genes_with_variants = check_variant_links(
+    genes_with_variants: Set[str] = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
 
@@ -413,6 +441,15 @@ def ipr_report(
             gkb_matches.extend([Hashabledict(msi) for msi in msi_matches])
             logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
+    # MATCHING SIGNATURE CATEGORY VARIANTS
+    logger.info(f"annotating {len(signatureVariants)} signatures")
+    gkb_matches.extend(
+        annotate_signature_variants(
+            graphkb_conn, signatureVariants, kb_disease_match, show_progress=interactive
+        )
+    )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
+
     # MATCHING SMALL MUTATIONS
     logger.info(f"annotating {len(small_mutations)} small mutations")
     gkb_matches.extend(
@@ -462,8 +499,14 @@ def ipr_report(
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     # ALL VARIANTS
-    all_variants: Sequence[IprVariant]
-    all_variants = expression_variants + copy_variants + structural_variants + small_mutations  # type: ignore
+    all_variants: Sequence[IprVariant] = [
+        *copy_variants,
+        *expression_variants,
+        *signatureVariants,
+        *small_mutations,
+        *structural_variants,
+    ]  # type: ignore
+
     if msi_matches:
         all_variants.append(msi_variant)  # type: ignore
     if tmb_matches:
@@ -554,6 +597,7 @@ def ipr_report(
                     structural_variants, gkb_matches, gene_information
                 )
             ],
+            "signatureVariants": [trim_empty_values(s) for s in signatureVariants],
             "genes": gene_information,
             "genomicAlterationsIdentified": key_alterations,
             "variantCounts": variant_counts,

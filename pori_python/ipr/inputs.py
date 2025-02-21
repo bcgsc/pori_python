@@ -16,11 +16,12 @@ from pori_python.types import (
     IprCopyVariant,
     IprExprVariant,
     IprFusionVariant,
+    IprSignatureVariant,
     IprSmallMutationVariant,
     IprVariant,
 )
 
-from .constants import DEFAULT_URL
+from .constants import COSMIC_SIGNATURE_VARIANT_TYPE, DEFAULT_URL, HLA_SIGNATURE_VARIANT_TYPE
 from .util import hash_key, logger, pandas_falsy
 
 protein_letters_3to1.setdefault("Ter", "*")
@@ -151,6 +152,12 @@ SV_OPTIONAL = [
     "germline",
     "mavis_product_id",
 ]
+
+SIGV_REQ = ["signatureName", "variantTypeName"]
+SIGV_COSMIC = ["signature"]  # 1st element used as signatureName key
+SIGV_HLA = ["a1", "a2", "b1", "b2", "c1", "c2"]
+SIGV_OPTIONAL = ["displayName"]
+SIGV_KEY = SIGV_REQ[:]
 
 
 def validate_variant_rows(
@@ -386,6 +393,69 @@ def preprocess_structural_variants(rows: Iterable[Dict]) -> List[IprFusionVarian
                 row["svg"] = fh.read()
 
     return result
+
+
+def preprocess_signature_variants(rows: Iterable[Dict]) -> List[IprSignatureVariant]:
+    """
+    Validate the input rows contain the minimum required fields and
+    generate any default values where possible
+    """
+
+    def row_key(row: Dict) -> Tuple[str, ...]:
+        return tuple(["sigv"] + [row[key] for key in SIGV_KEY])
+
+    variants = validate_variant_rows(rows, SIGV_REQ, SIGV_OPTIONAL, row_key)
+    result = [cast(IprSignatureVariant, var) for var in variants]
+
+    # Adding additional required properties
+    for row in result:
+        row["variant"] = row["displayName"]
+        row["variantType"] = "sigv"
+
+    return result
+
+
+def preprocess_cosmic(rows: Iterable[Dict]) -> Iterable[Dict]:
+    """
+    Process cosmic inputs into preformatted signature inputs
+    Note: Cosmic and dMMR already evaluated against thresholds in gsc_report
+    """
+    cosmic = set()
+    for row in rows:
+        if not set(SIGV_COSMIC).issubset(row.keys()):
+            continue
+        cosmic.add(row[SIGV_COSMIC[0]])
+
+    return [
+        {
+            "displayName": f"{signature} {COSMIC_SIGNATURE_VARIANT_TYPE}",
+            "signatureName": signature,
+            "variantTypeName": COSMIC_SIGNATURE_VARIANT_TYPE,
+        }
+        for signature in cosmic
+    ]
+
+
+def preprocess_hla(rows: Iterable[Dict]) -> Iterable[Dict]:
+    """
+    Process hla inputs into preformatted signature inputs
+    """
+    hla: Set[str] = set()
+    for row in rows:  # 1 row per sample; should be 3
+        for k, v in row.items():
+            if k not in SIGV_HLA:
+                continue
+            hla.add(f"HLA-{v}")  # 2nd level, e.g. 'HLA-A*02:01'
+            hla.add(f"HLA-{v.split(':')[0]}")  # 1st level, e.g. 'HLA-A*02'
+
+    return [
+        {
+            "displayName": f"{signature} {HLA_SIGNATURE_VARIANT_TYPE}",
+            "signatureName": signature,
+            "variantTypeName": HLA_SIGNATURE_VARIANT_TYPE,
+        }
+        for signature in hla
+    ]
 
 
 def check_variant_links(

@@ -212,6 +212,16 @@
             },
             "type": "array"
         },
+        "cosmicSignatures": {
+            "default": [],
+            "description": "List of observed (above threshold) COSMIC signatures (DBS, SBS and ID) & dMMR",
+            "items": {
+                "description": "Signature name",
+                "example": "DBS1",
+                "type": "string"
+            },
+            "type": "array"
+        },
         "expressionVariants": {
             "default": [],
             "items": {

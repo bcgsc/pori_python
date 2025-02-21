@@ -129,50 +129,62 @@ def cache_missing_features(conn: GraphKBConnection) -> None:
 
 def match_category_variant(
     conn: GraphKBConnection,
-    gene_name: str,
+    reference_name: str,
     category: str,
     root_exclude_term: str = "",
     gene_source: str = "",
     gene_is_source_id: bool = False,
     ignore_cache: bool = False,
+    reference_class: str = 'Feature',
 ) -> List[Variant]:
     """
     Returns a list of variants matching the input variant
 
     Args:
         conn (GraphKBConnection): the graphkb connection object
-        gene_name (str): the name of the gene the variant is in reference to
+        reference_name (str): the name of the Feature(gene)/Signature the variant is in reference to
         category (str): the variant category (ex. copy loss)
         gene_source: The source database the gene is defined by (ex. ensembl)
         gene_is_source_id: Indicates the gene name(s) input should be treated as sourceIds not names
+        reference_class (str): Class name of the variant reference. Default to 'Feature'
     Raises:
         FeatureNotFoundError: The gene could not be found in GraphKB
 
     Returns:
         Array.<dict>: List of variant records from GraphKB which match the input
     """
-    # disambiguate the gene to find all equivalent representations
-    features = convert_to_rid_list(
-        get_equivalent_features(
-            conn,
-            gene_name,
-            source=gene_source,
-            is_source_id=gene_is_source_id,
-            ignore_cache=ignore_cache,
+    # disambiguate the reference to find all equivalent representations
+    references: List[str] = []
+    if reference_class == 'Feature':
+        references = convert_to_rid_list(
+            get_equivalent_features(
+                conn,
+                reference_name,
+                source=gene_source,
+                is_source_id=gene_is_source_id,
+                ignore_cache=ignore_cache,
+            )
         )
-    )
-
-    if not features:
-        raise FeatureNotFoundError(
-            f"unable to find the gene ({gene_name}) or any equivalent representations"
+        if not references:
+            raise FeatureNotFoundError(
+                f"unable to find the gene ({reference_name}) or any equivalent representations"
+            )
+    if reference_class == 'Signature':
+        references = convert_to_rid_list(
+            get_equivalent_terms(
+                conn,
+                reference_name.lower(),
+                ontology_class='Signature',
+                ignore_cache=ignore_cache,
+            )
         )
 
     # get the list of terms that we should match
-    terms = convert_to_rid_list(
+    types = convert_to_rid_list(
         get_term_tree(conn, category, root_exclude_term, ignore_cache=ignore_cache)
     )
 
-    if not terms:
+    if not types:
         raise ValueError(f"unable to find the term/category ({category}) or any equivalent")
 
     # find the variant list
@@ -183,8 +195,8 @@ def match_category_variant(
                 "target": {
                     "target": "CategoryVariant",
                     "filters": [
-                        {"reference1": features, "operator": "IN"},
-                        {"type": terms, "operator": "IN"},
+                        {"reference1": references, "operator": "IN"},
+                        {"type": types, "operator": "IN"},
                     ],
                 },
                 "queryType": "similarTo",
