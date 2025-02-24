@@ -116,7 +116,7 @@ def get_evidencelevel_mapping(graphkb_conn: GraphKBConnection) -> Dict[str, str]
 def convert_statements_to_alterations(
     graphkb_conn: GraphKBConnection,
     statements: List[Statement],
-    disease_name: str,
+    disease_matches: List[str],
     variant_matches: Iterable[str],
 ) -> List[KbMatch]:
     """Convert statements matched from graphkb into IPR equivalent representations.
@@ -124,6 +124,7 @@ def convert_statements_to_alterations(
     Args:
         graphkb_conn: the graphkb connection object
         statements: list of statement records from graphkb
+        disease_matches: GraphKB disease RIDs
         disease_name: name of the cancer type for the patient being reported on
         variant_matches: the list of RIDs the variant matched for these statements
 
@@ -136,14 +137,6 @@ def convert_statements_to_alterations(
     Notes:
         - only report disease matched prognostic markers https://www.bcgsc.ca/jira/browse/GERO-72 and GERO-196
     """
-    disease_matches = {
-        r["@rid"]
-        for r in gkb_vocab.get_term_tree(graphkb_conn, disease_name, ontology_class="Disease")
-    }
-
-    if not disease_matches:
-        raise ValueError(f"failed to match disease ({disease_name}) to graphkb")
-
     rows = []
     ev_map = get_evidencelevel_mapping(graphkb_conn)
     # GERO-318 - add all IPR-A evidence equivalents to the approvedTherapy flag
@@ -632,3 +625,27 @@ def get_kb_matches_sections(
         "kbMatchedStatements": kb_matched_statements,
         "kbStatementMatchedConditions": kb_statement_matched_conditions,
     }
+
+
+def get_kb_disease_matches(
+    graphkb_conn: GraphKBConnection, kb_disease_match: str = 'cancer', verbose=True
+) -> list[str]:
+    if verbose:
+        logger.info(f"Matching disease ({kb_disease_match}) to graphkb")
+
+    disease_matches = {
+        r["@rid"]
+        for r in gkb_vocab.get_term_tree(
+            graphkb_conn,
+            kb_disease_match,
+            ontology_class="Disease",
+        )
+    }
+
+    if not disease_matches:
+        msg = f"failed to match disease ({kb_disease_match}) to graphkb"
+        if verbose:
+            logger.error(msg)
+        raise ValueError(msg)
+
+    return disease_matches
