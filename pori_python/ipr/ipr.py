@@ -125,7 +125,6 @@ def convert_statements_to_alterations(
         graphkb_conn: the graphkb connection object
         statements: list of statement records from graphkb
         disease_matches: GraphKB disease RIDs
-        disease_name: name of the cancer type for the patient being reported on
         variant_matches: the list of RIDs the variant matched for these statements
 
     Raises:
