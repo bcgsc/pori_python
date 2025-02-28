@@ -466,7 +466,7 @@ def ipr_report(
     logger.info(f"annotating {len(small_mutations)} small mutations")
     gkb_matches.extend(
         annotate_positional_variants(
-            graphkb_conn, disease_matches, small_mutations, show_progress=interactive
+            graphkb_conn, small_mutations, disease_matches, show_progress=interactive
         )
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
@@ -476,8 +476,8 @@ def ipr_report(
     gkb_matches.extend(
         annotate_positional_variants(
             graphkb_conn,
-            disease_matches,
             structural_variants,
+            disease_matches,
             show_progress=interactive,
         )
     )

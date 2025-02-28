@@ -209,8 +209,8 @@ def annotate_copy_variants(
 
 def annotate_positional_variants(
     graphkb_conn: GraphKBConnection,
-    disease_matches: List[str],
     variants: Sequence[IprStructuralVariant] | Sequence[Hashabledict],
+    disease_matches: List[str],
     show_progress: bool = False,
 ) -> List[Hashabledict]:
     """Annotate SNP, INDEL or fusion variant calls with GraphKB and return in IPR match format.
@@ -218,8 +218,8 @@ def annotate_positional_variants(
     Hashable type is required to turn lists into sets.
     Args:
         graphkb_conn (GraphKBConnection): the graphkb api connection object
-        disease_matches (list.str): GraphKB disease RIDs
         variants (Sequence): list of variants.
+        disease_matches (list.str): GraphKB disease RIDs
         show_progress (bool): Progressbar displayed for long runs.
 
     Returns:
