@@ -147,7 +147,9 @@ class TestAnnotation:
     def test_wt_not_matched(self, graphkb_conn):
         """Verify wildtypes are not matched to mutations."""
         disease = "cancer"
-        matches = annotate_positional_variants(graphkb_conn, [KBDEV1231_TP53_ERR_MATCH_WT], DISEASE_RIDS)
+        matches = annotate_positional_variants(
+            graphkb_conn, [KBDEV1231_TP53_ERR_MATCH_WT], DISEASE_RIDS
+        )
         # KBDEV-1231 - wildtype - should not match.  A mutation is not wildtype
         wt_matches = sorted(set([m["kbVariant"] for m in matches if "wildtype" in m["kbVariant"]]))
         assert not wt_matches, f"Mutation 'TP53:p.E285K' should NOT match {wt_matches}"
