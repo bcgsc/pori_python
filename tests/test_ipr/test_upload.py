@@ -92,7 +92,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
             {
                 "key": "cnvLoh.circos",
                 "path": "test/testData/images/cnvLoh.png",
-                "caption": "Test adding a caption to an image"
+                "caption": "Test adding a caption to an image",
             }
         ],
     }
