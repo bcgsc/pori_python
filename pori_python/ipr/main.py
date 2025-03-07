@@ -384,13 +384,8 @@ def ipr_report(
     kb_disease_match: str = content["kbDiseaseMatch"]
 
     # Matching disease RIDs from GraphKB using term tree
-    disease_matches: list[str] = []
-    try:
-        disease_matches = get_kb_disease_matches(graphkb_conn, kb_disease_match)
-    except ValueError as err:
-        # 2nd try using deafult disease term.
-        # Will raise uncatched error if no match
-        disease_matches = get_kb_disease_matches(graphkb_conn)
+    # (Will raise uncatched error if no match)
+    disease_matches: list[str] = get_kb_disease_matches(graphkb_conn, kb_disease_match)
 
     # GKB MATCHING
     gkb_matches: List[Hashabledict] = []

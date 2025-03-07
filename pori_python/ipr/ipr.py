@@ -627,8 +627,14 @@ def get_kb_matches_sections(
 
 
 def get_kb_disease_matches(
-    graphkb_conn: GraphKBConnection, kb_disease_match: str = 'cancer', verbose=True
+    graphkb_conn: GraphKBConnection, kb_disease_match: str = None, verbose: bool = True
 ) -> list[str]:
+
+    if not kb_disease_match:
+        kb_disease_match = 'cancer'
+        if verbose:
+            logger.warning(f"No disease provided; will use '{kb_disease_match}'")
+
     if verbose:
         logger.info(f"Matching disease ({kb_disease_match}) to graphkb")
 
