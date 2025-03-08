@@ -9,7 +9,6 @@ from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.constants import RELEVANCE_BASE_TERMS
 from pori_python.graphkb.statement import categorize_relevance
 from pori_python.graphkb.util import convert_to_rid_list
-from pori_python.graphkb.vocab import get_term_tree
 from pori_python.ipr.inputs import create_graphkb_sv_notation
 from pori_python.ipr.connection import IprConnection
 from pori_python.types import (
@@ -473,7 +472,7 @@ def get_ipr_analyst_comments(
 def auto_analyst_comments(
     graphkb_conn: GraphKBConnection,
     matches: Sequence[KbMatch] | Sequence[Hashabledict],
-    disease_name: str,
+    disease_matches: set[str],
     variants: Sequence[IprVariant],
 ) -> str:
     """Given a list of GraphKB matches, generate a text summary to add to the report."""
@@ -494,10 +493,6 @@ def auto_analyst_comments(
         except KeyError as err:
             logger.warning(f"No specific variant matched for {rid}:{keys} - {err}")
             exp_variants_by_statements[rid] = []
-
-    disease_matches = convert_to_rid_set(
-        get_term_tree(graphkb_conn, disease_name, ontology_class="Disease")
-    )
 
     # get details for statements
     for match in matches:

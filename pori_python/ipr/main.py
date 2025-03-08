@@ -48,6 +48,7 @@ from .ipr import (
     create_key_alterations,
     filter_structural_variants,
     germline_kb_matches,
+    get_kb_disease_matches,
     get_kb_matches_sections,
     select_expression_plots,
 )
@@ -338,8 +339,6 @@ def ipr_report(
         logger.error("Failed schema check - report variants may be corrupted or unmatched.")
         logger.error(f"Failed schema check: {err}")
 
-    kb_disease_match = content["kbDiseaseMatch"]
-
     # validate the input variants
     signatureVariants: List[IprSignatureVariant] = preprocess_signature_variants(
         [
@@ -380,6 +379,14 @@ def ipr_report(
 
     graphkb_conn.login(gkb_user, gkb_pass)
 
+    # DISEASE
+    # Disease term from bioapps; expected OncoTree term
+    kb_disease_match: str = content["kbDiseaseMatch"]
+
+    # Matching disease RIDs from GraphKB using term tree
+    # (Will raise uncatched error if no match)
+    disease_matches: list[str] = get_kb_disease_matches(graphkb_conn, kb_disease_match)
+
     # GKB MATCHING
     gkb_matches: List[Hashabledict] = []
 
@@ -405,7 +412,7 @@ def ipr_report(
                 tmb["kbCategory"] = TMB_HIGH_CATEGORY
 
             # GERO-296 - try matching to graphkb
-            tmb_matches = annotate_tmb(graphkb_conn, kb_disease_match, TMB_HIGH_CATEGORY)
+            tmb_matches = annotate_tmb(graphkb_conn, disease_matches, TMB_HIGH_CATEGORY)
             if tmb_matches:
                 tmb_variant["kbCategory"] = TMB_HIGH_CATEGORY  # type: ignore
                 tmb_variant["variant"] = TMB_HIGH_CATEGORY
@@ -431,7 +438,7 @@ def ipr_report(
             msi_cat = msi.get("kbCategory")
             msi_variant = msi.copy()
         logger.info(f"Matching GKB msi {msi_cat}")
-        msi_matches = annotate_msi(graphkb_conn, kb_disease_match, msi_cat)
+        msi_matches = annotate_msi(graphkb_conn, disease_matches, msi_cat)
         if msi_matches:
             msi_variant["kbCategory"] = msi_cat  # type: ignore
             msi_variant["variant"] = msi_cat
@@ -445,7 +452,7 @@ def ipr_report(
     logger.info(f"annotating {len(signatureVariants)} signatures")
     gkb_matches.extend(
         annotate_signature_variants(
-            graphkb_conn, signatureVariants, kb_disease_match, show_progress=interactive
+            graphkb_conn, disease_matches, signatureVariants, show_progress=interactive
         )
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
@@ -454,7 +461,7 @@ def ipr_report(
     logger.info(f"annotating {len(small_mutations)} small mutations")
     gkb_matches.extend(
         annotate_positional_variants(
-            graphkb_conn, small_mutations, kb_disease_match, show_progress=interactive
+            graphkb_conn, small_mutations, disease_matches, show_progress=interactive
         )
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
@@ -465,7 +472,7 @@ def ipr_report(
         annotate_positional_variants(
             graphkb_conn,
             structural_variants,
-            kb_disease_match,
+            disease_matches,
             show_progress=interactive,
         )
     )
@@ -477,7 +484,7 @@ def ipr_report(
         [
             Hashabledict(copy_var)
             for copy_var in annotate_copy_variants(
-                graphkb_conn, copy_variants, kb_disease_match, show_progress=interactive
+                graphkb_conn, disease_matches, copy_variants, show_progress=interactive
             )
         ]
     )
@@ -490,8 +497,8 @@ def ipr_report(
             Hashabledict(exp_var)
             for exp_var in annotate_expression_variants(
                 graphkb_conn,
+                disease_matches,
                 expression_variants,
-                kb_disease_match,
                 show_progress=interactive,
             )
         ]
@@ -550,7 +557,7 @@ def ipr_report(
         graphkb_comments = auto_analyst_comments(
             graphkb_conn,
             gkb_matches,
-            disease_name=kb_disease_match,
+            disease_matches=set(disease_matches),
             variants=all_variants,
         )
         comments_list.append(graphkb_comments)

@@ -256,10 +256,10 @@ def mock_categorize_relevance(monkeypatch):
 
 
 class TestConvertStatementsToAlterations:
-    def test_disease_match(self, graphkb_conn, mock_get_term_tree) -> None:
+    def test_disease_match(self, graphkb_conn) -> None:
         statement = base_graphkb_statement(DISEASE_RIDS[0])
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], "disease", {"variant_rid"}
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
         )
 
         assert len(result) == 1
@@ -273,7 +273,7 @@ class TestConvertStatementsToAlterations:
     def test_no_disease_match(self, graphkb_conn) -> None:
         statement = base_graphkb_statement("other")
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], "disease", {"variant_rid"}
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
         )
 
         assert len(result) == 1
@@ -286,7 +286,7 @@ class TestConvertStatementsToAlterations:
             {"@class": "Disease", "@rid": "other", "displayName": "disease_display_name"}  # type: ignore
         )
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], "disease", {"variant_rid"}
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
         )
 
         assert len(result) == 1
@@ -298,7 +298,7 @@ class TestConvertStatementsToAlterations:
         statement["relevance"]["@rid"] = "biological"
 
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], "disease", {"variant_rid"}
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
         )
         assert len(result) == 1
         row = result[0]
@@ -309,7 +309,7 @@ class TestConvertStatementsToAlterations:
         statement["relevance"]["@rid"] = "prognostic"
 
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], "disease", {"variant_rid"}
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
         )
         assert len(result) == 0
 
@@ -318,7 +318,7 @@ class TestConvertStatementsToAlterations:
         statement["relevance"]["@rid"] = "prognostic"
 
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], "disease", {"variant_rid"}
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
         )
         assert len(result) == 1
         row = result[0]
@@ -329,7 +329,7 @@ class TestConvertStatementsToAlterations:
         statement["relevance"]["@rid"] = "diagnostic"
 
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], "disease", {"variant_rid"}
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
         )
         assert len(result) == 1
         row = result[0]
@@ -344,7 +344,7 @@ class TestConvertStatementsToAlterations:
         statement["evidenceLevel"] = [{"@rid": "other", "displayName": "level"}]  # type: ignore
 
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], "disease", {"variant_rid"}
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
         )
         assert len(result) == 1
         row = result[0]
@@ -359,7 +359,7 @@ class TestConvertStatementsToAlterations:
         statement["evidenceLevel"] = [{"@rid": APPROVED_EVIDENCE_RIDS[0], "displayName": "level"}]  # type: ignore
 
         result = convert_statements_to_alterations(
-            graphkb_conn, [statement], "disease", {"variant_rid"}
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
         )
         assert len(result) == 1
         row = result[0]
