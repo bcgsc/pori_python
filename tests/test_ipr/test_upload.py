@@ -88,6 +88,13 @@ def loaded_reports(tmp_path_factory) -> Generator:
         "hlaTypes": json.loads(
             pd.read_csv(get_test_file("hla_variants.tab"), sep="\t").to_json(orient="records")
         ),
+        "images": [
+            {
+                "key": "cnvLoh.circos",
+                "path": "test/testData/images/cnvLoh.png",
+                "caption": "Test adding a caption to an image",
+            }
+        ],
     }
     json_file.write_text(
         json.dumps(
@@ -147,7 +154,6 @@ def loaded_reports(tmp_path_factory) -> Generator:
         "async": (async_patient_id, async_loaded_report),
     }
     yield loaded_reports_result
-    return
     ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
     ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
 
