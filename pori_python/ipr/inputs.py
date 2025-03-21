@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import jsonschema
 import os
+import re
 import pandas as pd
 from Bio.Data.IUPACData import protein_letters_3to1
 from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
@@ -21,7 +22,11 @@ from pori_python.types import (
     IprVariant,
 )
 
-from .constants import COSMIC_SIGNATURE_VARIANT_TYPE, DEFAULT_URL, HLA_SIGNATURE_VARIANT_TYPE
+from .constants import (
+    COSMIC_SIGNATURE_VARIANT_TYPE,
+    DEFAULT_URL,
+    HLA_SIGNATURE_VARIANT_TYPE,
+)
 from .util import hash_key, logger, pandas_falsy
 
 protein_letters_3to1.setdefault("Ter", "*")
@@ -41,6 +46,8 @@ COPY_OPTIONAL = [
     "copyChange",
     "lohState",  # Loss of Heterzygosity state - informative detail to analyst
     "chromosomeBand",
+    "chromosome",
+    "chr",  # expect only one of chromosome or chr
     "start",
     "end",
     "size",
@@ -227,6 +234,7 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprCopyVariant]:
     result = validate_variant_rows(rows, COPY_REQ, COPY_OPTIONAL, row_key)
     ret_list = [cast(IprCopyVariant, var) for var in result]
     for row in ret_list:
+
         kb_cat = row.get("kbCategory")
         kb_cat = "" if pd.isnull(kb_cat) else str(kb_cat)
         if kb_cat:
@@ -236,6 +244,19 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprCopyVariant]:
                 row["cnvState"] = display_name_mapping[kb_cat]
         row["variant"] = kb_cat
         row["variantType"] = "cnv"
+        chrband = row.get("chromosomeBand", False)
+        chrom = row.pop("chromosome", False)
+        if not chrom:
+            chrom = row.pop("chr", False)
+        if chrom:
+            # check that chr isn't already in the chrband;
+            # this regex from https://vrs.ga4gh.org/en/1.2/terms_and_model.html#id25
+            if chrband and (
+                re.match("^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband)
+            ):
+                if isinstance(chrom, int):
+                    chrom = str(chrom)
+                row["chromosomeBand"] = chrom + row["chromosomeBand"]
 
     return ret_list
 
@@ -484,7 +505,9 @@ def check_variant_links(
     copy_variant_genes = {variant["gene"] for variant in copy_variants}
     expression_variant_genes = {variant["gene"] for variant in expression_variants}
     genes_with_variants = set()  # filter excess copy variants
-    variant: IprCopyVariant | IprExprVariant | IprFusionVariant | IprSmallMutationVariant
+    variant: (
+        IprCopyVariant | IprExprVariant | IprFusionVariant | IprSmallMutationVariant
+    )
 
     for variant in copy_variants:
         gene = variant["gene"]
@@ -502,7 +525,9 @@ def check_variant_links(
     for variant in expression_variants:
         gene = variant["gene"]
         if not gene:
-            logger.error("expression_variant data cannot be applied to an empty genename")
+            logger.error(
+                "expression_variant data cannot be applied to an empty genename"
+            )
         elif variant["variant"]:
             genes_with_variants.add(gene)
 
@@ -548,14 +573,14 @@ def check_variant_links(
     if missing_information_genes:
         for err_msg in sorted(missing_information_errors):
             logger.debug(err_msg)
-        link_err_msg = (
-            f"Missing information variant links on {len(missing_information_genes)} genes"
-        )
+        link_err_msg = f"Missing information variant links on {len(missing_information_genes)} genes"
         logger.warning(link_err_msg)
     return genes_with_variants
 
 
-def check_comparators(content: Dict, expresssionVariants: List[IprExprVariant] = []) -> None:
+def check_comparators(
+    content: Dict, expresssionVariants: List[IprExprVariant] = []
+) -> None:
     """
     Given the optional content dictionary, check that based on the analyses present the
     correct/sufficient comparators have also been specified
@@ -643,7 +668,9 @@ def extend_with_default(validator_class):
     type_checker = validator_class.TYPE_CHECKER.redefine("null", check_null)
 
     return jsonschema.validators.extend(
-        validator_class, validators={"properties": set_defaults}, type_checker=type_checker
+        validator_class,
+        validators={"properties": set_defaults},
+        type_checker=type_checker,
     )
 
 
