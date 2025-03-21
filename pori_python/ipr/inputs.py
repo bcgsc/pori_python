@@ -251,9 +251,7 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprCopyVariant]:
         if chrom:
             # check that chr isn't already in the chrband;
             # this regex from https://vrs.ga4gh.org/en/1.2/terms_and_model.html#id25
-            if chrband and (
-                re.match("^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband)
-            ):
+            if chrband and (re.match("^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband)):
                 if isinstance(chrom, int):
                     chrom = str(chrom)
                 row["chromosomeBand"] = chrom + row["chromosomeBand"]
@@ -505,9 +503,7 @@ def check_variant_links(
     copy_variant_genes = {variant["gene"] for variant in copy_variants}
     expression_variant_genes = {variant["gene"] for variant in expression_variants}
     genes_with_variants = set()  # filter excess copy variants
-    variant: (
-        IprCopyVariant | IprExprVariant | IprFusionVariant | IprSmallMutationVariant
-    )
+    variant: IprCopyVariant | IprExprVariant | IprFusionVariant | IprSmallMutationVariant
 
     for variant in copy_variants:
         gene = variant["gene"]
@@ -525,9 +521,7 @@ def check_variant_links(
     for variant in expression_variants:
         gene = variant["gene"]
         if not gene:
-            logger.error(
-                "expression_variant data cannot be applied to an empty genename"
-            )
+            logger.error("expression_variant data cannot be applied to an empty genename")
         elif variant["variant"]:
             genes_with_variants.add(gene)
 
@@ -573,14 +567,14 @@ def check_variant_links(
     if missing_information_genes:
         for err_msg in sorted(missing_information_errors):
             logger.debug(err_msg)
-        link_err_msg = f"Missing information variant links on {len(missing_information_genes)} genes"
+        link_err_msg = (
+            f"Missing information variant links on {len(missing_information_genes)} genes"
+        )
         logger.warning(link_err_msg)
     return genes_with_variants
 
 
-def check_comparators(
-    content: Dict, expresssionVariants: List[IprExprVariant] = []
-) -> None:
+def check_comparators(content: Dict, expresssionVariants: List[IprExprVariant] = []) -> None:
     """
     Given the optional content dictionary, check that based on the analyses present the
     correct/sufficient comparators have also been specified
