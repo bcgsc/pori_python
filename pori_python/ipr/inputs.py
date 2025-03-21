@@ -256,6 +256,7 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprCopyVariant]:
             if chrband and (re.match("^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband)):
                 if isinstance(chrom, int):
                     chrom = str(chrom)
+                chrom = chrom.strip("chr")
                 row["chromosomeBand"] = chrom + row["chromosomeBand"]
 
     return ret_list
