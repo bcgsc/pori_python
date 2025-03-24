@@ -49,9 +49,7 @@ def read_data_file(filename):
 class TestPreProcessSmallMutations:
     def test_load_test_file(self) -> None:
         records = preprocess_small_mutations(
-            pd.read_csv(
-                os.path.join(DATA_DIR, "small_mutations.tab"), sep="\t"
-            ).to_dict("records")
+            pd.read_csv(os.path.join(DATA_DIR, "small_mutations.tab"), sep="\t").to_dict("records")
         )
         assert records
         assert len(records) == 2614
@@ -108,9 +106,9 @@ class TestPreProcessSmallMutations:
 
     def test_load_small_mutations_probe(self) -> None:
         records = preprocess_small_mutations(
-            pd.read_csv(
-                os.path.join(DATA_DIR, "small_mutations_probe.tab"), sep="\t"
-            ).to_dict("records")
+            pd.read_csv(os.path.join(DATA_DIR, "small_mutations_probe.tab"), sep="\t").to_dict(
+                "records"
+            )
         )
         assert records
         assert len(records) == 4
@@ -121,9 +119,7 @@ class TestPreProcessSmallMutations:
 class TestPreProcessCopyVariants:
     def test_load_copy_variants(self) -> None:
         records = preprocess_copy_variants(
-            pd.read_csv(os.path.join(DATA_DIR, "copy_variants.tab"), sep="\t").to_dict(
-                "records"
-            )
+            pd.read_csv(os.path.join(DATA_DIR, "copy_variants.tab"), sep="\t").to_dict("records")
         )
 
         assert records
@@ -202,9 +198,7 @@ class TestPreProcessCopyVariants:
 class TestPreProcessSignatureVariants:
     def test_preprocess_cosmic(self) -> None:
         records = preprocess_cosmic(
-            pd.read_csv(
-                os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t"
-            ).to_dict("records")
+            pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict("records")
         )
         assert records
         assert len(records) == len(EXPECTED_COSMIC)
@@ -216,9 +210,7 @@ class TestPreProcessSignatureVariants:
 
     def test_preprocess_hla(self) -> None:
         records = preprocess_hla(
-            pd.read_csv(os.path.join(DATA_DIR, "hla_variants.tab"), sep="\t").to_dict(
-                "records"
-            )
+            pd.read_csv(os.path.join(DATA_DIR, "hla_variants.tab"), sep="\t").to_dict("records")
         )
         assert records
         assert len(records) == len(EXPECTED_HLA)
@@ -232,14 +224,14 @@ class TestPreProcessSignatureVariants:
         records = preprocess_signature_variants(
             [
                 *preprocess_cosmic(
-                    pd.read_csv(
-                        os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t"
-                    ).to_dict("records")
+                    pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict(
+                        "records"
+                    )
                 ),
                 *preprocess_hla(
-                    pd.read_csv(
-                        os.path.join(DATA_DIR, "hla_variants.tab"), sep="\t"
-                    ).to_dict("records")
+                    pd.read_csv(os.path.join(DATA_DIR, "hla_variants.tab"), sep="\t").to_dict(
+                        "records"
+                    )
                 ),
             ]
         )
@@ -260,9 +252,7 @@ def test_load_structural_variants() -> None:
 
 def test_load_expression_variants() -> None:
     records = preprocess_expression_variants(
-        pd.read_csv(os.path.join(DATA_DIR, "expression.tab"), sep="\t").to_dict(
-            "records"
-        )
+        pd.read_csv(os.path.join(DATA_DIR, "expression.tab"), sep="\t").to_dict("records")
     )
     assert records
     assert len(records) == 4603
@@ -420,8 +410,6 @@ class TestCheckComparators:
 
 @pytest.mark.parametrize("example_name", ["no_variants", "sm_and_exp", "sm_only"])
 def test_valid_json_inputs(example_name: str):
-    with open(
-        os.path.join(DATA_DIR, "json_examples", f"{example_name}.json"), "r"
-    ) as fh:
+    with open(os.path.join(DATA_DIR, "json_examples", f"{example_name}.json"), "r") as fh:
         content = json.load(fh)
     validate_report_content(content)
