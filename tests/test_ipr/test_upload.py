@@ -154,6 +154,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
         "async": (async_patient_id, async_loaded_report),
     }
     yield loaded_reports_result
+    return
     ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
     ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
 
