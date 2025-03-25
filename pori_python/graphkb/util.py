@@ -163,11 +163,16 @@ class GraphKBConnection:
         # about catching OSError as well as ConnectionError:
         # https://stackoverflow.com/questions/74253820
         attempts = range(15)
+        need_refresh_login = False
         for attempt in attempts:
             if attempt > 0:
                 time.sleep(2)  # wait between retries
             try:
-                self.refresh_login()
+
+                if need_refresh_login:
+                    self.refresh_login()
+                    need_refresh_login = False
+
                 self.request_count += 1
                 resp = requests.request(
                     method, url, headers=self.headers, timeout=timeout, **kwargs
@@ -175,6 +180,7 @@ class GraphKBConnection:
                 if resp.status_code == 401 or resp.status_code == 403:
                     logger.debug(f"/{endpoint} - {resp.status_code} - retrying")
                     # try to re-login if the token expired
+                    need_refresh_login = True
                     continue
                 else:
                     break
