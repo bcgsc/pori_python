@@ -31,7 +31,12 @@ from .annotate import (
     annotate_tmb,
 )
 from .connection import IprConnection
-from .constants import DEFAULT_URL, TMB_HIGH, TMB_HIGH_CATEGORY
+from .constants import (
+    DEFAULT_URL,
+    TMB_SIGNATURE,
+    TMB_SIGNATURE_HIGH_THRESHOLD,
+    TMB_SIGNATURE_VARIANT_TYPE,
+)
 from .inputs import (
     check_comparators,
     check_variant_links,
@@ -402,25 +407,25 @@ def ipr_report(
         except Exception as err:
             logger.error(f"tmburMutationBurden parsing failure: {err}")
 
-        if tmb_val >= TMB_HIGH:
+        if tmb_val >= TMB_SIGNATURE_HIGH_THRESHOLD:
+            tmb_cat = f'{TMB_SIGNATURE} {TMB_SIGNATURE_VARIANT_TYPE}'
+
             logger.warning(
-                f"GERO-296 - tmburMutationBurden high -checking graphkb matches for {TMB_HIGH_CATEGORY}"
+                f"GERO-296 - tmburMutationBurden high -checking graphkb matches for {tmb_cat}"
             )
             if not tmb.get("key"):
-                tmb["key"] = TMB_HIGH_CATEGORY
+                tmb["key"] = tmb_cat
             if not tmb.get("kbCategory"):
-                tmb["kbCategory"] = TMB_HIGH_CATEGORY
+                tmb["kbCategory"] = tmb_cat
 
             # GERO-296 - try matching to graphkb
-            tmb_matches = annotate_tmb(graphkb_conn, disease_matches, TMB_HIGH_CATEGORY)
+            tmb_matches = annotate_tmb(graphkb_conn, disease_matches)
             if tmb_matches:
-                tmb_variant["kbCategory"] = TMB_HIGH_CATEGORY  # type: ignore
-                tmb_variant["variant"] = TMB_HIGH_CATEGORY
+                tmb_variant["kbCategory"] = tmb_cat
+                tmb_variant["variant"] = tmb_cat
                 tmb_variant["key"] = tmb["key"]
                 tmb_variant["variantType"] = "tmb"
-                logger.info(
-                    f"GERO-296 '{TMB_HIGH_CATEGORY}' matches {len(tmb_matches)} statements."
-                )
+                logger.info(f"GERO-296 '{tmb_cat}' matches {len(tmb_matches)} statements.")
                 gkb_matches.extend([Hashabledict(tmb_statement) for tmb_statement in tmb_matches])
                 logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 

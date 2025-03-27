@@ -26,7 +26,7 @@ from pori_python.types import (
     Variant,
 )
 
-from .constants import TMB_HIGH_CATEGORY
+from .constants import TMB_SIGNATURE, TMB_SIGNATURE_VARIANT_TYPE
 from .ipr import convert_statements_to_alterations
 from .util import convert_to_rid_set, logger
 
@@ -354,7 +354,8 @@ def annotate_msi(
 def annotate_tmb(
     graphkb_conn: GraphKBConnection,
     disease_matches: List[str],
-    category: str = TMB_HIGH_CATEGORY,
+    reference: str = TMB_SIGNATURE,
+    type: str = TMB_SIGNATURE_VARIANT_TYPE,
 ) -> List[KbMatch]:
     """Annotate Tumour Mutation Burden (tmb) categories from GraphKB in the IPR alterations format.
 
@@ -362,33 +363,53 @@ def annotate_tmb(
     Args:
         graphkb_conn (GraphKBConnection): the graphkb api connection object
         disease_matches (list.str): GraphKB disease RIDs
-        category: such as 'high mutation burden'
+        reference: CategoryVariant reference, e.g. Signature 'mutation burden'
+        type: CategoryVariant type, e.g. Vocabulary 'high signature'
 
     Returns:
         list of kbMatches records for IPR
     """
     gkb_matches = []
-    categories = graphkb_conn.query(
+    categoryVariants = graphkb_conn.query(
         {
             "target": {
                 "target": "CategoryVariant",
                 "filters": {
-                    "reference1": {
-                        "target": "Signature",
-                        "filters": {"OR": [{"name": category}, {"displayName": category}]},
-                    }
+                    "AND": [
+                        {
+                            "reference1": {
+                                "target": "Signature",
+                                "filters": {
+                                    "OR": [
+                                        {"name": reference},
+                                        {"displayName": reference},
+                                        # KBDEV-1246
+                                        # Keep support for 'high mutation burden' until statement datafix
+                                        {'name': 'high mutation burden'},
+                                        {'displayName': 'high mutation burden'},
+                                    ]
+                                },
+                            },
+                        },
+                        {
+                            "type": {
+                                "target": "Vocabulary",
+                                "filters": {"OR": [{"name": type}, {"displayName": type}]},
+                            },
+                        },
+                    ],
                 },
             },
             "queryType": "similarTo",
             "returnProperties": ["@rid", "displayName"],
         }
     )
-    if categories:
-        cat_variants = [cast(Variant, var) for var in categories]
+    if categoryVariants:
+        cat_variants = [cast(Variant, var) for var in categoryVariants]
         for ipr_row in get_ipr_statements_from_variants(
             graphkb_conn, cat_variants, disease_matches
         ):
-            ipr_row["variant"] = category
+            ipr_row["variant"] = f'{TMB_SIGNATURE} {TMB_SIGNATURE_VARIANT_TYPE}'
             ipr_row["variantType"] = "tmb"
             gkb_matches.append(ipr_row)
     return gkb_matches
