@@ -19,6 +19,7 @@ from pori_python.types import (
     Hashabledict,
     IprCopyVariant,
     IprExprVariant,
+    IprSignatureVariant,
     IprStructuralVariant,
     KbMatch,
     Statement,
@@ -56,7 +57,7 @@ def get_second_pass_variants(
 
 
 def get_ipr_statements_from_variants(
-    graphkb_conn: GraphKBConnection, matches: List[Variant], disease_name: str
+    graphkb_conn: GraphKBConnection, matches: List[Variant], disease_matches: List[str]
 ) -> List[KbMatch]:
     """IPR upload formatted GraphKB statements from the list of variants.
 
@@ -66,11 +67,12 @@ def get_ipr_statements_from_variants(
     if not matches:
         return []
     rows = []
+
     statements = get_statements_from_variants(graphkb_conn, matches)
     existing_statements = {s["@rid"] for s in statements}
 
     for ipr_row in convert_statements_to_alterations(
-        graphkb_conn, statements, disease_name, convert_to_rid_set(matches)
+        graphkb_conn, statements, disease_matches, convert_to_rid_set(matches)
     ):
         rows.append(ipr_row)
 
@@ -84,7 +86,10 @@ def get_ipr_statements_from_variants(
     ]
 
     for ipr_row in convert_statements_to_alterations(
-        graphkb_conn, inferred_statements, disease_name, convert_to_rid_set(inferred_matches)
+        graphkb_conn,
+        inferred_statements,
+        disease_matches,
+        convert_to_rid_set(inferred_matches),
     ):
         ipr_row["kbData"]["inferred"] = True
         rows.append(ipr_row)
@@ -94,15 +99,17 @@ def get_ipr_statements_from_variants(
 
 def annotate_expression_variants(
     graphkb_conn: GraphKBConnection,
+    disease_matches: List[str],
     variants: List[IprExprVariant],
-    disease_name: str,
     show_progress: bool = False,
 ) -> List[KbMatch]:
     """Annotate expression variants with GraphKB in the IPR alterations format.
 
     Args:
-        graphkb_conn: the graphkb api connection object
-        variants: list of variants
+        graphkb_conn (GraphKBConnection): the graphkb api connection object
+        disease_matches (list.str): GraphKB disease RIDs
+        variants (list.IprExprVariant): list of variants.
+        show_progress (bool): Progressbar displayed for long runs.
 
     Returns:
         list of kbMatches records for IPR
@@ -122,7 +129,7 @@ def annotate_expression_variants(
             continue
         try:
             matches = gkb_match.match_expression_variant(graphkb_conn, gene, variant)
-            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_matches):
                 ipr_row["variant"] = row["key"]
                 ipr_row["variantType"] = row.get("variantType", "exp")
                 alterations.append(ipr_row)
@@ -145,15 +152,17 @@ def annotate_expression_variants(
 
 def annotate_copy_variants(
     graphkb_conn: GraphKBConnection,
+    disease_matches: List[str],
     variants: List[IprCopyVariant],
-    disease_name: str,
     show_progress: bool = False,
 ) -> List[KbMatch]:
     """Annotate allowed copy variants with GraphKB in the IPR alterations format.
 
     Args:
-        graphkb_conn: the graphkb api connection object
-        variants: list of variants
+        graphkb_conn (GraphKBConnection): the graphkb api connection object
+        disease_matches (list.str): GraphKB disease RIDs
+        variants (list.IprCopyVariant): list of variants.
+        show_progress (bool): Progressbar displayed for long runs.
 
     Returns:
         list of kbMatches records for IPR
@@ -175,7 +184,7 @@ def annotate_copy_variants(
             continue
         try:
             matches = gkb_match.match_copy_variant(graphkb_conn, gene, variant)
-            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_name):
+            for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_matches):
                 ipr_row["variant"] = row["key"]
                 ipr_row["variantType"] = row.get("variantType", "cnv")
                 alterations.append(ipr_row)
@@ -201,7 +210,7 @@ def annotate_copy_variants(
 def annotate_positional_variants(
     graphkb_conn: GraphKBConnection,
     variants: Sequence[IprStructuralVariant] | Sequence[Hashabledict],
-    disease_name: str,
+    disease_matches: List[str],
     show_progress: bool = False,
 ) -> List[Hashabledict]:
     """Annotate SNP, INDEL or fusion variant calls with GraphKB and return in IPR match format.
@@ -209,8 +218,8 @@ def annotate_positional_variants(
     Hashable type is required to turn lists into sets.
     Args:
         graphkb_conn (GraphKBConnection): the graphkb api connection object
-        variants (list.<dict>): list of variants. Defaults to [].
-        disease_name (str): GraphKB disease name for statement matching.  'cancer' is most general
+        variants (Sequence): list of variants.
+        disease_matches (list.str): GraphKB disease RIDs
         show_progress (bool): Progressbar displayed for long runs.
 
     Returns:
@@ -254,7 +263,9 @@ def annotate_positional_variants(
                         raise parse_err
 
                 for ipr_row in get_ipr_statements_from_variants(
-                    graphkb_conn, matches, disease_name
+                    graphkb_conn,
+                    matches,
+                    disease_matches,
                 ):
                     ipr_row["variant"] = row["key"]
                     ipr_row["variantType"] = row.get(
@@ -299,15 +310,16 @@ def annotate_positional_variants(
 
 def annotate_msi(
     graphkb_conn: GraphKBConnection,
-    disease_name: str = "cancer",
+    disease_matches: List[str],
     msi_category: str = "microsatellite instability",
 ) -> List[KbMatch]:
     """Annotate microsatellite instablity from GraphKB in the IPR alterations format.
 
     Match to GraphKb Category variants with similar names
     Args:
-        graphkb_conn: the graphkb api connection object
-        msi_category: such as 'microsatellite instability'
+        graphkb_conn (GraphKBConnection): the graphkb api connection object
+        disease_matches (list.str): GraphKB disease RIDs
+        msi_category (str): such as 'microsatellite instability'
 
     Returns:
         list of kbMatches records for IPR
@@ -318,7 +330,10 @@ def annotate_msi(
             "target": {
                 "target": "CategoryVariant",
                 "filters": {
-                    "reference1": {"target": "Signature", "filters": {"name": msi_category}}
+                    "reference1": {
+                        "target": "Signature",
+                        "filters": {"name": msi_category},
+                    }
                 },
             },
             "queryType": "similarTo",
@@ -327,7 +342,9 @@ def annotate_msi(
     )
     if msi_categories:
         msi_variants = [cast(Variant, var) for var in msi_categories]
-        for ipr_row in get_ipr_statements_from_variants(graphkb_conn, msi_variants, disease_name):
+        for ipr_row in get_ipr_statements_from_variants(
+            graphkb_conn, msi_variants, disease_matches
+        ):
             ipr_row["variant"] = msi_category
             ipr_row["variantType"] = "msi"
             gkb_matches.append(ipr_row)
@@ -335,14 +352,16 @@ def annotate_msi(
 
 
 def annotate_tmb(
-    graphkb_conn: GraphKBConnection, disease_name: str = "cancer", category: str = TMB_HIGH_CATEGORY
+    graphkb_conn: GraphKBConnection,
+    disease_matches: List[str],
+    category: str = TMB_HIGH_CATEGORY,
 ) -> List[KbMatch]:
     """Annotate Tumour Mutation Burden (tmb) categories from GraphKB in the IPR alterations format.
 
     Match to GraphKb Category variants with similar names
     Args:
-        graphkb_conn: the graphkb api connection object
-        disease_name: oncotree disease name for graphkb matching.
+        graphkb_conn (GraphKBConnection): the graphkb api connection object
+        disease_matches (list.str): GraphKB disease RIDs
         category: such as 'high mutation burden'
 
     Returns:
@@ -366,8 +385,62 @@ def annotate_tmb(
     )
     if categories:
         cat_variants = [cast(Variant, var) for var in categories]
-        for ipr_row in get_ipr_statements_from_variants(graphkb_conn, cat_variants, disease_name):
+        for ipr_row in get_ipr_statements_from_variants(
+            graphkb_conn, cat_variants, disease_matches
+        ):
             ipr_row["variant"] = category
             ipr_row["variantType"] = "tmb"
             gkb_matches.append(ipr_row)
     return gkb_matches
+
+
+def annotate_signature_variants(
+    graphkb_conn: GraphKBConnection,
+    disease_matches: List[str],
+    variants: List[IprSignatureVariant] = [],
+    show_progress: bool = False,
+) -> List[KbMatch]:
+    """Annotate Signature variants with GraphKB in the IPR alterations format.
+
+    Match to corresponding GraphKB Variants, then to linked GraphKB Statements
+
+    Args:
+        graphkb_conn (GraphKBConnection): the graphkb api connection object
+        disease_matches (list.str): GraphKB disease RIDs
+        variants (list.IprSignatureVariant): list of signature variants
+        show_progress (bool): progressbar displayed for long runs; default to False
+
+    Returns:
+        list of kbMatches records for IPR
+    """
+    alterations: List[Hashabledict] = []
+
+    iterfunc = tqdm if show_progress else iter
+    for variant in iterfunc(variants):
+        try:
+            # Matching signature variant to GKB Variants
+            matched_variants: List[Variant] = gkb_match.match_category_variant(
+                graphkb_conn,
+                variant["signatureName"],
+                variant["variantTypeName"],
+                reference_class="Signature",
+            )
+            # Matching GKB Variants to GKB Statements
+            for ipr_row in get_ipr_statements_from_variants(
+                graphkb_conn, matched_variants, disease_matches
+            ):
+                ipr_row["variant"] = variant["key"]
+                ipr_row["variantType"] = "sigv"
+                alterations.append(Hashabledict(ipr_row))
+
+        except ValueError as err:
+            logger.error(f"failed to match signature category variant '{variant}': {err}")
+
+    # drop duplicates
+    alterations = list(set(alterations))
+
+    logger.info(
+        f"matched {len(variants)} signature category variants to {len(alterations)} graphkb annotations"
+    )
+
+    return alterations

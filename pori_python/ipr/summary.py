@@ -9,9 +9,16 @@ from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.constants import RELEVANCE_BASE_TERMS
 from pori_python.graphkb.statement import categorize_relevance
 from pori_python.graphkb.util import convert_to_rid_list
-from pori_python.graphkb.vocab import get_term_tree
 from pori_python.ipr.inputs import create_graphkb_sv_notation
-from pori_python.types import Hashabledict, IprVariant, KbMatch, Ontology, Record, Statement
+from pori_python.ipr.connection import IprConnection
+from pori_python.types import (
+    Hashabledict,
+    IprVariant,
+    KbMatch,
+    Ontology,
+    Record,
+    Statement,
+)
 
 from .util import (
     convert_to_rid_set,
@@ -264,7 +271,9 @@ def create_section_html(
     for statement_id, sentence in sentences_by_statement_id.items():
         relevance = statements[statement_id]["relevance"]["@rid"]
         category = categorize_relevance(
-            graphkb_conn, relevance, RELEVANCE_BASE_TERMS + [("resistance", ["no sensitivity"])]
+            graphkb_conn,
+            relevance,
+            RELEVANCE_BASE_TERMS + [("resistance", ["no sensitivity"])],
         )
         sentence_categories[sentence] = category
 
@@ -274,7 +283,12 @@ def create_section_html(
             "target": "Feature",
             "filters": {
                 "AND": [
-                    {"source": {"target": "Source", "filters": {"name": "entrez gene"}}},
+                    {
+                        "source": {
+                            "target": "Source",
+                            "filters": {"name": "entrez gene"},
+                        }
+                    },
                     {"name": gene_name},
                     {"biotype": "gene"},
                 ]
@@ -311,7 +325,14 @@ def create_section_html(
         {
             s
             for (s, v) in sentence_categories.items()
-            if v not in ["diagnostic", "biological", "therapeutic", "prognostic", "resistance"]
+            if v
+            not in [
+                "diagnostic",
+                "biological",
+                "therapeutic",
+                "prognostic",
+                "resistance",
+            ]
         },
         {s for (s, v) in sentence_categories.items() if v == "resistance"},
     ]:
@@ -342,10 +363,116 @@ def section_statements_by_genes(
     return genes
 
 
+def prep_single_ipr_variant_comment(variant_text):
+    """Formats single item of custom variant text for inclusion in the analyst comments.
+
+    Params:
+        variant_text:
+
+    Returns:
+        section: html-formatted string
+    """
+    cancer_type = ",".join(variant_text["cancerType"])
+    if not cancer_type:
+        cancer_type = "no specific cancer types"
+    cancer_type = f" ({cancer_type})"
+    section = [f"<h2>{variant_text['variantName']}{cancer_type}</h2>"]
+    section.append(f"<p>{variant_text['text']}</p>")
+    return section
+
+
+def get_ipr_analyst_comments(
+    ipr_conn: IprConnection,
+    matches: Sequence[KbMatch] | Sequence[Hashabledict],
+    disease_name: str,
+    project_name: str,
+    report_type: str,
+    include_nonspecific_disease: bool = False,
+    include_nonspecific_project: bool = False,
+    include_nonspecific_template: bool = False,
+) -> str:
+    """
+    Given a list of kbmatches, checks the variant_texts table in IPR-API to get any
+    pre-prepared text for this variant for inclusion in the analyst comments.
+    Matches on template, project and variant_name. Matches on project, disease and template
+    if possible. If no match is found and the related include_nonspecific arg is True,
+    uses a result with no specified value for that field if a result is found (eg
+    a result with no cancer type specified, if it exists).
+
+    Params:
+        ipr_conn: connection to the ipr db
+        matches: list of kbmatches which will be included in the report
+        disease_name: str, eg 'colorectal cancer'
+        project_name: str, eg TEST or pog
+        report_type: str, eg genomic or rapid
+        include_nonspecific_disease: bool - true if variant texts that don't explicitly
+            name a cancer type should be included
+        include_nonspecific_project: bool - true if variant texts that don't explicitly
+            name a project should be included
+        include_nonspecific_template: bool - true if variant texts that don't explicitly
+            name a project should be included
+    Returns:
+        html-formatted string
+    """
+    output_header = "<h3>The comments below were automatically drawn from curated text stored in IPR for variant matches in this report, and have not been manually reviewed</h3>"
+    no_comments_found_output = "No comments found in IPR for variants in this report"
+    output = []
+    # get the list of variants to check for custom text for
+    match_set = list(set([item["kbVariant"] for item in matches]))
+
+    for variant in match_set:
+        data = {
+            "variantName": variant,
+        }
+        itemlist: list[dict] = []
+        itemlist = ipr_conn.get("variant-text", data=data)  # type: ignore
+        if itemlist:
+            project_matches = [
+                item
+                for item in itemlist
+                if 'project' in item.keys() and item['project']['name'] == project_name
+            ]
+            if project_matches:
+                itemlist = project_matches
+            elif include_nonspecific_project:
+                itemlist = [item for item in itemlist if 'project' not in item.keys()]
+            else:
+                itemlist = []
+
+            template_matches = [
+                item
+                for item in itemlist
+                if 'template' in item.keys() and item['template']['name'] == report_type
+            ]
+            if template_matches:
+                itemlist = template_matches
+            elif include_nonspecific_template:
+                itemlist = [item for item in itemlist if 'template' not in item.keys()]
+            else:
+                itemlist = []
+
+            disease_matches = [item for item in itemlist if disease_name in item['cancerType']]
+            if disease_matches:
+                itemlist = disease_matches
+            elif include_nonspecific_disease:
+                itemlist = [item for item in itemlist if not item['cancerType']]
+            else:
+                itemlist = []
+
+            for item in itemlist:
+                section = prep_single_ipr_variant_comment(item)
+                output.extend(section)
+
+    if not output:
+        return no_comments_found_output
+    output.insert(0, output_header)
+    return "\n".join(output)
+
+
 def auto_analyst_comments(
     graphkb_conn: GraphKBConnection,
     matches: Sequence[KbMatch] | Sequence[Hashabledict],
-    disease_name: str,
+    disease_matches: set[str],
     variants: Sequence[IprVariant],
 ) -> str:
     """Given a list of GraphKB matches, generate a text summary to add to the report."""
@@ -366,10 +493,6 @@ def auto_analyst_comments(
         except KeyError as err:
             logger.warning(f"No specific variant matched for {rid}:{keys} - {err}")
             exp_variants_by_statements[rid] = []
-
-    disease_matches = convert_to_rid_set(
-        get_term_tree(graphkb_conn, disease_name, ontology_class="Disease")
-    )
 
     # get details for statements
     for match in matches:

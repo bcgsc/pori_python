@@ -99,12 +99,11 @@
             "items": {
                 "properties": {
                     "chromosomeBand": {
-                        "example": "X:p12.2",
-                        "pattern": "^(\\S+:\\S+?)?$",
+                        "example": "Xp12.2",
                         "type": "string"
                     },
                     "cna": {
-                        "description": "The copy number alteration (CNA) ratio",
+                        "description": "Copy Number, Absolute (cna)",
                         "example": 1.22,
                         "type": [
                             "number",
@@ -210,6 +209,16 @@
                     "kbCategory"
                 ],
                 "type": "object"
+            },
+            "type": "array"
+        },
+        "cosmicSignatures": {
+            "default": [],
+            "description": "List of observed (above threshold) COSMIC signatures (DBS, SBS and ID) & dMMR",
+            "items": {
+                "description": "Signature name",
+                "example": "DBS1",
+                "type": "string"
             },
             "type": "array"
         },

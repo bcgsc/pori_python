@@ -87,6 +87,45 @@ class KbMatch(TypedDict):
     externalStatementId: str
     reviewStatus: str
     kbData: Dict
+    requiredKbMatches: List[str]
+
+
+class KbVariantMatch(TypedDict):
+    variantKey: str
+    variantType: str
+    kbVariant: str
+    kbVariantId: str
+
+
+class KbMatchedStatement(TypedDict):
+    approvedTherapy: bool
+    category: str
+    context: str
+    kbContextId: str
+    disease: str
+    evidenceLevel: str
+    iprEvidenceLevel: Optional[str]
+    kbStatementId: str
+    matchedCancer: bool
+    reference: str
+    relevance: str
+    kbRelevanceId: str
+    externalSource: str
+    externalStatementId: str
+    reviewStatus: str
+    kbData: Dict
+    requiredKbMatches: List[str]
+
+
+class KbMatchedStatementConditionSet(TypedDict):
+    kbStatementId: str
+    matchedConditions: List[Dict]
+
+
+class KbMatchSections(TypedDict):
+    kbMatchedStatements: List[KbMatchedStatement]
+    kbMatchedVariants: List[KbVariantMatch]
+    kbMatchedStatementConditions: List[KbMatchedStatementConditionSet]
 
 
 class Hashabledict(dict):
@@ -168,10 +207,22 @@ class IprFusionVariant(IprStructVarBase):
     svg: Optional[str]  # path to svg image of fusion
 
 
+class IprSignatureVariant(IprVariantBase):
+    # variantType = 'sigv'
+    displayName: str
+    signatureName: str
+    variantTypeName: str
+
+
 class ImageDefinition(TypedDict):
     key: str
     path: str
 
 
 IprStructuralVariant = Union[IprSmallMutationVariant, IprFusionVariant]
-IprVariant = Union[IprCopyVariant, IprExprVariant, IprStructuralVariant]
+IprVariant = Union[
+    IprCopyVariant,
+    IprExprVariant,
+    IprSignatureVariant,
+    IprStructuralVariant,
+]

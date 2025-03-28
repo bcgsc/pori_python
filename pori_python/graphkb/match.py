@@ -31,7 +31,12 @@ from .util import (
     looks_like_rid,
     stringifyVariant,
 )
-from .vocab import get_equivalent_terms, get_term_tree, get_terms_set
+from .vocab import (
+    get_equivalent_terms,
+    get_term_by_name,
+    get_term_tree,
+    get_terms_set,
+)
 
 FEATURES_CACHE: Set[str] = set()
 
@@ -124,50 +129,62 @@ def cache_missing_features(conn: GraphKBConnection) -> None:
 
 def match_category_variant(
     conn: GraphKBConnection,
-    gene_name: str,
+    reference_name: str,
     category: str,
     root_exclude_term: str = "",
     gene_source: str = "",
     gene_is_source_id: bool = False,
     ignore_cache: bool = False,
+    reference_class: str = 'Feature',
 ) -> List[Variant]:
     """
     Returns a list of variants matching the input variant
 
     Args:
         conn (GraphKBConnection): the graphkb connection object
-        gene_name (str): the name of the gene the variant is in reference to
+        reference_name (str): the name of the Feature(gene)/Signature the variant is in reference to
         category (str): the variant category (ex. copy loss)
         gene_source: The source database the gene is defined by (ex. ensembl)
         gene_is_source_id: Indicates the gene name(s) input should be treated as sourceIds not names
+        reference_class (str): Class name of the variant reference. Default to 'Feature'
     Raises:
         FeatureNotFoundError: The gene could not be found in GraphKB
 
     Returns:
         Array.<dict>: List of variant records from GraphKB which match the input
     """
-    # disambiguate the gene to find all equivalent representations
-    features = convert_to_rid_list(
-        get_equivalent_features(
-            conn,
-            gene_name,
-            source=gene_source,
-            is_source_id=gene_is_source_id,
-            ignore_cache=ignore_cache,
+    # disambiguate the reference to find all equivalent representations
+    references: List[str] = []
+    if reference_class == 'Feature':
+        references = convert_to_rid_list(
+            get_equivalent_features(
+                conn,
+                reference_name,
+                source=gene_source,
+                is_source_id=gene_is_source_id,
+                ignore_cache=ignore_cache,
+            )
         )
-    )
-
-    if not features:
-        raise FeatureNotFoundError(
-            f"unable to find the gene ({gene_name}) or any equivalent representations"
+        if not references:
+            raise FeatureNotFoundError(
+                f"unable to find the gene ({reference_name}) or any equivalent representations"
+            )
+    if reference_class == 'Signature':
+        references = convert_to_rid_list(
+            get_equivalent_terms(
+                conn,
+                reference_name.lower(),
+                ontology_class='Signature',
+                ignore_cache=ignore_cache,
+            )
         )
 
     # get the list of terms that we should match
-    terms = convert_to_rid_list(
+    types = convert_to_rid_list(
         get_term_tree(conn, category, root_exclude_term, ignore_cache=ignore_cache)
     )
 
-    if not terms:
+    if not types:
         raise ValueError(f"unable to find the term/category ({category}) or any equivalent")
 
     # find the variant list
@@ -178,8 +195,8 @@ def match_category_variant(
                 "target": {
                     "target": "CategoryVariant",
                     "filters": [
-                        {"reference1": features, "operator": "IN"},
-                        {"type": terms, "operator": "IN"},
+                        {"reference1": references, "operator": "IN"},
+                        {"type": types, "operator": "IN"},
                     ],
                 },
                 "queryType": "similarTo",
@@ -275,7 +292,55 @@ def positions_overlap(
     return start is None or pos == start
 
 
+def equivalent_types(
+    conn: GraphKBConnection,
+    type1: str,
+    type2: str,
+    strict: bool = False,
+) -> bool:
+    """
+    Compare 2 variant types to determine if they should match
+
+    Args:
+        conn: the graphkb connection object
+        type1: type from the observed variant we want to match to the DB
+        type2: type from the DB variant
+        strict: wether or not only the specific-to-generic ones are considered.
+                By default (false), not only specific types can match more generic ones,
+                but generic types can also match more specific ones.
+
+    Returns:
+        bool: True if the types can be matched
+    """
+
+    # Convert rid to displayName if needed
+    if looks_like_rid(type1):
+        type1 = conn.get_records_by_id([type1])[0]['displayName']
+    if looks_like_rid(type2):
+        type2 = conn.get_records_by_id([type2])[0]['displayName']
+
+    # Get type terms from observed variant
+    terms1 = []
+    if strict:
+        try:
+            terms1.append(get_term_by_name(conn, type1)['@rid'])
+        except:
+            pass
+    else:
+        terms1 = get_terms_set(conn, [type1])
+
+    # Get type terms from DB variant
+    terms2 = get_terms_set(conn, [type2])
+
+    # Check for intersect
+    if len(terms2.intersection(terms1)) == 0:
+        return False
+
+    return True
+
+
 def compare_positional_variants(
+    conn: GraphKBConnection,
     variant: Union[PositionalVariant, ParsedVariant],
     reference_variant: Union[PositionalVariant, ParsedVariant],
     generic: bool = True,
@@ -376,6 +441,11 @@ def compare_positional_variants(
             if reference_variant["refSeq"].lower() != variant["refSeq"].lower():  # type: ignore
                 return False
         elif len(variant["refSeq"]) != len(reference_variant["refSeq"]):  # type: ignore
+            return False
+
+    # Equivalent types
+    if variant.get('type') and reference_variant.get('type'):
+        if not equivalent_types(conn, variant["type"], reference_variant["type"]):
             return False
 
     return True
@@ -598,10 +668,14 @@ def match_positional_variant(
     ):
         # TODO: Check if variant and reference_variant should be interchanged
         if compare_positional_variants(
-            variant=parsed, reference_variant=cast(PositionalVariant, row), generic=True
+            conn,
+            variant=parsed,
+            reference_variant=cast(PositionalVariant, row),
+            generic=True,
         ):
             filtered_similarAndGeneric.append(row)
             if compare_positional_variants(
+                conn,
                 variant=parsed,
                 reference_variant=cast(PositionalVariant, row),
                 generic=False,  # Similar variants only

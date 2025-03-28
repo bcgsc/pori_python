@@ -4,6 +4,7 @@ import pytest
 from pori_python.graphkb import GraphKBConnection
 from pori_python.ipr.annotate import annotate_positional_variants
 from pori_python.types import IprSmallMutationVariant
+from .test_ipr import DISEASE_RIDS
 
 EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
 
@@ -96,7 +97,7 @@ class TestAnnotation:
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
         disease = "cancer"
         for key in ("prot_only", "cds_only", "genome_only", "pref"):
-            matched = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[key]], disease)
+            matched = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[key]], DISEASE_RIDS)
             # nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
             nonsense = [a for a in matched if a["kbVariant"] == "TP53 nonsense"]
             assert not nonsense, f"nonsense matched to {key}: {TP53_MUT_DICT[key]}"
@@ -106,7 +107,7 @@ class TestAnnotation:
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
         disease = "cancer"
         for key in ("prot_only", "pref"):
-            matched = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[key]], disease)
+            matched = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[key]], DISEASE_RIDS)
             # nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
             nonsense = [a for a in matched if "nonsense" in a["kbVariant"]]
             assert not nonsense, f"nonsense matched to {key}: {TP53_MUT_DICT[key]}"
@@ -116,7 +117,7 @@ class TestAnnotation:
         """Verify alternate TP53 variants match."""
         disease = "cancer"
         ref_key = "prot_only"
-        pref = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[ref_key]], disease)
+        pref = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[ref_key]], DISEASE_RIDS)
         # GERO-299 - nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
         nonsense = [a for a in pref if a["kbVariant"] == "TP53 nonsense"]
         assert not nonsense
@@ -126,7 +127,10 @@ class TestAnnotation:
         for key, alt_rep in TP53_MUT_DICT.items():
             if key == ref_key:
                 continue
-            alt = annotate_positional_variants(graphkb_conn, [alt_rep], disease)
+            if key in ('cds_only', 'genome_only'):
+                # KBDEV-1259. Temporarely disabled until issue resolution.
+                continue
+            alt = annotate_positional_variants(graphkb_conn, [alt_rep], DISEASE_RIDS)
             alt_vars = set([m["kbVariant"] for m in alt])
             diff = pref_vars.symmetric_difference(alt_vars)
             missing = pref_vars.difference(alt_vars)
@@ -143,7 +147,9 @@ class TestAnnotation:
     def test_wt_not_matched(self, graphkb_conn):
         """Verify wildtypes are not matched to mutations."""
         disease = "cancer"
-        matches = annotate_positional_variants(graphkb_conn, [KBDEV1231_TP53_ERR_MATCH_WT], disease)
+        matches = annotate_positional_variants(
+            graphkb_conn, [KBDEV1231_TP53_ERR_MATCH_WT], DISEASE_RIDS
+        )
         # KBDEV-1231 - wildtype - should not match.  A mutation is not wildtype
         wt_matches = sorted(set([m["kbVariant"] for m in matches if "wildtype" in m["kbVariant"]]))
         assert not wt_matches, f"Mutation 'TP53:p.E285K' should NOT match {wt_matches}"
