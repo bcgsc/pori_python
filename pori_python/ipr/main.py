@@ -9,6 +9,8 @@ import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from typing import Callable, Dict, List, Sequence, Set
 
+from numpy import nan
+
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
 from pori_python.types import (
@@ -395,19 +397,28 @@ def ipr_report(
     tmb_matches = []
 
     if "genomeTmb" in content.keys() or "tmburMutationBurden" in content.keys():
+        # SDEV-4811 - mutation burden is now expected to be uploaded in genomeTmb as mutations/megabase
+        #   previously derived from tmburMutationBurden["genomeIndelTmb"] + tmburMutationBurden["genomeSnvTmb"]
         tmb_val = 0.0
+        tmbur_tmb_val = nan
         tmb = {}
-
         if "tmburMutationBurden" in content.keys():
             try:
                 tmb = content.get("tmburMutationBurden", {})
-                tmb_val = tmb["genomeIndelTmb"] + tmb["genomeSnvTmb"]
+                tmbur_tmb_val = tmb["genomeIndelTmb"] + tmb["genomeSnvTmb"]
+                if not "genomeTmb" in content.keys():
+                    logger.error(
+                        "backwards compatibility: deriving genomeTmb from tmburMutationBurden genomeIndelTmb + genomeSnvTmb"
+                    )
+                    tmb_val = tmbur_tmb_val
             except Exception as err:
                 logger.error(f"tmburMutationBurden parsing failure: {err}")
 
         if "genomeTmb" in content.keys():
             try:
                 tmb_val = float(content.get("genomeTmb"))
+                if "tmburMutationBurden" in content.keys() and tmbur_tmb_val != tmb_val:
+                    logger.warning(f"genomeTmb given {tmb_val} does not match tmburMutationBurden TMB {tmbur_tmb_val}")
             except Exception as err:
                 logger.error(f"genomeTmb parsing failure {content.get('genomeTmb')}: {err}")
 
