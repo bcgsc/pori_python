@@ -393,14 +393,23 @@ def ipr_report(
     # MATCHING TMB
     tmb_variant: IprVariant = {}  # type: ignore
     tmb_matches = []
-    if "tmburMutationBurden" in content.keys():
+
+    if "genomeTmb" in content.keys() or "tmburMutationBurden" in content.keys():
         tmb_val = 0.0
         tmb = {}
-        try:
-            tmb = content.get("tmburMutationBurden", {})
-            tmb_val = tmb["genomeIndelTmb"] + tmb["genomeSnvTmb"]
-        except Exception as err:
-            logger.error(f"tmburMutationBurden parsing failure: {err}")
+
+        if "tmburMutationBurden" in content.keys():
+            try:
+                tmb = content.get("tmburMutationBurden", {})
+                tmb_val = tmb["genomeIndelTmb"] + tmb["genomeSnvTmb"]
+            except Exception as err:
+                logger.error(f"tmburMutationBurden parsing failure: {err}")
+
+        if "genomeTmb" in content.keys():
+            try:
+                tmb_val = float(content.get("genomeTmb"))
+            except Exception as err:
+                logger.error(f"genomeTmb parsing failure {content.get('genomeTmb')}: {err}")
 
         if tmb_val >= TMB_HIGH:
             logger.warning(
