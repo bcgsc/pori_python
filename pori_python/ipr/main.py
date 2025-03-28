@@ -422,6 +422,7 @@ def ipr_report(
             except Exception as err:
                 logger.error(f"genomeTmb parsing failure {content.get('genomeTmb')}: {err}")
 
+        # TODO: clincal mentioned 'high mutation burden' is arbitrary and users may want to upload a TMB_HIGH cutoff or upload categories.
         if tmb_val >= TMB_HIGH:
             logger.warning(
                 f"GERO-296 - tmburMutationBurden high -checking graphkb matches for {TMB_HIGH_CATEGORY}"
