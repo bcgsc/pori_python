@@ -324,7 +324,7 @@ def equivalent_types(
     if strict:
         try:
             terms1.append(get_term_by_name(conn, type1)["@rid"])
-        except:
+        except Exception:
             pass
     else:
         terms1 = get_terms_set(conn, [type1])
