@@ -253,7 +253,7 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprCopyVariant]:
         if chrom:
             # check that chr isn't already in the chrband;
             # this regex from https://vrs.ga4gh.org/en/1.2/terms_and_model.html#id25
-            if chrband and (re.match("^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband)):
+            if chrband and (re.match(r"^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband)):
                 if isinstance(chrom, int):
                     chrom = str(chrom)
                 chrom = chrom.strip("chr")
