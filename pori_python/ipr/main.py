@@ -19,7 +19,6 @@ from pori_python.types import (
     IprSignatureVariant,
     IprSmallMutationVariant,
     IprVariant,
-    KbMatchSections,
 )
 
 from .annotate import (
