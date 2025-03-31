@@ -579,7 +579,7 @@ def ipr_report(
             include_nonspecific_template=include_nonspecific_template,
         )
         comments_list.append(ipr_comments)
-    comments = {'comments': "\n".join(comments_list)}
+    comments = {"comments": "\n".join(comments_list)}
 
     # OUTPUT CONTENT
     # thread safe deep-copy the original content

@@ -4,10 +4,12 @@ by other reporting systems
 """
 
 from __future__ import annotations
-from itertools import product
-from copy import copy
-from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
+
 import uuid
+from copy import copy
+from itertools import product
+from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
+
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
@@ -18,12 +20,12 @@ from pori_python.types import (
     IprGene,
     IprVariant,
     KbMatch,
-    Statement,
-    Variant,
-    KbVariantMatch,
     KbMatchedStatement,
     KbMatchedStatementConditionSet,
     KbMatchSections,
+    KbVariantMatch,
+    Statement,
+    Variant,
 )
 
 from .constants import GERMLINE_BASE_TERMS, VARIANT_CLASSES
@@ -631,7 +633,7 @@ def get_kb_disease_matches(
 ) -> list[str]:
 
     if not kb_disease_match:
-        kb_disease_match = 'cancer'
+        kb_disease_match = "cancer"
         if verbose:
             logger.warning(f"No disease provided; will use '{kb_disease_match}'")
 

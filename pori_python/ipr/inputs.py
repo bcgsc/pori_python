@@ -7,8 +7,8 @@ from __future__ import annotations
 import json
 import jsonschema
 import os
-import re
 import pandas as pd
+import re
 from Bio.Data.IUPACData import protein_letters_3to1
 from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
 

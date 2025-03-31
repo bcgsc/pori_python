@@ -4,6 +4,7 @@ import pytest
 from pori_python.graphkb import GraphKBConnection
 from pori_python.ipr.annotate import annotate_positional_variants
 from pori_python.types import IprSmallMutationVariant
+
 from .test_ipr import DISEASE_RIDS
 
 EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
@@ -127,7 +128,7 @@ class TestAnnotation:
         for key, alt_rep in TP53_MUT_DICT.items():
             if key == ref_key:
                 continue
-            if key in ('cds_only', 'genome_only'):
+            if key in ("cds_only", "genome_only"):
                 # KBDEV-1259. Temporarely disabled until issue resolution.
                 continue
             alt = annotate_positional_variants(graphkb_conn, [alt_rep], DISEASE_RIDS)

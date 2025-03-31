@@ -72,7 +72,7 @@ def report_upload_content(tmp_path_factory) -> Dict:
     )
 
     def side_effect_function(*args, **kwargs):
-        if 'templates' in args[0]:
+        if "templates" in args[0]:
             return [{"name": "genomic", "ident": "001"}]
         elif args[0] == "project":
             return [{"name": "TEST", "ident": "001"}]
