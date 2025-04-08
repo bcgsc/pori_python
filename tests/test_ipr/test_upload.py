@@ -15,8 +15,8 @@ from .constants import EXCLUDE_INTEGRATION_TESTS
 
 EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
 EXCLUDE_ONCOKB_TESTS = os.environ.get("EXCLUDE_ONCOKB_TESTS") == "1"
-INCLUDE_UPLOAD_TESTS = os.environ.get("INCLUDE_UPLOAD_TESTS", 0) == "1"
-DELETE_UPLOAD_TEST_REPORTS = os.environ.get("DELETE_UPLOAD_TEST_REPORTS", 1) == "1"
+INCLUDE_UPLOAD_TESTS = os.environ.get("INCLUDE_UPLOAD_TESTS", "0") == "1"
+DELETE_UPLOAD_TEST_REPORTS = os.environ.get("DELETE_UPLOAD_TEST_REPORTS", "1") == "1"
 
 
 def get_test_spec():
