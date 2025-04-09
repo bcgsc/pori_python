@@ -101,6 +101,14 @@ class IprConnection:
             # if async is used, the response for reports-async contains either 'jobStatus'
             # or 'report'. jobStatus is no longer available once the report is successfully
             # uploaded.
+
+            projects = self.get("project")
+            project_names = [item['name'] for item in projects]
+
+            # if project is not exist, create one
+            if content['project'] not in project_names:
+                self.post("project", {'name': content['project']})
+
             initial_result = self.post("reports-async", content)
 
             report_id = initial_result["ident"]
