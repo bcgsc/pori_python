@@ -1,6 +1,6 @@
 # Limited testing using Python 3.9 only, EXCLUDING integration tests
 # Triggered by a push (new branch, or new commit to any branch), EXCEPT
-# if that branch is part of a regular (non-draft) pull request.
+# if that branch is part of a regular (non-draft) pull request
 
 name: quick-tests
 
