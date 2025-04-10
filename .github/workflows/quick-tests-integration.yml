@@ -1,12 +1,13 @@
-# Limited testing using Python 3.9 only, INCLUDING integration tests
-# Triggered by a regular (non-draft) pull request created
-# Triggered by a regular (non-draft) pull request updated by a new commit
-# Triggered by a draft pull request converted into a regular (non-draft) one
+# Limited testing using Python 3.9 only INCLUDING integration tests
+# Triggered by a regular (non-draft) pull request created, except to main branch
+# Triggered by a regular (non-draft) pull request updated by a new commit, except to main branch
+# Triggered by a draft pull request to develop branch converted into a regular (non-draft) one
 
 name: quick-tests-integration
 
 on:
   pull_request:
+    branches: [develop]
     types: [opened, synchronize, ready_for_review]
 
 jobs:

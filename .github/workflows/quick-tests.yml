@@ -1,5 +1,5 @@
-# Limited testing using Python 3.9 only, EXCLUDING integration tests
-# Triggered by a push (new branch, or new commit to any branch), EXCEPT
+# Limited testing using Python 3.9 only EXCLUDING integration tests
+# Triggered by any push (new branch, or new commit to any branch), EXCEPT
 # if that branch is part of a regular (non-draft) pull request
 
 name: quick-tests
@@ -10,7 +10,10 @@ on:
 jobs:
 
   quick-tests:
-    if: ${{ !github.event.pull_request || github.event.pull_request.draft == true }}
+    if: ${{ !(
+      github.event.pull_request &&
+      github.event.pull_request.draft == false
+    ) }}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
