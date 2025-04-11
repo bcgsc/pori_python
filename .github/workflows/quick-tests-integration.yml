@@ -1,19 +1,26 @@
-# Limited testing using Python 3.9 only INCLUDING integration tests
-# Triggered by a regular (non-draft) pull request created, except to main branch
-# Triggered by a regular (non-draft) pull request updated by a new commit, except to main branch
-# Triggered by a draft pull request to develop branch converted into a regular (non-draft) one
+# Limited testing, INCLUDING integration tests
+# Python:
+#   - 3.9
+# Triggered by:
+#   - Creating a new PR to develop branch
+#   - Addind commit(s) to an existing PR to develop branch
+#   - Addind commit(s) to develop branch:
+#     - Direct commit without PR
+#     - Updating the out-of-date base branch to an existing PR to develop branch
 
 name: quick-tests-integration
 
 on:
+  push:
+    branches: [develop]
   pull_request:
     branches: [develop]
-    types: [opened, synchronize, ready_for_review]
+    types: [opened, synchronize]
+  workflow_dispatch:
 
 jobs:
 
   quick-tests-integration:
-    if: ${{ github.event.pull_request.draft == false }}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository

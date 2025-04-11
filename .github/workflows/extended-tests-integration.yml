@@ -1,15 +1,25 @@
-# Extended testing using Python 3.9, 3.10, 3.11 & 3.12 INCLUDING integration tests
-# Triggered by a pull request to main branch created
-# Triggered by a pull request to main branch updated by a new commit
-# Triggered by a pull request to main branch converted from drat to regular (non-draft)
-# EXCEPTION for draft pull request: EXCLUDING integration tests, upload test results & code cov.
+# Extended testing, INCLUDDING integration tests
+# Python:
+#   - 3.9
+#   - 3.10
+#   - 3.11
+#   - 3.12
+# Triggered by:
+#   - Creating a new PR to main branch
+#   - Addind commit(s) to an existing PR to main branch
+#   - Addind commit(s) to main branch:
+#     - Direct commit without PR
+#     - Updating the out-of-date base branch to an existing PR to main branch
 
 name: extended-tests-integration
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
-    types: [opened, synchronize, ready_for_review]
+    types: [opened, synchronize]
+  workflow_dispatch:
 
 jobs:
 
@@ -44,19 +54,6 @@ jobs:
         black --check -S -l 100 pori_python tests
 
     - name: Tests with pytest, including integration tests
-      if: ${{ github.event.pull_request.draft == true }}
-      run: |
-        pip list
-        pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov pori_python --cov-report term --cov-report xml
-      env:
-        IPR_USER: ${{ secrets.IPR_TEST_USER }}
-        IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
-        GRAPHKB_USER: ${{ secrets.GKB_TEST_USER }}
-        GRAPHKB_PASS: ${{ secrets.GKB_TEST_PASS }}
-        EXCLUDE_INTEGRATION_TESTS: 1
-
-    - name: Tests with pytest, including integration tests
-      if: ${{ github.event.pull_request.draft == false }}
       run: |
         pip list
         pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov pori_python --cov-report term --cov-report xml
@@ -68,10 +65,7 @@ jobs:
         EXCLUDE_INTEGRATION_TESTS: 0
 
     - name: Upload pytest test results
-      if: ${{ (
-        github.event.pull_request.draft == false &&
-        matrix.python-version == '3.9'
-      ) }}
+      if: ${{ matrix.python-version == '3.9' }}
       uses: actions/upload-artifact@v4
       with:
         name: pytest-results-${{ matrix.python-version }}
@@ -79,10 +73,7 @@ jobs:
         # Use always() to always run this step to publish test results when there are test failures
 
     - name: Update code coverage report to CodeCov
-      if: ${{ (
-        github.event.pull_request.draft == false &&
-        matrix.python-version == '3.9'
-      ) }}
+      if: ${{ matrix.python-version == '3.9' }}
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}

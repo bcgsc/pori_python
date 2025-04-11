@@ -1,18 +1,25 @@
-# Limited testing using Python 3.9 only EXCLUDING integration tests
-# Triggered by any push (new branch, or new commit to any branch), EXCEPT
-# if that branch is part of a regular (non-draft) pull request
+# Limited testing, EXCLUDING integration tests
+# Python:
+#   - 3.9
+# Triggered by:
+#   - Pushing a new branch
+#   - Addind commit(s) to a branch that is not main or develop, and that is not part of a PR to develop or main branch
 
 name: quick-tests
 
 on:
   push:
+    branches-ignore: [main, develop]
+  workflow_dispatch:
 
 jobs:
 
   quick-tests:
     if: ${{ !(
-      github.event.pull_request &&
-      github.event.pull_request.draft == false
+      github.event.pull_request && (
+        github.event.pull_request.base.ref == 'main' ||
+        github.event.pull_request.base.ref == 'develop'
+      )
     ) }}
     runs-on: ubuntu-latest
     steps:
