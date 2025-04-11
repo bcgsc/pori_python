@@ -19,7 +19,6 @@ on:
   workflow_dispatch:
 
 jobs:
-
   quick-tests-integration:
     runs-on: ubuntu-latest
     steps:
