@@ -8,7 +8,7 @@ from requests.exceptions import HTTPError
 
 from pandas import isnull
 from tqdm import tqdm
-from typing import Dict, List, Sequence, cast
+from typing import Dict, List, Sequence
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import match as gkb_match
@@ -20,13 +20,13 @@ from pori_python.types import (
     IprCopyVariant,
     IprExprVariant,
     IprSignatureVariant,
+    IprSmallMutationVariant,
     IprStructuralVariant,
     KbMatch,
     Statement,
     Variant,
 )
 
-from .constants import TMB_SIGNATURE, TMB_SIGNATURE_VARIANT_TYPE
 from .ipr import convert_statements_to_alterations
 from .util import convert_to_rid_set, logger
 
@@ -358,3 +358,88 @@ def annotate_signature_variants(
     )
 
     return alterations
+
+
+def annotate_variants(
+    graphkb_conn: GraphKBConnection,
+    interactive: bool = False,
+    disease_matches: List[str] = [],
+    signature_variants: List[IprSignatureVariant] = [],
+    small_mutations: List[IprSmallMutationVariant] = [],
+    structural_variants: List[IprStructuralVariant] = [],
+    copy_variants: List[IprCopyVariant] = [],
+    expression_variants: List[IprExprVariant] = [],
+) -> List[Hashabledict]:
+    """Annotating (matching to GraphKB) all observed variants, per type
+    Args:
+        graphkb_conn: the graphkb api connection object
+        interactive: progressbars for interactive users
+        disease_matches: list of matched disease RID strings,
+        signature_variants: signature CategoryVariants (incl. cosmic, dmmr, hla, tmb & msi),
+        small_mutations: small PositionalVariants,
+        structural_variants: structural PositionalVariants (incl. fusion)
+        copy_variants: copy number CategoryVariants (e.g. of type 'copy loss', 'copy gain', etc.),
+        expression_variants: expression CategoryVariant (e.g. of type 'overexpression', etc. ),
+    Returns:
+        A list of matched Statements to GraphKB
+    """
+    gkb_matches: List[Hashabledict] = []
+
+    # MATCHING SIGNATURE CATEGORY VARIANTS
+    logger.info(f"annotating {len(signature_variants)} signatures")
+    gkb_matches.extend(
+        annotate_signature_variants(
+            graphkb_conn, disease_matches, signature_variants, show_progress=interactive
+        )
+    )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
+
+    # MATCHING SMALL MUTATIONS
+    logger.info(f"annotating {len(small_mutations)} small mutations")
+    gkb_matches.extend(
+        annotate_positional_variants(
+            graphkb_conn, small_mutations, disease_matches, show_progress=interactive
+        )
+    )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
+
+    # MATCHING STRUCTURAL VARIANTS
+    logger.info(f"annotating {len(structural_variants)} structural variants")
+    gkb_matches.extend(
+        annotate_positional_variants(
+            graphkb_conn,
+            structural_variants,
+            disease_matches,
+            show_progress=interactive,
+        )
+    )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
+
+    # MATCHING COPY VARIANTS
+    logger.info(f"annotating {len(copy_variants)} copy variants")
+    gkb_matches.extend(
+        [
+            Hashabledict(copy_var)
+            for copy_var in annotate_copy_variants(
+                graphkb_conn, disease_matches, copy_variants, show_progress=interactive
+            )
+        ]
+    )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
+
+    # MATCHING EXPRESSION VARIANTS
+    logger.info(f"annotating {len(expression_variants)} expression variants")
+    gkb_matches.extend(
+        [
+            Hashabledict(exp_var)
+            for exp_var in annotate_expression_variants(
+                graphkb_conn,
+                disease_matches,
+                expression_variants,
+                show_progress=interactive,
+            )
+        ]
+    )
+    logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
+
+    return gkb_matches
