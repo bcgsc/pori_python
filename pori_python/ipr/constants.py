@@ -26,4 +26,3 @@ MSI_MAPPING = {
         'variantTypeName': 'signature present',
     },
 }
-

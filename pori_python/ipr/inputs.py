@@ -484,7 +484,9 @@ def preprocess_hla(rows: Iterable[Dict]) -> Iterable[Dict]:
     ]
 
 
-def preprocess_tmb(tmb_high:float, tmburMutationBurden: Dict = None, genomeTmb: float = None) -> Iterable[Dict]:
+def preprocess_tmb(
+    tmb_high: float, tmburMutationBurden: Dict = None, genomeTmb: float = None
+) -> Iterable[Dict]:
     """
     Process tumour mutation burden (tmb) input(s) into preformatted signature input.
     Get compared to threshold; signature CategoryVariant created only if threshold met.
@@ -513,7 +515,9 @@ def preprocess_tmb(tmb_high:float, tmburMutationBurden: Dict = None, genomeTmb: 
         try:
             tmb_val = float(genomeTmb)
             if tmburMutationBurden and tmbur_tmb_val != tmb_val:
-                logger.warning(f"genomeTmb given {tmb_val} does not match tmburMutationBurden TMB {tmbur_tmb_val}")
+                logger.warning(
+                    f"genomeTmb given {tmb_val} does not match tmburMutationBurden TMB {tmbur_tmb_val}"
+                )
         except Exception as err:
             logger.error(f"genomeTmb parsing failure {genomeTmb}: {err}")
 
@@ -552,7 +556,7 @@ def preprocess_msi(msi: Any) -> Iterable[Dict]:
 
         # Signature CategoryVariant created either for msi or mss
         if msi_variant:
-            return [ msi_variant ]
+            return [msi_variant]
 
     return []
 
