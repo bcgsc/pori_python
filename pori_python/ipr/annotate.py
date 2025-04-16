@@ -339,6 +339,17 @@ def annotate_signature_variants(
                 variant["variantTypeName"],
                 reference_class="Signature",
             )
+            # KBDEV-1246
+            # Keep support for 'high mutation burden' until statement datafix
+            if variant["signatureName"] == 'mutation burden':
+                matched_variants.extend(
+                    gkb_match.match_category_variant(
+                        graphkb_conn,
+                        'high mutation burden',
+                        variant["variantTypeName"],
+                        reference_class="Signature",
+                    )
+                )
             # Matching GKB Variants to GKB Statements
             for ipr_row in get_ipr_statements_from_variants(
                 graphkb_conn, matched_variants, disease_matches
