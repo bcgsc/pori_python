@@ -27,6 +27,7 @@ from pori_python.types import (
     Variant,
 )
 
+from .constants import TMB_SIGNATURE
 from .ipr import convert_statements_to_alterations
 from .util import convert_to_rid_set, logger
 
@@ -341,7 +342,7 @@ def annotate_signature_variants(
             )
             # KBDEV-1246
             # Keep support for 'high mutation burden' until statement datafix
-            if variant["signatureName"] == 'mutation burden':
+            if variant["signatureName"] == TMB_SIGNATURE and TMB_SIGNATURE != 'high mutation burden':
                 matched_variants.extend(
                     gkb_match.match_category_variant(
                         graphkb_conn,
