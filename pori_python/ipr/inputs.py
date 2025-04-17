@@ -479,7 +479,7 @@ def preprocess_hla(rows: Iterable[Dict]) -> Iterable[Dict]:
 
 
 def preprocess_tmb(
-    tmb_high: float, tmburMutationBurden: Dict = None, genomeTmb: float = None
+    tmb_high: float, tmburMutationBurden: Dict = None, genomeTmb: str = None
 ) -> Iterable[Dict]:
     """
     Process tumour mutation burden (tmb) input(s) into preformatted signature input.
@@ -505,7 +505,7 @@ def preprocess_tmb(
 
     # genomeTmb
     # SDEV-4811 - mutation burden is now expected to be uploaded in genomeTmb as mutations/megabase
-    if genomeTmb != None:
+    if genomeTmb != None and genomeTmb != "":
         try:
             tmb_val = float(genomeTmb)
             if tmburMutationBurden and tmbur_tmb_val != tmb_val:
