@@ -197,9 +197,12 @@ class TestPreProcessCopyVariants:
 
 class TestPreProcessSignatureVariants:
     def test_preprocess_cosmic(self) -> None:
-        records = preprocess_cosmic(
-            pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict("records")
-        )
+        records = preprocess_cosmic([
+            r['signature'] for r in 
+            pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict(
+                "records"
+            )
+        ])
         assert records
         assert len(records) == len(EXPECTED_COSMIC)
         assert "variantTypeName" in records[0]
@@ -223,11 +226,12 @@ class TestPreProcessSignatureVariants:
     def test_preprocess_signature_variants(self) -> None:
         records = preprocess_signature_variants(
             [
-                *preprocess_cosmic(
+                *preprocess_cosmic([
+                    r['signature'] for r in 
                     pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict(
                         "records"
                     )
-                ),
+                ]),
                 *preprocess_hla(
                     pd.read_csv(os.path.join(DATA_DIR, "hla_variants.tab"), sep="\t").to_dict(
                         "records"

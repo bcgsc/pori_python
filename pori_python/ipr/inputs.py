@@ -446,19 +446,13 @@ def preprocess_cosmic(rows: Iterable[Dict]) -> Iterable[Dict]:
     Process cosmic inputs into preformatted signature inputs
     Note: Cosmic and dMMR already evaluated against thresholds in gsc_report
     """
-    cosmic = set()
-    for row in rows:
-        if not set(SIGV_COSMIC).issubset(row.keys()):
-            continue
-        cosmic.add(row[SIGV_COSMIC[0]])
-
     return [
         {
             "displayName": f"{signature} {COSMIC_SIGNATURE_VARIANT_TYPE}",
             "signatureName": signature,
             "variantTypeName": COSMIC_SIGNATURE_VARIANT_TYPE,
         }
-        for signature in cosmic
+        for signature in rows
     ]
 
 
