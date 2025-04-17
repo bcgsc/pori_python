@@ -468,13 +468,16 @@ def ipr_report(
         comments_list.append(ipr_comments)
     comments = {'comments': "\n".join(comments_list)}
 
-    # OUTPUT CONTENT
-    # thread safe deep-copy the original content
-    output = json.loads(json.dumps(content))
-
+    # REFORMATTING KBMATCHES
+    # kbMatches -> kbMatches, kbMatchedStatements & kbStatementMatchedConditions
     kb_matched_sections = get_kb_matches_sections(
         gkb_matches, allow_partial_matches=allow_partial_matches
     )
+
+    # OUTPUT CONTENT
+    # thread safe deep-copy the original content
+    output = json.loads(json.dumps(content))
+    
     output.update(kb_matched_sections)
     output.update(
         {
