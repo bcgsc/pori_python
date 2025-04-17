@@ -127,11 +127,15 @@ class TestAnnotation:
         cosmic = annotate_signature_variants(
             graphkb_conn,
             DISEASE_RIDS,
-            preprocess_signature_variants([{
-                "displayName": f"{signature} {COSMIC_SIGNATURE_VARIANT_TYPE}",
-                "signatureName": signature,
-                "variantTypeName": COSMIC_SIGNATURE_VARIANT_TYPE,
-            }]),
+            preprocess_signature_variants(
+                [
+                    {
+                        "displayName": f"{signature} {COSMIC_SIGNATURE_VARIANT_TYPE}",
+                        "signatureName": signature,
+                        "variantTypeName": COSMIC_SIGNATURE_VARIANT_TYPE,
+                    }
+                ]
+            ),
         )
         assert len(cosmic) != 0
 
@@ -142,14 +146,18 @@ class TestAnnotation:
         dmmr = annotate_signature_variants(
             graphkb_conn,
             DISEASE_RIDS,
-            preprocess_signature_variants([{
-                "displayName": f"{signature} {COSMIC_SIGNATURE_VARIANT_TYPE}",
-                "signatureName": signature,
-                "variantTypeName": COSMIC_SIGNATURE_VARIANT_TYPE,
-            }]),
+            preprocess_signature_variants(
+                [
+                    {
+                        "displayName": f"{signature} {COSMIC_SIGNATURE_VARIANT_TYPE}",
+                        "signatureName": signature,
+                        "variantTypeName": COSMIC_SIGNATURE_VARIANT_TYPE,
+                    }
+                ]
+            ),
         )
         assert len(dmmr) != 0
-    
+
     @pytest.mark.skip(reason="no GKB statement for HLA Signature CVs yet")
     def test_annotate_signature_variants_hla(self, graphkb_conn):
         """Test an HLA Signature CVs with known GKB statements"""
@@ -157,28 +165,36 @@ class TestAnnotation:
         hla = annotate_signature_variants(
             graphkb_conn,
             DISEASE_RIDS,
-            preprocess_signature_variants([{
-                "displayName": f"{signature} {HLA_SIGNATURE_VARIANT_TYPE}",
-                "signatureName": signature,
-                "variantTypeName": HLA_SIGNATURE_VARIANT_TYPE,
-            }]),
+            preprocess_signature_variants(
+                [
+                    {
+                        "displayName": f"{signature} {HLA_SIGNATURE_VARIANT_TYPE}",
+                        "signatureName": signature,
+                        "variantTypeName": HLA_SIGNATURE_VARIANT_TYPE,
+                    }
+                ]
+            ),
         )
         assert len(hla) != 0
-    
+
     def test_annotate_signature_variants_tmb(self, graphkb_conn):
         """Test a TMB Signature CVs with known GKB statements"""
         tmb = annotate_signature_variants(
             graphkb_conn,
             DISEASE_RIDS,
-            preprocess_signature_variants([{
-                "displayName": f"{TMB_SIGNATURE} {TMB_SIGNATURE_VARIANT_TYPE}",
-                "signatureName": TMB_SIGNATURE,
-                "variantTypeName": TMB_SIGNATURE_VARIANT_TYPE,
-            }]),
+            preprocess_signature_variants(
+                [
+                    {
+                        "displayName": f"{TMB_SIGNATURE} {TMB_SIGNATURE_VARIANT_TYPE}",
+                        "signatureName": TMB_SIGNATURE,
+                        "variantTypeName": TMB_SIGNATURE_VARIANT_TYPE,
+                    }
+                ]
+            ),
         )
         # Should also be matching to 'high mutation burden high signature'
         assert len(tmb) != 0
-    
+
     def test_annotate_signature_variants_msi(self, graphkb_conn):
         """Test a MSI Signature CVs with known GKB statements"""
         msi = annotate_signature_variants(
@@ -187,7 +203,7 @@ class TestAnnotation:
             preprocess_signature_variants([MSI_MAPPING.get('microsatellite instability')]),
         )
         assert len(msi) != 0
-    
+
     def test_annotate_structural_variants_tp53(self, graphkb_conn):
         """Verify alternate TP53 variants match."""
         ref_key = "prot_only"
