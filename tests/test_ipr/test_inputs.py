@@ -6,6 +6,11 @@ import pytest
 from unittest import mock
 
 from pori_python.graphkb.match import INPUT_COPY_CATEGORIES
+from pori_python.ipr.constants import (
+    MSI_MAPPING,
+    TMB_SIGNATURE,
+    TMB_SIGNATURE_HIGH_THRESHOLD,
+)
 from pori_python.ipr.inputs import (
     COPY_OPTIONAL,
     check_comparators,
@@ -15,9 +20,11 @@ from pori_python.ipr.inputs import (
     preprocess_cosmic,
     preprocess_expression_variants,
     preprocess_hla,
+    preprocess_msi,
     preprocess_signature_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
+    preprocess_tmb,
     validate_report_content,
 )
 from pori_python.ipr.util import logger
@@ -40,6 +47,8 @@ EXPECTED_HLA = {
     "HLA-C*06:02",
     "HLA-C*06",
 }
+EXPECTED_TMB = { TMB_SIGNATURE }
+EXPECTED_MSI = { MSI_MAPPING.get('microsatellite instability')['signatureName'] }
 
 
 def read_data_file(filename):
@@ -196,51 +205,83 @@ class TestPreProcessCopyVariants:
 
 
 class TestPreProcessSignatureVariants:
-    def test_preprocess_cosmic(self) -> None:
-        records = preprocess_cosmic([
-            r['signature'] for r in 
-            pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict(
-                "records"
-            )
-        ])
-        assert records
-        assert len(records) == len(EXPECTED_COSMIC)
-        assert "variantTypeName" in records[0]
-        assert "displayName" in records[0]
 
-        signatureNames = {r.get("signatureName", "") for r in records}
+    # Preprocessing records from file
+    cosmic = preprocess_cosmic([
+        r['signature'] for r in 
+        pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict(
+            "records"
+        )
+    ])
+    hla = preprocess_hla(
+        pd.read_csv(os.path.join(DATA_DIR, "hla_variants.tab"), sep="\t").to_dict("records")
+    )
+    tmb = preprocess_tmb(
+        tmb_high = TMB_SIGNATURE_HIGH_THRESHOLD,
+        tmburMutationBurden = pd.read_csv(os.path.join(DATA_DIR, "tmburMutationBurden.tab"), sep="\t").to_dict("records"),
+        genomeTmb = "11.430000000000001",
+    )
+    msi = preprocess_msi([
+        {
+            "score": 27.55,
+            "kbCategory": "microsatellite instability",
+            "key": "microsatellite instability"
+        }
+    ])
+    
+    # tests on preprocessed records
+    def test_preprocess_cosmic(self) -> None:
+        assert self.cosmic
+        assert len(self.cosmic) == len(EXPECTED_COSMIC)
+        assert "variantTypeName" in self.cosmic[0]
+        assert "displayName" in self.cosmic[0]
+
+        signatureNames = {r.get("signatureName", "") for r in self.cosmic}
         assert len(EXPECTED_COSMIC.symmetric_difference(signatureNames)) == 0
 
     def test_preprocess_hla(self) -> None:
-        records = preprocess_hla(
-            pd.read_csv(os.path.join(DATA_DIR, "hla_variants.tab"), sep="\t").to_dict("records")
-        )
-        assert records
-        assert len(records) == len(EXPECTED_HLA)
-        assert "variantTypeName" in records[0]
-        assert "displayName" in records[0]
+        assert self.hla
+        assert len(self.hla) == len(EXPECTED_HLA)
+        assert "variantTypeName" in self.hla[0]
+        assert "displayName" in self.hla[0]
 
-        signatureNames = {r.get("signatureName", "") for r in records}
+        signatureNames = {r.get("signatureName", "") for r in self.hla}
         assert len(EXPECTED_HLA.symmetric_difference(signatureNames)) == 0
+
+    def test_preprocess_tmb(self) -> None:
+        assert self.tmb
+        assert len(self.tmb) == len(EXPECTED_TMB)
+        assert "variantTypeName" in self.tmb[0]
+        assert "displayName" in self.tmb[0]
+
+        signatureNames = {r.get("signatureName", "") for r in self.tmb}
+        assert len(EXPECTED_TMB.symmetric_difference(signatureNames)) == 0
+
+    def test_preprocess_msi(self) -> None:
+        assert self.msi
+        assert len(self.msi) == len(EXPECTED_MSI)
+        assert "variantTypeName" in self.msi[0]
+        assert "displayName" in self.msi[0]
+
+        signatureNames = {r.get("signatureName", "") for r in self.msi}
+        assert len(EXPECTED_MSI.symmetric_difference(signatureNames)) == 0
 
     def test_preprocess_signature_variants(self) -> None:
         records = preprocess_signature_variants(
             [
-                *preprocess_cosmic([
-                    r['signature'] for r in 
-                    pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict(
-                        "records"
-                    )
-                ]),
-                *preprocess_hla(
-                    pd.read_csv(os.path.join(DATA_DIR, "hla_variants.tab"), sep="\t").to_dict(
-                        "records"
-                    )
-                ),
+                *self.cosmic,
+                *self.hla,
+                *self.tmb,
+                *self.msi,
             ]
         )
         assert records
-        assert len(records) == len(EXPECTED_COSMIC) + len(EXPECTED_HLA)
+        assert len(records) == (
+            len(EXPECTED_COSMIC) +
+            len(EXPECTED_HLA) +
+            len(EXPECTED_TMB) +
+            len(EXPECTED_MSI)
+        )
         assert "key" in records[0]
 
 
