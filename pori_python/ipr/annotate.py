@@ -342,7 +342,10 @@ def annotate_signature_variants(
             )
             # KBDEV-1246
             # Keep support for 'high mutation burden' until statement datafix
-            if variant["signatureName"] == TMB_SIGNATURE and TMB_SIGNATURE != 'high mutation burden':
+            if (
+                variant["signatureName"] == TMB_SIGNATURE
+                and TMB_SIGNATURE != 'high mutation burden'
+            ):
                 matched_variants.extend(
                     gkb_match.match_category_variant(
                         graphkb_conn,

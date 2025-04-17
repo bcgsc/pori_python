@@ -477,7 +477,7 @@ def ipr_report(
     # OUTPUT CONTENT
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
-    
+
     output.update(kb_matched_sections)
     output.update(
         {
