@@ -2,7 +2,15 @@ import os
 import pytest
 
 from pori_python.graphkb import GraphKBConnection
-from pori_python.ipr.annotate import annotate_positional_variants
+from pori_python.ipr.annotate import annotate_positional_variants, annotate_signature_variants
+from pori_python.ipr.constants import (
+    COSMIC_SIGNATURE_VARIANT_TYPE,
+    HLA_SIGNATURE_VARIANT_TYPE,
+    MSI_MAPPING,
+    TMB_SIGNATURE,
+    TMB_SIGNATURE_VARIANT_TYPE,
+)
+from pori_python.ipr.inputs import preprocess_signature_variants
 from pori_python.types import IprSmallMutationVariant
 from .test_ipr import DISEASE_RIDS
 
@@ -113,9 +121,75 @@ class TestAnnotation:
             assert not nonsense, f"nonsense matched to {key}: {TP53_MUT_DICT[key]}"
             assert matched, f"should have matched in {key}: {TP53_MUT_DICT[key]}"
 
+    def test_annotate_signature_variants_cosmic(self, graphkb_conn):
+        """Test a Cosmic Signature CVs with known GKB statements"""
+        signature = 'SBS10B'
+        cosmic = annotate_signature_variants(
+            graphkb_conn,
+            DISEASE_RIDS,
+            preprocess_signature_variants([{
+                "displayName": f"{signature} {COSMIC_SIGNATURE_VARIANT_TYPE}",
+                "signatureName": signature,
+                "variantTypeName": COSMIC_SIGNATURE_VARIANT_TYPE,
+            }]),
+        )
+        assert len(cosmic) != 0
+
+    @pytest.mark.skip(reason="no GKB statement for dMMR Signature CVs yet")
+    def test_annotate_signature_variants_dmmr(self, graphkb_conn):
+        """Test a dMMR (from Cosmic) Signature CVs with known GKB statements"""
+        signature = 'DMMR'
+        dmmr = annotate_signature_variants(
+            graphkb_conn,
+            DISEASE_RIDS,
+            preprocess_signature_variants([{
+                "displayName": f"{signature} {COSMIC_SIGNATURE_VARIANT_TYPE}",
+                "signatureName": signature,
+                "variantTypeName": COSMIC_SIGNATURE_VARIANT_TYPE,
+            }]),
+        )
+        assert len(dmmr) != 0
+    
+    @pytest.mark.skip(reason="no GKB statement for HLA Signature CVs yet")
+    def test_annotate_signature_variants_hla(self, graphkb_conn):
+        """Test an HLA Signature CVs with known GKB statements"""
+        signature = 'HLA-A*02:01'
+        hla = annotate_signature_variants(
+            graphkb_conn,
+            DISEASE_RIDS,
+            preprocess_signature_variants([{
+                "displayName": f"{signature} {HLA_SIGNATURE_VARIANT_TYPE}",
+                "signatureName": signature,
+                "variantTypeName": HLA_SIGNATURE_VARIANT_TYPE,
+            }]),
+        )
+        assert len(hla) != 0
+    
+    def test_annotate_signature_variants_tmb(self, graphkb_conn):
+        """Test a TMB Signature CVs with known GKB statements"""
+        tmb = annotate_signature_variants(
+            graphkb_conn,
+            DISEASE_RIDS,
+            preprocess_signature_variants([{
+                "displayName": f"{TMB_SIGNATURE} {TMB_SIGNATURE_VARIANT_TYPE}",
+                "signatureName": TMB_SIGNATURE,
+                "variantTypeName": TMB_SIGNATURE_VARIANT_TYPE,
+            }]),
+        )
+        # Should also be matching to 'high mutation burden high signature'
+        assert len(tmb) != 0
+    
+    def test_annotate_signature_variants_msi(self, graphkb_conn):
+        """Test a MSI Signature CVs with known GKB statements"""
+        msi = annotate_signature_variants(
+            graphkb_conn,
+            DISEASE_RIDS,
+            preprocess_signature_variants([MSI_MAPPING.get('microsatellite instability')]),
+        )
+        assert len(msi) != 0
+    
     def test_annotate_structural_variants_tp53(self, graphkb_conn):
         """Verify alternate TP53 variants match."""
-        disease = "cancer"
         ref_key = "prot_only"
         pref = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[ref_key]], DISEASE_RIDS)
         # GERO-299 - nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
