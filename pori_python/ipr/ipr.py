@@ -653,4 +653,4 @@ def get_kb_disease_matches(
             logger.error(msg)
         raise ValueError(msg)
 
-    return disease_matches
+    return list(disease_matches)
