@@ -1,3 +1,4 @@
+from functools import cache
 from typing import Callable, Dict, Iterable, List, Set, cast
 
 from pori_python.types import Ontology
@@ -10,6 +11,7 @@ def query_by_name(ontology_class: str, base_term_name: str) -> Dict:
     return {"target": ontology_class, "filters": {"name": base_term_name}}
 
 
+@cache
 def get_equivalent_terms(
     conn: GraphKBConnection,
     base_term_name: str,
@@ -70,6 +72,7 @@ def get_equivalent_terms(
     return base_term_parents
 
 
+@cache
 def get_term_tree(
     conn: GraphKBConnection,
     base_term_name: str,
@@ -131,6 +134,7 @@ def get_term_tree(
     return list(terms.values())
 
 
+@cache
 def get_term_by_name(
     conn: GraphKBConnection,
     name: str,

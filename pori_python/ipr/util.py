@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import pandas as pd
+from functools import cache
 from numpy import nan
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 
@@ -125,6 +126,7 @@ def get_preferred_drug_representation(
     return cast(Ontology, drugs[0])
 
 
+@cache
 def get_preferred_gene_name(
     graphkb_conn: GraphKBConnection, record_id: str, neighbors: int = GENE_NEIGHBORS_MAX
 ) -> str:

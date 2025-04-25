@@ -2,6 +2,7 @@
 Functions which return Variants from GraphKB which match some input variant definition
 """
 
+from functools import cache
 from typing import Dict, List, Optional, Set, Union, cast
 
 from pori_python.types import (
@@ -31,16 +32,12 @@ from .util import (
     looks_like_rid,
     stringifyVariant,
 )
-from .vocab import (
-    get_equivalent_terms,
-    get_term_by_name,
-    get_term_tree,
-    get_terms_set,
-)
+from .vocab import get_equivalent_terms, get_term_by_name, get_term_tree, get_terms_set
 
 FEATURES_CACHE: Set[str] = set()
 
 
+@cache
 def get_equivalent_features(
     conn: GraphKBConnection,
     gene_name: str,

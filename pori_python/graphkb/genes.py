@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import cache
 from typing import Any, Dict, List, Sequence, Set, Tuple, cast
 from typing_extensions import deprecated
 
@@ -217,6 +218,7 @@ def get_preferred_gene_source_rid(
     return result
 
 
+@cache
 def get_preferred_gene_name(
     conn: GraphKBConnection, gene_name: str, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> str:
