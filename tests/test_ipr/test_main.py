@@ -112,7 +112,7 @@ def report_upload_content(tmp_path_factory) -> Dict:
     return report_content
 
 
-@pytest.mark.skip(reason="taking too long, getting canceled after reaching max delay")
+@pytest.mark.skip(reason="KBDEV-1308; taking too long, getting canceled after reaching max delay")
 @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding long running integration tests")
 class TestCreateReport:
     def test_main_sections_present(self, report_upload_content: Dict) -> None:
