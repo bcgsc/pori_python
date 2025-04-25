@@ -40,7 +40,7 @@ jobs:
     - name: Full Tests with pytest
       run: |
         pip list
-        pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov pori_python --cov-report term --cov-report xml
+        PYTHONUNBUFFERED=1 pytest -s tests/test_ipr/test_main.py --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov pori_python --cov-report term --cov-report xml
       env:
         IPR_USER: ${{ secrets.IPR_TEST_USER }}
         IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
