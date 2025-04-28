@@ -7,10 +7,11 @@ from __future__ import annotations
 import json
 import jsonschema
 import os
-import re
 import pandas as pd
+import re
 from Bio.Data.IUPACData import protein_letters_3to1
-from typing import Callable, Dict, Iterable, List, Set, Tuple, cast
+from numpy import nan
+from typing import Any, Callable, Dict, Iterable, List, Set, Tuple, cast
 
 from pori_python.graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from pori_python.types import (
@@ -26,6 +27,9 @@ from .constants import (
     COSMIC_SIGNATURE_VARIANT_TYPE,
     DEFAULT_URL,
     HLA_SIGNATURE_VARIANT_TYPE,
+    MSI_MAPPING,
+    TMB_SIGNATURE,
+    TMB_SIGNATURE_VARIANT_TYPE,
 )
 from .util import hash_key, logger, pandas_falsy
 
@@ -442,19 +446,13 @@ def preprocess_cosmic(rows: Iterable[Dict]) -> Iterable[Dict]:
     Process cosmic inputs into preformatted signature inputs
     Note: Cosmic and dMMR already evaluated against thresholds in gsc_report
     """
-    cosmic = set()
-    for row in rows:
-        if not set(SIGV_COSMIC).issubset(row.keys()):
-            continue
-        cosmic.add(row[SIGV_COSMIC[0]])
-
     return [
         {
             "displayName": f"{signature} {COSMIC_SIGNATURE_VARIANT_TYPE}",
             "signatureName": signature,
             "variantTypeName": COSMIC_SIGNATURE_VARIANT_TYPE,
         }
-        for signature in cosmic
+        for signature in rows
     ]
 
 
@@ -478,6 +476,83 @@ def preprocess_hla(rows: Iterable[Dict]) -> Iterable[Dict]:
         }
         for signature in hla
     ]
+
+
+def preprocess_tmb(
+    tmb_high: float, tmburMutationBurden: Dict = None, genomeTmb: str = None
+) -> Iterable[Dict]:
+    """
+    Process tumour mutation burden (tmb) input(s) into preformatted signature input.
+    Get compared to threshold; signature CategoryVariant created only if threshold met.
+    """
+    tmbur_tmb_val = nan
+    tmb_val = 0.0
+
+    # tmburMutationBurden, for backwards compatibility purpose
+    # derived from tmburMutationBurden["genomeIndelTmb"] + tmburMutationBurden["genomeSnvTmb"]
+    if tmburMutationBurden:
+        try:
+            tmbur_tmb_val = float(
+                tmburMutationBurden["genomeIndelTmb"] + tmburMutationBurden["genomeSnvTmb"]
+            )
+            if genomeTmb == None:
+                logger.error(
+                    "backwards compatibility: deriving genomeTmb from tmburMutationBurden genomeIndelTmb + genomeSnvTmb"
+                )
+                tmb_val = tmbur_tmb_val
+        except Exception as err:
+            logger.error(f"tmburMutationBurden parsing failure: {err}")
+
+    # genomeTmb
+    # SDEV-4811 - mutation burden is now expected to be uploaded in genomeTmb as mutations/megabase
+    if genomeTmb != None and genomeTmb != "":
+        try:
+            tmb_val = float(genomeTmb)
+            if tmburMutationBurden and tmbur_tmb_val != tmb_val:
+                logger.warning(
+                    f"genomeTmb given {tmb_val} does not match tmburMutationBurden TMB {tmbur_tmb_val}"
+                )
+        except Exception as err:
+            logger.error(f"genomeTmb parsing failure {genomeTmb}: {err}")
+
+    # comparaing tmb_val to threshold
+    # Signature CategoryVariant created only if threshold met
+    if tmb_val >= tmb_high:
+        return [
+            {
+                "displayName": f'{TMB_SIGNATURE} {TMB_SIGNATURE_VARIANT_TYPE}',
+                "signatureName": TMB_SIGNATURE,
+                "variantTypeName": TMB_SIGNATURE_VARIANT_TYPE,
+            }
+        ]
+    return []
+
+
+def preprocess_msi(msi: Any) -> Iterable[Dict]:
+    """
+    Process micro-satellite input into preformatted signature input.
+    Both msi & mss gets mapped to corresponding GraphKB Signature CategoryVariants.
+    """
+    if msi:
+
+        # MSI category is given from upstream (only one msi variant per library)
+        if isinstance(msi, list):
+            # msi is given as a list of one dict
+            msi_cat = msi[0].get("kbCategory", "")
+        elif isinstance(msi, str):
+            # msi is given as a string
+            msi_cat = msi
+        else:
+            # msi is given as a dict; uncatched error if not.
+            msi_cat = msi.get("kbCategory", "")
+
+        msi_variant = MSI_MAPPING.get(msi_cat, None)
+
+        # Signature CategoryVariant created either for msi or mss
+        if msi_variant:
+            return [msi_variant]
+
+    return []
 
 
 def check_variant_links(

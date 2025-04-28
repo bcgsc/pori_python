@@ -15,7 +15,8 @@ from .constants import EXCLUDE_INTEGRATION_TESTS
 
 EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
 EXCLUDE_ONCOKB_TESTS = os.environ.get("EXCLUDE_ONCOKB_TESTS") == "1"
-INCLUDE_UPLOAD_TESTS = os.environ.get("INCLUDE_UPLOAD_TESTS", 0) == "1"
+INCLUDE_UPLOAD_TESTS = os.environ.get("INCLUDE_UPLOAD_TESTS", "0") == "1"
+DELETE_UPLOAD_TEST_REPORTS = os.environ.get("DELETE_UPLOAD_TEST_REPORTS", "1") == "1"
 
 
 def get_test_spec():
@@ -154,9 +155,9 @@ def loaded_reports(tmp_path_factory) -> Generator:
         "async": (async_patient_id, async_loaded_report),
     }
     yield loaded_reports_result
-    return
-    ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
-    ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
+    if DELETE_UPLOAD_TEST_REPORTS:
+        ipr_conn.delete(uri=f"reports/{loaded_report['reports'][0]['ident']}")
+        ipr_conn.delete(uri=f"reports/{async_loaded_report['reports'][0]['ident']}")
 
 
 def get_section(loaded_report, section_name):
