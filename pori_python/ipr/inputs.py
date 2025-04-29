@@ -446,6 +446,7 @@ def preprocess_cosmic(rows: Iterable[Dict]) -> Iterable[Dict]:
     Process cosmic inputs into preformatted signature inputs
     Note: Cosmic and dMMR already evaluated against thresholds in gsc_report
     """
+
     def get_sig(sig):
         return sig if isinstance(sig, str) else sig['signature']
 
