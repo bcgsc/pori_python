@@ -11,6 +11,7 @@ import uuid
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
+from pori_python.graphkb import util as gkb_util
 from pori_python.types import (
     Hashabledict,
     ImageDefinition,
@@ -638,14 +639,41 @@ def get_kb_disease_matches(
     if verbose:
         logger.info(f"Matching disease ({kb_disease_match}) to graphkb")
 
-    disease_matches = {
-        r["@rid"]
-        for r in gkb_vocab.get_term_tree(
-            graphkb_conn,
-            kb_disease_match,
-            ontology_class="Disease",
+    disease_matches = []
+    try:
+        # KBDEV-1306
+        # Matching disease(s) from name, then tree traversal for ancestors & descendants.
+        # Leverage new 'similarToExtended' queryType
+        base_records = gkb_util.convert_to_rid_list(
+            graphkb_conn.query(
+                gkb_vocab.query_by_name(
+                    'Disease',
+                    kb_disease_match,
+                )
+            )
         )
-    }
+        if base_records:
+            disease_matches = list({
+                r["@rid"]
+                for r in graphkb_conn.query({
+                    "target": base_records,
+                    "queryType": "similarToExtended",
+                    "matchType": "Disease",
+                    "edges": ["AliasOf", "CrossReferenceOf", "DeprecatedBy"],
+                    "treeEdges": ["subClassOf"],
+                    "returnProperties": ["@rid"]
+                })
+            })
+    except:
+        # Previous solution w/ get_term_tree() -> 'similarTo' queryType
+        disease_matches = list({
+            r["@rid"]
+            for r in gkb_vocab.get_term_tree(
+                graphkb_conn,
+                kb_disease_match,
+                ontology_class="Disease",
+            )
+        })
 
     if not disease_matches:
         msg = f"failed to match disease ({kb_disease_match}) to graphkb"
@@ -653,4 +681,4 @@ def get_kb_disease_matches(
             logger.error(msg)
         raise ValueError(msg)
 
-    return list(disease_matches)
+    return disease_matches
