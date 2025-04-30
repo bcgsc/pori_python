@@ -7,7 +7,9 @@ from __future__ import annotations
 from itertools import product
 from copy import copy
 from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
+from requests.exceptions import HTTPError
 import uuid
+
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
@@ -664,7 +666,10 @@ def get_kb_disease_matches(
                     "returnProperties": ["@rid"]
                 })
             })
-    except:
+    except HTTPError:
+        if verbose:
+            logger.info(f"Failed at using 'similarToExtended' queryType. Trying again with get_term_tree()")
+
         # Previous solution w/ get_term_tree() -> 'similarTo' queryType
         disease_matches = list({
             r["@rid"]
