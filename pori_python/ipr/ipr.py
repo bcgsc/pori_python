@@ -632,54 +632,61 @@ def get_kb_matches_sections(
 
 
 def get_kb_disease_matches(
-    graphkb_conn: GraphKBConnection, kb_disease_match: str = None, verbose: bool = True
+    graphkb_conn: GraphKBConnection,
+    kb_disease_match: str = None,
+    verbose: bool = True,
+    similarToExtended: bool = True,
 ) -> list[str]:
+
+    disease_matches = []
 
     if not kb_disease_match:
         kb_disease_match = 'cancer'
         if verbose:
             logger.warning(f"No disease provided; will use '{kb_disease_match}'")
 
-    if verbose:
-        logger.info(
-            f"Matching disease ({kb_disease_match}) to graphkb using 'similarToExtended' queryType."
-        )
-
-    disease_matches = []
-    try:
-        # KBDEV-1306
-        # Matching disease(s) from name, then tree traversal for ancestors & descendants.
-        # Leverage new 'similarToExtended' queryType
-        base_records = gkb_util.convert_to_rid_list(
-            graphkb_conn.query(
-                gkb_vocab.query_by_name(
-                    'Disease',
-                    kb_disease_match,
-                )
-            )
-        )
-        if base_records:
-            disease_matches = list(
-                {
-                    r["@rid"]
-                    for r in graphkb_conn.query(
-                        {
-                            "target": base_records,
-                            "queryType": "similarToExtended",
-                            "matchType": "Disease",
-                            "edges": ["AliasOf", "CrossReferenceOf", "DeprecatedBy"],
-                            "treeEdges": ["subClassOf"],
-                            "returnProperties": ["@rid"],
-                        }
-                    )
-                }
-            )
-    except HTTPError:
+    if similarToExtended:
         if verbose:
             logger.info(
-                "Failed at using 'similarToExtended' queryType. Trying again with get_term_tree()"
+                f"Matching disease ({kb_disease_match}) to graphkb using 'similarToExtended' queryType."
             )
 
+        try:
+            # KBDEV-1306
+            # Matching disease(s) from name, then tree traversal for ancestors & descendants.
+            # Leverage new 'similarToExtended' queryType
+            base_records = gkb_util.convert_to_rid_list(
+                graphkb_conn.query(
+                    gkb_vocab.query_by_name(
+                        'Disease',
+                        kb_disease_match,
+                    )
+                )
+            )
+            if base_records:
+                disease_matches = list(
+                    {
+                        r["@rid"]
+                        for r in graphkb_conn.query(
+                            {
+                                "target": base_records,
+                                "queryType": "similarToExtended",
+                                "matchType": "Disease",
+                                "edges": ["AliasOf", "CrossReferenceOf", "DeprecatedBy"],
+                                "treeEdges": ["subClassOf"],
+                                "returnProperties": ["@rid"],
+                            }
+                        )
+                    }
+                )
+        except HTTPError:
+            if verbose:
+                logger.info("Failed at using 'similarToExtended' queryType.")
+            similarToExtended = False
+
+    if not similarToExtended:
+        if verbose:
+            logger.info("Matching disease ({kb_disease_match}) to graphkb using get_term_tree()")
         # Previous solution w/ get_term_tree() -> 'similarTo' queryType
         disease_matches = list(
             {
