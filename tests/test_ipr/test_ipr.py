@@ -175,9 +175,7 @@ KB_MATCHES_STATEMENTS = [
 def graphkb_conn():
     # Mock for the 'query' method
     query_mock = Mock()
-    query_return_values = [
-        [{"@rid": v} for v in APPROVED_EVIDENCE_RIDS]
-    ]
+    query_return_values = [[{"@rid": v} for v in APPROVED_EVIDENCE_RIDS]]
     query_index = {"value": -1}  # Mutable index for closure
 
     def query_side_effect(*args, **kwargs):
@@ -277,9 +275,9 @@ class TestGetKbDiseaseMatches:
 
     def test_get_kb_disease_matches_default(self, graphkb_conn) -> None:
         get_kb_disease_matches(graphkb_conn)
-        assert graphkb_conn.query.call_args_list[0].args == ({
-            'target': 'Disease', 'filters': {'name': 'cancer'}
-        },)
+        assert graphkb_conn.query.call_args_list[0].args == (
+            {'target': 'Disease', 'filters': {'name': 'cancer'}},
+        )
 
 
 class TestConvertStatementsToAlterations:
