@@ -641,7 +641,9 @@ def get_kb_disease_matches(
             logger.warning(f"No disease provided; will use '{kb_disease_match}'")
 
     if verbose:
-        logger.info(f"Matching disease ({kb_disease_match}) to graphkb")
+        logger.info(
+            f"Matching disease ({kb_disease_match}) to graphkb using 'similarToExtended' queryType."
+        )
 
     disease_matches = []
     try:
