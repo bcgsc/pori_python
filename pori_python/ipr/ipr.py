@@ -686,7 +686,7 @@ def get_kb_disease_matches(
 
     if not similarToExtended:
         if verbose:
-            logger.info("Matching disease ({kb_disease_match}) to graphkb using get_term_tree()")
+            logger.info(f"Matching disease ({kb_disease_match}) to graphkb using get_term_tree()")
         # Previous solution w/ get_term_tree() -> 'similarTo' queryType
         disease_matches = list(
             {
