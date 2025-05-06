@@ -83,7 +83,9 @@ def loaded_reports(tmp_path_factory) -> Generator:
             pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(orient="records")
         ),
         "kbDiseaseMatch": "colorectal cancer",
-        "cosmicSignatures": pd.read_csv(get_test_file("cosmic_variants.tab"), sep="\t").signature.tolist(),
+        "cosmicSignatures": pd.read_csv(
+            get_test_file("cosmic_variants.tab"), sep="\t"
+        ).signature.tolist(),
         "hlaTypes": json.loads(
             pd.read_csv(get_test_file("hla_variants.tab"), sep="\t").to_json(orient="records")
         ),
