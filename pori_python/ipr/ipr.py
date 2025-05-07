@@ -4,12 +4,17 @@ by other reporting systems
 """
 
 from __future__ import annotations
-from itertools import product
-from copy import copy
-from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
+
+from requests.exceptions import HTTPError
+
 import uuid
+from copy import copy
+from itertools import product
+from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
+
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
+from pori_python.graphkb import util as gkb_util
 from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.types import (
     Hashabledict,
@@ -18,12 +23,12 @@ from pori_python.types import (
     IprGene,
     IprVariant,
     KbMatch,
-    Statement,
-    Variant,
-    KbVariantMatch,
     KbMatchedStatement,
     KbMatchedStatementConditionSet,
     KbMatchSections,
+    KbVariantMatch,
+    Statement,
+    Variant,
 )
 
 from .constants import GERMLINE_BASE_TERMS, VARIANT_CLASSES
@@ -612,7 +617,7 @@ def get_kb_statement_matched_conditions(
 
 def get_kb_matches_sections(
     gkb_matches: List[KbMatch] | List[Hashabledict],
-    allow_partial_matches=False,
+    allow_partial_matches: bool = False,
 ) -> KbMatchSections:
     kb_variants = get_kb_variants(gkb_matches)
     kb_matched_statements = get_kb_matched_statements(gkb_matches)
@@ -627,25 +632,72 @@ def get_kb_matches_sections(
 
 
 def get_kb_disease_matches(
-    graphkb_conn: GraphKBConnection, kb_disease_match: str = None, verbose: bool = True
+    graphkb_conn: GraphKBConnection,
+    kb_disease_match: str = None,
+    verbose: bool = True,
+    similarToExtended: bool = True,
 ) -> list[str]:
+
+    disease_matches = []
 
     if not kb_disease_match:
         kb_disease_match = 'cancer'
         if verbose:
             logger.warning(f"No disease provided; will use '{kb_disease_match}'")
 
-    if verbose:
-        logger.info(f"Matching disease ({kb_disease_match}) to graphkb")
+    if similarToExtended:
+        if verbose:
+            logger.info(
+                f"Matching disease ({kb_disease_match}) to graphkb using 'similarToExtended' queryType."
+            )
 
-    disease_matches = {
-        r["@rid"]
-        for r in gkb_vocab.get_term_tree(
-            graphkb_conn,
-            kb_disease_match,
-            ontology_class="Disease",
+        try:
+            # KBDEV-1306
+            # Matching disease(s) from name, then tree traversal for ancestors & descendants.
+            # Leverage new 'similarToExtended' queryType
+            base_records = gkb_util.convert_to_rid_list(
+                graphkb_conn.query(
+                    gkb_vocab.query_by_name(
+                        'Disease',
+                        kb_disease_match,
+                    )
+                )
+            )
+            if base_records:
+                disease_matches = list(
+                    {
+                        r["@rid"]
+                        for r in graphkb_conn.query(
+                            {
+                                "target": base_records,
+                                "queryType": "similarToExtended",
+                                "matchType": "Disease",
+                                "edges": ["AliasOf", "CrossReferenceOf", "DeprecatedBy"],
+                                "treeEdges": ["subClassOf"],
+                                "returnProperties": ["@rid"],
+                            }
+                        )
+                    }
+                )
+        except HTTPError:
+            if verbose:
+                logger.info("Failed at using 'similarToExtended' queryType.")
+            similarToExtended = False
+
+    if not similarToExtended:
+        if verbose:
+            logger.info(f"Matching disease ({kb_disease_match}) to graphkb using get_term_tree()")
+        # Previous solution w/ get_term_tree() -> 'similarTo' queryType
+        disease_matches = list(
+            {
+                r["@rid"]
+                for r in gkb_vocab.get_term_tree(
+                    graphkb_conn,
+                    kb_disease_match,
+                    ontology_class="Disease",
+                )
+            }
         )
-    }
 
     if not disease_matches:
         msg = f"failed to match disease ({kb_disease_match}) to graphkb"
@@ -653,4 +705,4 @@ def get_kb_disease_matches(
             logger.error(msg)
         raise ValueError(msg)
 
-    return list(disease_matches)
+    return disease_matches
