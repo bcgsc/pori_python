@@ -10,7 +10,7 @@ from requests.exceptions import HTTPError
 import uuid
 from copy import copy
 from itertools import product
-from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
+from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple, cast
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
@@ -633,7 +633,7 @@ def get_kb_matches_sections(
 
 def get_kb_disease_matches(
     graphkb_conn: GraphKBConnection,
-    kb_disease_match: str = None,
+    kb_disease_match: Optional[str] = None,
     verbose: bool = True,
     similarToExtended: bool = True,
 ) -> list[str]:
