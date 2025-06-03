@@ -107,7 +107,10 @@ class IprConnection:
 
             # if project is not exist, create one
             if content['project'] not in project_names:
-                self.post("project", {'name': content['project']})
+                try:
+                    self.post("project", {'name': content['project']})
+                except Exception as err:
+                    raise Exception(f"create project failure: {err}")
 
             initial_result = self.post("reports-async", content)
 
