@@ -6,10 +6,12 @@ by other reporting systems
 from __future__ import annotations
 from itertools import product
 from copy import copy
-from typing import Dict, Iterable, List, Sequence, Set, Tuple, cast
+from requests.exceptions import HTTPError
+from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple, cast
 import uuid
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
+from pori_python.graphkb import util as gkb_util
 from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.types import (
     Hashabledict,
@@ -627,25 +629,64 @@ def get_kb_matches_sections(
 
 
 def get_kb_disease_matches(
-    graphkb_conn: GraphKBConnection, kb_disease_match: str = None, verbose: bool = True
+    graphkb_conn: GraphKBConnection,
+    kb_disease_match: Optional[str] = None,
+    verbose: bool = True,
+    useSubgraphsRoute: bool = True,
 ) -> list[str]:
+    
+    disease_matches = []
 
     if not kb_disease_match:
         kb_disease_match = 'cancer'
         if verbose:
             logger.warning(f"No disease provided; will use '{kb_disease_match}'")
 
-    if verbose:
-        logger.info(f"Matching disease ({kb_disease_match}) to graphkb")
+    if useSubgraphsRoute:
+        if verbose:
+            logger.info(
+                f"Matching disease ({kb_disease_match}) to graphkb using '/subgraphs/Disease' route."
+            )
 
-    disease_matches = {
-        r["@rid"]
-        for r in gkb_vocab.get_term_tree(
-            graphkb_conn,
-            kb_disease_match,
-            ontology_class="Disease",
-        )
-    }
+        try:
+            # KBDEV-1306 w/ subgraphs route
+            # Matching disease(s) from name, then tree traversal for ancestors & descendants.
+            base_records = gkb_util.convert_to_rid_list(
+                graphkb_conn.query(
+                    gkb_vocab.query_by_name(
+                        'Disease',
+                        kb_disease_match,
+                    )
+                )
+            )
+            if base_records:
+                response = graphkb_conn.post(
+                    '/subgraphs/Disease',
+                    {
+                        "base": base_records,
+                        "subgraphType": "tree",
+                    }
+                )
+                disease_matches = [k for k in response['result']['g']['nodes'].keys()]
+
+        except (HTTPError, AttributeError):
+            if verbose:
+                logger.info("Failed at using '/subgraphs/Disease' route.")
+            useSubgraphsRoute = False
+
+    if not useSubgraphsRoute:
+        if verbose:
+            logger.info(f"Matching disease ({kb_disease_match}) to graphkb using get_term_tree()")
+
+        # Fallback to previous solution w/ get_term_tree()
+        disease_matches = list({
+            r["@rid"]
+            for r in gkb_vocab.get_term_tree(
+                graphkb_conn,
+                kb_disease_match,
+                ontology_class="Disease",
+            )
+        })
 
     if not disease_matches:
         msg = f"failed to match disease ({kb_disease_match}) to graphkb"
@@ -653,4 +694,4 @@ def get_kb_disease_matches(
             logger.error(msg)
         raise ValueError(msg)
 
-    return list(disease_matches)
+    return disease_matches
