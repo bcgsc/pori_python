@@ -172,27 +172,42 @@ KB_MATCHES_STATEMENTS = [
 
 @pytest.fixture
 def graphkb_conn():
-    class QueryMock:
-        return_values = [
-            # get approved evidence levels
-            [{"@rid": v} for v in APPROVED_EVIDENCE_RIDS]
-        ]
-        index = -1
+    # Mock for the 'query' method
+    query_mock = Mock()
+    query_return_values = [[{"@rid": v} for v in APPROVED_EVIDENCE_RIDS]]
+    query_index = {"value": -1}  # Mutable index for closure
 
-        def __call__(self, *args, **kwargs):
-            self.index += 1
-            ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
-            return ret_val
+    def query_side_effect(*args):
+        if args:
+            # for TestGetKbDiseaseMatches
+            return [{'@rid': '#123:45'}]
+        query_index["value"] += 1
+        idx = query_index["value"]
+        return query_return_values[idx] if idx < len(query_return_values) else []
 
-    class PostMock:
-        def __call__(self, *args, **kwargs):
-            # custom return tailored for multi_variant_filtering() testing
-            return {"result": KB_MATCHES_STATEMENTS}
+    query_mock.side_effect = query_side_effect
 
+    # Mock for the 'post' method
+    post_mock = Mock()
+
+    def post_side_effect(*args):
+        # for TestGetKbDiseaseMatches
+        if args[0] == '/subgraphs/Disease':
+            return {'result': {'g': {'nodes': {'#123:45': {'@rid': '#123:45', 'name': 'test'}}}}}
+        return {'result': KB_MATCHES_STATEMENTS}
+
+    post_mock.side_effect = post_side_effect
+
+    # 'get_source' remains a plain function
     def mock_get_source(source):
         return {"@rid": 0}
 
-    conn = Mock(query=QueryMock(), cache={}, get_source=mock_get_source, post=PostMock())
+    # Create the connection mock with attributes
+    conn = Mock()
+    conn.query = query_mock
+    conn.post = post_mock
+    conn.cache = {}
+    conn.get_source = mock_get_source
 
     return conn
 
