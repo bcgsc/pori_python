@@ -248,10 +248,9 @@ def base_graphkb_statement(disease_id: str = "disease", relevance_rid: str = "ot
 
 @pytest.fixture(autouse=True)
 def mock_get_term_tree(monkeypatch):
-    def mock_func(*pos, **kwargs):
-        return [{"@rid": d} for d in DISEASE_RIDS]
-
+    mock_func = Mock(return_value=[{"@rid": d} for d in DISEASE_RIDS])
     monkeypatch.setattr(gkb_vocab, "get_term_tree", mock_func)
+    return mock_func
 
 
 @pytest.fixture(autouse=True)
