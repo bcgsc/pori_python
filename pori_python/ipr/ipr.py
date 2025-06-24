@@ -634,7 +634,7 @@ def get_kb_disease_matches(
     verbose: bool = True,
     useSubgraphsRoute: bool = True,
 ) -> list[str]:
-    
+
     disease_matches = []
 
     if not kb_disease_match:
@@ -665,7 +665,7 @@ def get_kb_disease_matches(
                     {
                         "base": base_records,
                         "subgraphType": "tree",
-                    }
+                    },
                 )
                 disease_matches = [k for k in response['result']['g']['nodes'].keys()]
 
@@ -679,14 +679,16 @@ def get_kb_disease_matches(
             logger.info(f"Matching disease ({kb_disease_match}) to graphkb using get_term_tree()")
 
         # Fallback to previous solution w/ get_term_tree()
-        disease_matches = list({
-            r["@rid"]
-            for r in gkb_vocab.get_term_tree(
-                graphkb_conn,
-                kb_disease_match,
-                ontology_class="Disease",
-            )
-        })
+        disease_matches = list(
+            {
+                r["@rid"]
+                for r in gkb_vocab.get_term_tree(
+                    graphkb_conn,
+                    kb_disease_match,
+                    ontology_class="Disease",
+                )
+            }
+        )
 
     if not disease_matches:
         msg = f"failed to match disease ({kb_disease_match}) to graphkb"
