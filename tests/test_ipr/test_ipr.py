@@ -6,6 +6,7 @@ from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.ipr.ipr import (
     convert_statements_to_alterations,
     germline_kb_matches,
+    get_kb_disease_matches,
     get_kb_matched_statements,
     get_kb_statement_matched_conditions,
     get_kb_variants,
@@ -267,6 +268,30 @@ def mock_categorize_relevance(monkeypatch):
         return relevance_id
 
     monkeypatch.setattr(gkb_statement, "categorize_relevance", mock_func)
+
+
+class TestGetKbDiseaseMatches:
+    def test_get_kb_disease_matches_useSubgraphsRoute(self, graphkb_conn) -> None:
+        get_kb_disease_matches(graphkb_conn, 'Breast Cancer')
+        assert graphkb_conn.query.call_args_list[0].args == (
+            {'target': 'Disease', 'filters': {'name': 'Breast Cancer'}},
+        )
+        assert graphkb_conn.post.call_args_list[0].args == (
+            '/subgraphs/Disease',
+            {'base': ['#123:45'], 'subgraphType': 'tree'},
+        )
+        assert not gkb_vocab.get_term_tree.called
+
+    def test_get_kb_disease_matches_get_term_tree(self, graphkb_conn) -> None:
+        get_kb_disease_matches(graphkb_conn, 'Breast Cancer', useSubgraphsRoute=False)
+        assert not graphkb_conn.post.called
+        assert gkb_vocab.get_term_tree.called
+
+    def test_get_kb_disease_matches_default_to_cancer(self, graphkb_conn) -> None:
+        get_kb_disease_matches(graphkb_conn)
+        assert graphkb_conn.query.call_args_list[0].args == (
+            {'target': 'Disease', 'filters': {'name': 'cancer'}},
+        )
 
 
 class TestConvertStatementsToAlterations:
