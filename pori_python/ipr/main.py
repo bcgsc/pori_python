@@ -108,13 +108,7 @@ def command_interface() -> None:
     parser.add_argument(
         "-o",
         "--output_json_path",
-        help="path to a JSON to output the report upload body",
-    )
-    parser.add_argument(
-        "-w",
-        "--always_write_output_json",
-        action="store_true",
-        help="Write to output_json_path on successful IPR uploads instead of just when the upload fails",
+        help="path to a JSON to output the report upload body, write the output only when path is provided",
     )
     parser.add_argument(
         "--async_upload",
@@ -134,6 +128,18 @@ def command_interface() -> None:
         action="store_true",
         help="True to include matches to multivariant statements where not all variants are present",
     )
+    parser.add_argument(
+        "--upload_json",
+        default=False,
+        action="store_true",
+        help="True to skip all the preprocessing and just submit a json to ipr",
+    )
+    parser.add_argument(
+        "--validate_json",
+        default=False,
+        action="store_true",
+        help="True if only need to validate the json",
+    )
     args = parser.parse_args()
 
     with open(args.content, "r") as fh:
@@ -149,12 +155,13 @@ def command_interface() -> None:
         graphkb_url=args.graphkb_url,
         log_level=args.log_level,
         output_json_path=args.output_json_path,
-        always_write_output_json=args.always_write_output_json,
         generate_therapeutics=args.therapeutics,
         generate_comments=not args.skip_comments,
         async_upload=args.async_upload,
         mins_to_wait=args.mins_to_wait,
         allow_partial_matches=args.allow_partial_matches,
+        upload_json=args.upload_json,
+        validate_json=args.validate_json,
     )
 
 
@@ -271,7 +278,6 @@ def ipr_report(
     ipr_url: str = DEFAULT_URL,
     log_level: str = "info",
     output_json_path: str = "",
-    always_write_output_json: bool = False,
     ipr_upload: bool = True,
     interactive: bool = False,
     graphkb_username: str = "",
@@ -288,6 +294,8 @@ def ipr_report(
     include_nonspecific_project: bool = False,
     include_nonspecific_template: bool = False,
     allow_partial_matches: bool = False,
+    upload_json: bool = False,
+    validate_json: bool = False,
     tmb_high: float = TMB_SIGNATURE_HIGH_THRESHOLD,
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
@@ -299,7 +307,6 @@ def ipr_report(
         log_level: the logging level
         content: report content
         output_json_path: path to a JSON file to output the report upload body.
-        always_write_output_json: with successful IPR upload
         ipr_upload: upload report to ipr
         interactive: progressbars for interactive users
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
@@ -327,6 +334,18 @@ def ipr_report(
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
         datefmt="%m-%d-%y %H:%M:%S",
     )
+
+    # IPR CONNECTION
+    ipr_conn = IprConnection(username, password, ipr_url)
+
+    if validate_json:
+        ipr_result = ipr_conn.validate_json(content)
+        return ipr_result
+
+    if upload_json:
+        ipr_result = ipr_conn.upload_report(content, mins_to_wait, async_upload)
+        return ipr_result
+
     # validate the JSON content follows the specification
     try:
         validate_report_content(content)
@@ -364,10 +383,6 @@ def ipr_report(
     genes_with_variants: Set[str] = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
-
-    # IPR CONNECTION
-    ipr_conn = IprConnection(username, password, ipr_url)
-    ipr_spec = ipr_conn.get_spec()
 
     # GKB CONNECTION
     if graphkb_url:
@@ -509,6 +524,7 @@ def ipr_report(
     )
     output.setdefault("images", []).extend(select_expression_plots(gkb_matches, all_variants))
 
+    ipr_spec = ipr_conn.get_spec()
     output = clean_unsupported_content(output, ipr_spec)
     ipr_result = None
     upload_error = None
@@ -526,10 +542,9 @@ def ipr_report(
 
     # SAVE TO JSON FILE
     if output_json_path:
-        if always_write_output_json or not ipr_result:
-            logger.info(f"Writing IPR upload json to: {output_json_path}")
-            with open(output_json_path, "w") as fh:
-                fh.write(json.dumps(output))
+        logger.info(f"Writing IPR upload json to: {output_json_path}")
+        with open(output_json_path, "w") as fh:
+            fh.write(json.dumps(output))
 
     logger.info(f"made {graphkb_conn.request_count} requests to graphkb")
     logger.info(f"average load {int(graphkb_conn.load or 0)} req/s")
