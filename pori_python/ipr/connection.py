@@ -95,7 +95,11 @@ class IprConnection:
         )
 
     def upload_report(
-        self, content: Dict, mins_to_wait: int = 5, async_upload: bool = False, ignore_extra_fields: bool = False
+        self,
+        content: Dict,
+        mins_to_wait: int = 5,
+        async_upload: bool = False,
+        ignore_extra_fields: bool = False,
     ) -> Dict:
         if async_upload:
             # if async is used, the response for reports-async contains either 'jobStatus'

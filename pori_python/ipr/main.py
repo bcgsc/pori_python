@@ -361,7 +361,9 @@ def ipr_report(
         return ipr_result
 
     if upload_json:
-        ipr_result = ipr_conn.upload_report(content, mins_to_wait, async_upload, ignore_extra_fields)
+        ipr_result = ipr_conn.upload_report(
+            content, mins_to_wait, async_upload, ignore_extra_fields
+        )
         return ipr_result
 
     # validate the JSON content follows the specification
@@ -551,7 +553,9 @@ def ipr_report(
     if ipr_upload:
         try:
             logger.info(f"Uploading to IPR {ipr_conn.url}")
-            ipr_result = ipr_conn.upload_report(output, mins_to_wait, async_upload, ignore_extra_fields)
+            ipr_result = ipr_conn.upload_report(
+                output, mins_to_wait, async_upload, ignore_extra_fields
+            )
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
