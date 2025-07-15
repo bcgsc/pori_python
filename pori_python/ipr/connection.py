@@ -95,13 +95,16 @@ class IprConnection:
         )
 
     def upload_report(
-        self, content: Dict, mins_to_wait: int = 5, async_upload: bool = False
+        self, content: Dict, mins_to_wait: int = 5, async_upload: bool = False, ignore_extra_fields: bool = False
     ) -> Dict:
         if async_upload:
             # if async is used, the response for reports-async contains either 'jobStatus'
             # or 'report'. jobStatus is no longer available once the report is successfully
             # uploaded.
-            initial_result = self.post("reports-async?ignore_extra_fields=true", content)
+            if ignore_extra_fields:
+                initial_result = self.post("reports-async?ignore_extra_fields=true", content)
+            else:
+                initial_result = self.post("reports-async", content)
 
             report_id = initial_result["ident"]
 
@@ -158,7 +161,10 @@ class IprConnection:
 
             return current_status
         else:
-            return self.post("reports?ignore_extra_fields=true", content)
+            if ignore_extra_fields:
+                return self.post("reports?ignore_extra_fields=true", content)
+            else:
+                return self.post("reports", content)
 
     def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
         """

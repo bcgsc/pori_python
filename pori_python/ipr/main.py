@@ -108,7 +108,14 @@ def command_interface() -> None:
     parser.add_argument(
         "-o",
         "--output_json_path",
-        help="path to a JSON to output the report upload body, write the output only when path is provided",
+        default=f"pori_python_report_{timestamp()}.json",
+        help="path to a JSON to output the report upload body",
+    )
+    parser.add_argument(
+        "-w",
+        "--always_write_output_json",
+        action="store_true",
+        help="Write to output_json_path on successful IPR uploads instead of just when the upload fails",
     )
     parser.add_argument(
         "--async_upload",
@@ -140,6 +147,12 @@ def command_interface() -> None:
         action="store_true",
         help="True if only need to validate the json",
     )
+    parser.add_argument(
+        "--ignore_extra_fields",
+        default=False,
+        action="store_true",
+        help="True if ignore extra fields in json",
+    )
     args = parser.parse_args()
 
     with open(args.content, "r") as fh:
@@ -155,6 +168,7 @@ def command_interface() -> None:
         graphkb_url=args.graphkb_url,
         log_level=args.log_level,
         output_json_path=args.output_json_path,
+        always_write_output_json=args.always_write_output_json,
         generate_therapeutics=args.therapeutics,
         generate_comments=not args.skip_comments,
         async_upload=args.async_upload,
@@ -162,6 +176,7 @@ def command_interface() -> None:
         allow_partial_matches=args.allow_partial_matches,
         upload_json=args.upload_json,
         validate_json=args.validate_json,
+        ignore_extra_fields=args.ignore_extra_fields,
     )
 
 
@@ -278,6 +293,7 @@ def ipr_report(
     ipr_url: str = DEFAULT_URL,
     log_level: str = "info",
     output_json_path: str = "",
+    always_write_output_json: bool = False,
     ipr_upload: bool = True,
     interactive: bool = False,
     graphkb_username: str = "",
@@ -296,6 +312,7 @@ def ipr_report(
     allow_partial_matches: bool = False,
     upload_json: bool = False,
     validate_json: bool = False,
+    ignore_extra_fields: bool = False,
     tmb_high: float = TMB_SIGNATURE_HIGH_THRESHOLD,
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
@@ -307,6 +324,7 @@ def ipr_report(
         log_level: the logging level
         content: report content
         output_json_path: path to a JSON file to output the report upload body.
+        always_write_output_json: with successful IPR upload
         ipr_upload: upload report to ipr
         interactive: progressbars for interactive users
         cache_gene_minimum: minimum number of genes required for gene name caching optimization
@@ -343,7 +361,7 @@ def ipr_report(
         return ipr_result
 
     if upload_json:
-        ipr_result = ipr_conn.upload_report(content, mins_to_wait, async_upload)
+        ipr_result = ipr_conn.upload_report(content, mins_to_wait, async_upload, ignore_extra_fields)
         return ipr_result
 
     # validate the JSON content follows the specification
@@ -533,7 +551,7 @@ def ipr_report(
     if ipr_upload:
         try:
             logger.info(f"Uploading to IPR {ipr_conn.url}")
-            ipr_result = ipr_conn.upload_report(output, mins_to_wait, async_upload)
+            ipr_result = ipr_conn.upload_report(output, mins_to_wait, async_upload, ignore_extra_fields)
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
@@ -541,7 +559,7 @@ def ipr_report(
             logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
 
     # SAVE TO JSON FILE
-    if output_json_path:
+    if always_write_output_json:
         logger.info(f"Writing IPR upload json to: {output_json_path}")
         with open(output_json_path, "w") as fh:
             fh.write(json.dumps(output))
