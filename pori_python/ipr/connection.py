@@ -107,7 +107,9 @@ class IprConnection:
 
             # if project is not exist, create one
             if content['project'] not in project_names:
-                logger.info(f"Project not found - attempting to create project {content['project']}")
+                logger.info(
+                    f"Project not found - attempting to create project {content['project']}"
+                )
                 try:
                     self.post("project", {'name': content['project']})
                 except Exception as err:
