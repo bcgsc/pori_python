@@ -214,7 +214,7 @@ class GraphKBConnection:
     def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
         """Convenience method for making post requests."""
         return self.request(uri, method="POST", data=json.dumps(data), **kwargs)
-    
+
     def login_demo(self) -> None:
         """
         KBDEV-1328
@@ -234,13 +234,12 @@ class GraphKBConnection:
                     "grant_type": "password",
                     "password": self.password,
                     "username": self.username,
-                    
                 },
             )
         except Exception as err:
             logger.debug(f"unable to fetch a token from KeyCloak: {err}")
             raise err
-        
+
         resp.raise_for_status()
         content = resp.json()
         self.token_kc = content["access_token"]
@@ -269,7 +268,9 @@ class GraphKBConnection:
                     timeout=(connect_timeout, read_timeout),
                     data=json.dumps(
                         # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
-                        {"keyCloakToken": self.token_kc} if self.token_kc else {"username": username, "password": password}
+                        {"keyCloakToken": self.token_kc}
+                        if self.token_kc
+                        else {"username": username, "password": password}
                     ),
                 )
                 break
