@@ -9,6 +9,7 @@ import re
 import time
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
+from urllib.parse import urlsplit
 from urllib3.util.retry import Retry
 
 from pori_python.types import ParsedVariant, PositionalVariant, Record
@@ -112,6 +113,7 @@ class GraphKBConnection:
         )
         self.http.mount("https://", HTTPAdapter(max_retries=retries))
         self.token = ""
+        self.token_kc = ""
         self.url = url
         self.username = username
         self.password = password
@@ -212,12 +214,46 @@ class GraphKBConnection:
     def post(self, uri: str, data: Dict = {}, **kwargs) -> Dict:
         """Convenience method for making post requests."""
         return self.request(uri, method="POST", data=json.dumps(data), **kwargs)
+    
+    def login_demo(self) -> None:
+        """
+        KBDEV-1328
+        GraphKB login in GSC's PORI online demo is done in 2 steps:
+        1. get a first token from KeyCloak using username and password; self.login_demo()
+        2. get a second token from the GraphKB API using keyCloakToken; self.login()
+        """
+        url_parts = urlsplit(self.url)
+        base_url = f"{url_parts.scheme}://{url_parts.netloc}"
 
-    def login(self, username: str, password: str) -> None:
+        try:
+            resp = requests.request(
+                url=f"{base_url}/auth/realms/PORI/protocol/openid-connect/token",
+                method="POST",
+                data={
+                    "client_id": "GraphKB",
+                    "grant_type": "password",
+                    "password": self.password,
+                    "username": self.username,
+                    
+                },
+            )
+        except Exception as err:
+            logger.debug(f"unable to fetch a token from KeyCloak: {err}")
+            raise err
+        
+        resp.raise_for_status()
+        content = resp.json()
+        self.token_kc = content["access_token"]
+
+    def login(self, username: str, password: str, pori_demo: bool = False) -> None:
         self.username = username
         self.password = password
         connect_timeout = 7
         read_timeout = 61
+
+        # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
+        if pori_demo or "pori-demo" in self.url:
+            self.login_demo()
 
         # use requests package directly to avoid recursion loop on login failure
         attempts = range(10)
@@ -231,7 +267,10 @@ class GraphKBConnection:
                     method="POST",
                     headers=self.headers,
                     timeout=(connect_timeout, read_timeout),
-                    data=json.dumps({"username": username, "password": password}),
+                    data=json.dumps(
+                        # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
+                        {"keyCloakToken": self.token_kc} if self.token_kc else {"username": username, "password": password}
+                    ),
                 )
                 break
             except (requests.exceptions.ConnectionError, OSError) as err:
