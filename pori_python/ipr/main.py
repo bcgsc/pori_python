@@ -108,6 +108,7 @@ def command_interface() -> None:
     parser.add_argument(
         "-o",
         "--output_json_path",
+        default=f"pori_python_report_{timestamp()}.json",
         help="path to a JSON to output the report upload body",
     )
     parser.add_argument(
@@ -134,6 +135,24 @@ def command_interface() -> None:
         action="store_true",
         help="True to include matches to multivariant statements where not all variants are present",
     )
+    parser.add_argument(
+        "--upload_json",
+        default=False,
+        action="store_true",
+        help="True to skip all the preprocessing and just submit a json to ipr",
+    )
+    parser.add_argument(
+        "--validate_json",
+        default=False,
+        action="store_true",
+        help="True if only need to validate the json",
+    )
+    parser.add_argument(
+        "--ignore_extra_fields",
+        default=False,
+        action="store_true",
+        help="True if ignore extra fields in json",
+    )
     args = parser.parse_args()
 
     with open(args.content, "r") as fh:
@@ -155,6 +174,9 @@ def command_interface() -> None:
         async_upload=args.async_upload,
         mins_to_wait=args.mins_to_wait,
         allow_partial_matches=args.allow_partial_matches,
+        upload_json=args.upload_json,
+        validate_json=args.validate_json,
+        ignore_extra_fields=args.ignore_extra_fields,
     )
 
 
@@ -288,6 +310,9 @@ def ipr_report(
     include_nonspecific_project: bool = False,
     include_nonspecific_template: bool = False,
     allow_partial_matches: bool = False,
+    upload_json: bool = False,
+    validate_json: bool = False,
+    ignore_extra_fields: bool = False,
     tmb_high: float = TMB_SIGNATURE_HIGH_THRESHOLD,
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
@@ -327,6 +352,20 @@ def ipr_report(
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
         datefmt="%m-%d-%y %H:%M:%S",
     )
+
+    # IPR CONNECTION
+    ipr_conn = IprConnection(username, password, ipr_url)
+
+    if validate_json:
+        ipr_result = ipr_conn.validate_json(content)
+        return ipr_result
+
+    if upload_json:
+        ipr_result = ipr_conn.upload_report(
+            content, mins_to_wait, async_upload, ignore_extra_fields
+        )
+        return ipr_result
+
     # validate the JSON content follows the specification
     try:
         validate_report_content(content)
@@ -364,10 +403,6 @@ def ipr_report(
     genes_with_variants: Set[str] = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
-
-    # IPR CONNECTION
-    ipr_conn = IprConnection(username, password, ipr_url)
-    ipr_spec = ipr_conn.get_spec()
 
     # GKB CONNECTION
     if graphkb_url:
@@ -509,6 +544,7 @@ def ipr_report(
     )
     output.setdefault("images", []).extend(select_expression_plots(gkb_matches, all_variants))
 
+    ipr_spec = ipr_conn.get_spec()
     output = clean_unsupported_content(output, ipr_spec)
     ipr_result = None
     upload_error = None
@@ -517,7 +553,9 @@ def ipr_report(
     if ipr_upload:
         try:
             logger.info(f"Uploading to IPR {ipr_conn.url}")
-            ipr_result = ipr_conn.upload_report(output, mins_to_wait, async_upload)
+            ipr_result = ipr_conn.upload_report(
+                output, mins_to_wait, async_upload, ignore_extra_fields
+            )
             logger.info(ipr_result)
             output.update(ipr_result)
         except Exception as err:
@@ -525,11 +563,10 @@ def ipr_report(
             logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
 
     # SAVE TO JSON FILE
-    if output_json_path:
-        if always_write_output_json or not ipr_result:
-            logger.info(f"Writing IPR upload json to: {output_json_path}")
-            with open(output_json_path, "w") as fh:
-                fh.write(json.dumps(output))
+    if always_write_output_json:
+        logger.info(f"Writing IPR upload json to: {output_json_path}")
+        with open(output_json_path, "w") as fh:
+            fh.write(json.dumps(output))
 
     logger.info(f"made {graphkb_conn.request_count} requests to graphkb")
     logger.info(f"average load {int(graphkb_conn.load or 0)} req/s")

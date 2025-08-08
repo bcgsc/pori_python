@@ -15,6 +15,7 @@ For documentation on how to create reports using the IPR adaptor, see the [main 
 
 - [Getting Started](#getting-started)
   - [Install (For developers)](#install-for-developers)
+  - [JSON Validate and Upload to IPR](#json-validate-and-upload-to-ipr)
 - [Documentation](#documentation)
 - [Deployment (Publishing)](#deployment-publishing)
 
@@ -80,6 +81,17 @@ export DELETE_UPLOAD_TEST_REPORTS=0
 
 ```bash
 pytest tests
+```
+
+### JSON Validate and Upload to IPR
+If you only want to validate the json content, use
+```bash
+ipr --password $IPR_PASS -c 'path/to/content.json' --validate_json
+```
+
+If you only want to upload the json directly to ipr and skip all the preprocessing, use
+```bash
+ipr --password $IPR_PASS -c 'path/to/content.json' --upload_json
 ```
 
 ## Documentation

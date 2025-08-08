@@ -95,7 +95,11 @@ class IprConnection:
         )
 
     def upload_report(
-        self, content: Dict, mins_to_wait: int = 5, async_upload: bool = False
+        self,
+        content: Dict,
+        mins_to_wait: int = 5,
+        async_upload: bool = False,
+        ignore_extra_fields: bool = False,
     ) -> Dict:
         if async_upload:
             # if async is used, the response for reports-async contains either 'jobStatus'
@@ -115,7 +119,10 @@ class IprConnection:
                 except Exception as err:
                     raise Exception(f"Project creation failed due to {err}")
 
-            initial_result = self.post("reports-async", content)
+            if ignore_extra_fields:
+                initial_result = self.post("reports-async?ignore_extra_fields=true", content)
+            else:
+                initial_result = self.post("reports-async", content)
 
             report_id = initial_result["ident"]
 
@@ -172,7 +179,10 @@ class IprConnection:
 
             return current_status
         else:
-            return self.post("reports", content)
+            if ignore_extra_fields:
+                return self.post("reports?ignore_extra_fields=true", content)
+            else:
+                return self.post("reports", content)
 
     def set_analyst_comments(self, report_id: str, data: Dict) -> Dict:
         """
@@ -226,3 +236,11 @@ class IprConnection:
         Get the current IPR spec, for the purposes of current report upload fields
         """
         return self.request("/spec.json", method="GET")
+
+    def validate_json(self, content: Dict) -> Dict:
+        """
+        Validate the provided json schema
+        """
+        result = self.post("reports/schema", content)
+        logger.info(f"{result['message']}")
+        return result
