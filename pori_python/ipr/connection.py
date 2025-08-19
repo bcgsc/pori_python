@@ -105,6 +105,20 @@ class IprConnection:
             # if async is used, the response for reports-async contains either 'jobStatus'
             # or 'report'. jobStatus is no longer available once the report is successfully
             # uploaded.
+
+            projects = self.get("project")
+            project_names = [item['name'] for item in projects]
+
+            # if project is not exist, create one
+            if content['project'] not in project_names:
+                logger.info(
+                    f"Project not found - attempting to create project {content['project']}"
+                )
+                try:
+                    self.post("project", {'name': content['project']})
+                except Exception as err:
+                    raise Exception(f"Project creation failed due to {err}")
+
             if ignore_extra_fields:
                 initial_result = self.post("reports-async?ignore_extra_fields=true", content)
             else:
