@@ -6,6 +6,7 @@ from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.ipr.ipr import (
     convert_statements_to_alterations,
     germline_kb_matches,
+    get_kb_disease_matches,
     get_kb_matched_statements,
     get_kb_statement_matched_conditions,
     get_kb_variants,
@@ -170,33 +171,6 @@ KB_MATCHES_STATEMENTS = [
 ]
 
 
-@pytest.fixture
-def graphkb_conn():
-    class QueryMock:
-        return_values = [
-            # get approved evidence levels
-            [{"@rid": v} for v in APPROVED_EVIDENCE_RIDS]
-        ]
-        index = -1
-
-        def __call__(self, *args, **kwargs):
-            self.index += 1
-            ret_val = self.return_values[self.index] if self.index < len(self.return_values) else []
-            return ret_val
-
-    class PostMock:
-        def __call__(self, *args, **kwargs):
-            # custom return tailored for multi_variant_filtering() testing
-            return {"result": KB_MATCHES_STATEMENTS}
-
-    def mock_get_source(source):
-        return {"@rid": 0}
-
-    conn = Mock(query=QueryMock(), cache={}, get_source=mock_get_source, post=PostMock())
-
-    return conn
-
-
 def base_graphkb_statement(disease_id: str = "disease", relevance_rid: str = "other") -> Statement:
     statement = Statement(  # type: ignore
         {
@@ -231,12 +205,48 @@ def base_graphkb_statement(disease_id: str = "disease", relevance_rid: str = "ot
     return statement
 
 
+@pytest.fixture
+def graphkb_conn():
+    # Mock for the 'query' method
+    query_mock = Mock()
+    query_return_values = [[{"@rid": v} for v in APPROVED_EVIDENCE_RIDS]]
+    query_index = {"value": -1}  # Mutable index for closure
+
+    def query_side_effect(*args, **kwargs):
+        if args:
+            # for TestGetKbDiseaseMatches
+            return [{'@rid': '#123:45'}]
+        query_index["value"] += 1
+        idx = query_index["value"]
+        return query_return_values[idx] if idx < len(query_return_values) else []
+
+    query_mock.side_effect = query_side_effect
+
+    # Mock for the 'post' method
+    post_mock = Mock(return_value={"result": KB_MATCHES_STATEMENTS})
+
+    # 'get_source' remains a plain function
+    def mock_get_source(source):
+        return {"@rid": 0}
+
+    # Create the connection mock with attributes
+    conn = Mock()
+    conn.query = query_mock
+    conn.post = post_mock
+    conn.cache = {}
+    conn.get_source = mock_get_source
+
+    yield conn
+    query_mock.reset_mock()
+    post_mock.reset_mock()
+
+
 @pytest.fixture(autouse=True)
 def mock_get_term_tree(monkeypatch):
-    def mock_func(*pos, **kwargs):
-        return [{"@rid": d} for d in DISEASE_RIDS]
-
+    mock_func = Mock(return_value=[{"@rid": d} for d in DISEASE_RIDS])
     monkeypatch.setattr(gkb_vocab, "get_term_tree", mock_func)
+    yield mock_func
+    mock_func.reset_mock()
 
 
 @pytest.fixture(autouse=True)
@@ -253,6 +263,22 @@ def mock_categorize_relevance(monkeypatch):
         return relevance_id
 
     monkeypatch.setattr(gkb_statement, "categorize_relevance", mock_func)
+
+
+class TestGetKbDiseaseMatches:
+    def test_get_kb_disease_matches_default_disease(self, graphkb_conn) -> None:
+        get_kb_disease_matches(graphkb_conn)  # default to 'cancer'
+        assert graphkb_conn.post.called
+        assert graphkb_conn.post.call_args_list[0].args[0] == '/subgraphs/Disease'
+
+    def test_get_kb_disease_matches_disease_with_subgraphs(self, graphkb_conn) -> None:
+        get_kb_disease_matches(graphkb_conn, 'Breast Cancer')
+        assert graphkb_conn.post.called
+        assert graphkb_conn.post.call_args_list[0].args[0] == '/subgraphs/Disease'
+
+    def test_get_kb_disease_matches_get_term_tree(self, graphkb_conn) -> None:
+        get_kb_disease_matches(graphkb_conn, 'Breast Cancer', useSubgraphsRoute=False)
+        assert not graphkb_conn.post.called
 
 
 class TestConvertStatementsToAlterations:
