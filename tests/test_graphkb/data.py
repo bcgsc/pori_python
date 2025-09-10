@@ -1,11 +1,10 @@
-"""_summary_
-matches:
-    Array of variants (diplayName and type) that MUST be matching, but not restricted to
-does_not_matches:
-    Array of variants (diplayName and type) that MUST NOT be matching, but not restricted to
-"""
-
 # Screening structural variant to rule out small events [KBDEV_1056]
+#
+# matches:
+#     Array of variants (diplayName and type) that MUST be matching, but not restricted to
+# does_not_matches:
+#     Array of variants (diplayName and type) that MUST NOT be matching, but not restricted to
+#
 structuralVariants = {
     # Unambiguous structural variations
     "(FGFR3,BRCA2):fusion(g.1234567,g.1234567)": {
@@ -76,3 +75,124 @@ structuralVariants = {
         "does_not_matches": {"displayName": ["FGFR3 rearrangement"], "type": ["rearrangement"]},
     },
 }
+
+# KBDEV-1163.
+# pos 0: a feature
+# pos 1: expected equivalences
+ensemblProteinSample = [
+    (
+        'EGFR',
+        [
+            'EGFR',
+            'ERBB',
+            'ENSG00000146648',
+            'ENSG00000146648.17',
+            'ENST00000275493',
+            'ENST00000275493.6',
+            'NM_001346897',
+            'NM_001346897.2',
+            'NP_001333826',
+            'NP_001333826.1',
+        ],
+    ),
+    (
+        'NM_001346897',
+        [
+            'EGFR',
+            'ERBB',
+            'ENSG00000146648',
+            'ENSG00000146648.17',
+            'NM_001346897',
+            'NM_001346897.2',
+            'NP_001333826',
+            'NP_001333826.1',
+        ],
+    ),
+    (
+        'NM_001346897.2',
+        [
+            'EGFR',
+            'ERBB',
+            'ENSG00000146648',
+            'ENSG00000146648.17',
+            'NM_001346897',
+            'NM_001346897.2',
+            'NP_001333826',
+            'NP_001333826.1',
+        ],
+    ),
+    (
+        'NP_001333826',
+        [
+            'EGFR',
+            'ERBB',
+            'ENSG00000146648',  # Warn: Versionized ENSG won't be returned due to API limitations
+            'NM_001346897',
+            'NM_001346897.2',
+            'NP_001333826',
+            'NP_001333826.1',
+        ],
+    ),
+    (
+        'NP_001333826.1',
+        [
+            'EGFR',
+            'ERBB',
+            'ENSG00000146648',  # Warn: Versionized ENSG won't be returned due to API limitations
+            'NM_001346897',
+            'NM_001346897.2',
+            'NP_001333826',
+            'NP_001333826.1',
+        ],
+    ),
+    (
+        'ENSG00000146648',
+        [
+            'EGFR',
+            'ERBB',
+            'ENSG00000146648',
+            'ENSG00000146648.17',
+            'ENST00000275493',
+            'ENST00000275493.6',
+            'NM_001346897',
+            'NM_001346897.2',
+            'NP_001333826',  # Warn: Versionized NP won't be returned due to API limitations
+        ],
+    ),
+    (
+        'ENSG00000146648.17',
+        [
+            'EGFR',
+            'ERBB',
+            'ENSG00000146648',
+            'ENSG00000146648.17',
+            'ENST00000275493',
+            'ENST00000275493.6',
+            'NM_001346897',
+            'NM_001346897.2',
+            'NP_001333826',  # Warn: Versionized NP won't be returned due to API limitations
+        ],
+    ),
+    (
+        'ENST00000275493',
+        [
+            'EGFR',
+            'ERBB',
+            'ENSG00000146648',
+            'ENSG00000146648.17',
+            'ENST00000275493',
+            'ENST00000275493.6',
+        ],
+    ),
+    (
+        'ENST00000275493.6',
+        [
+            'EGFR',
+            'ERBB',
+            'ENSG00000146648',
+            'ENSG00000146648.17',
+            'ENST00000275493',
+            'ENST00000275493.6',
+        ],
+    ),
+]
