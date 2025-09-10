@@ -13,7 +13,7 @@ from pori_python.graphkb.constants import (
 from pori_python.graphkb.util import FeatureNotFoundError
 
 # Test datasets
-from .data import structuralVariants
+from .data import ensemblProteinSample, structuralVariants
 
 EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
 EXCLUDE_INTEGRATION_TESTS = os.environ.get("EXCLUDE_INTEGRATION_TESTS") == "1"
@@ -100,6 +100,18 @@ class TestGetEquivalentFeatures:
             )
         ]
         assert "KRAS" in kras
+
+    # KBDEV-1163
+    # Testing if the addition of Ensembl protein Features are limiting results
+    # returned by get_equivalent_features() since SimilatTo queryType queries
+    # aren't traversing the graph to it's whole depth.
+    @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason="excluding data-specific test")
+    def test_ensembl_protein(self, conn):
+        for feature, expected in ensemblProteinSample:
+            equivalent_features = match.get_equivalent_features(conn, feature)
+            equivalent_features = [el['displayName'] for el in equivalent_features]
+            for equivalent_feature in expected:
+                assert equivalent_feature in equivalent_features
 
 
 class TestMatchCopyVariant:
