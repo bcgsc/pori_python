@@ -158,7 +158,7 @@ def command_interface() -> None:
     with open(args.content, "r") as fh:
         content = json.load(fh)
 
-    create_report(
+    ipr_report(
         username=args.username,
         password=args.password,
         content=content,
