@@ -69,6 +69,9 @@ def timestamp() -> str:
 
 
 def command_interface() -> None:
+    """Parse the ipr command from user input based on usage pattern.
+    Parsed arguments are used to call the ipr_report() function.
+    """
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     req = parser.add_argument_group("required arguments")
     (req if not os.environ.get("USER") else parser).add_argument(
@@ -158,7 +161,7 @@ def command_interface() -> None:
     with open(args.content, "r") as fh:
         content = json.load(fh)
 
-    create_report(
+    ipr_report(
         username=args.username,
         password=args.password,
         content=content,
