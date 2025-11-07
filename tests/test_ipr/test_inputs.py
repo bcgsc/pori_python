@@ -48,7 +48,7 @@ EXPECTED_HLA = {
     "HLA-C*06",
 }
 EXPECTED_TMB = {TMB_SIGNATURE}
-EXPECTED_MSI = {MSI_MAPPING.get('microsatellite instability')['signatureName']}
+EXPECTED_MSI = {MSI_MAPPING.get("microsatellite instability")["signatureName"]}
 
 
 def read_data_file(filename):
@@ -209,7 +209,7 @@ class TestPreProcessSignatureVariants:
     # Preprocessing records from file
     cosmic = preprocess_cosmic(
         [
-            r['signature']
+            r["signature"]
             for r in pd.read_csv(os.path.join(DATA_DIR, "cosmic_variants.tab"), sep="\t").to_dict(
                 "records"
             )

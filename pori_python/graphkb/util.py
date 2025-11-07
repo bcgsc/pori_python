@@ -9,8 +9,8 @@ import re
 import time
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
-from urllib.parse import urlsplit
 from urllib3.util.retry import Retry
+from urllib.parse import urlsplit
 
 from pori_python.types import ParsedVariant, PositionalVariant, Record
 
@@ -130,9 +130,7 @@ class GraphKBConnection:
         if self.first_request and self.last_request:
             msec = millis_interval(self.first_request, self.last_request)
             if msec:
-                return (
-                    self.request_count * 1000 / msec
-                )
+                return self.request_count * 1000 / msec
         return None
 
     def request(self, endpoint: str, method: str = "GET", **kwargs) -> Dict:

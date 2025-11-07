@@ -344,12 +344,12 @@ def annotate_signature_variants(
             # Keep support for 'high mutation burden' until statement datafix
             if (
                 variant["signatureName"] == TMB_SIGNATURE
-                and TMB_SIGNATURE != 'high mutation burden'
+                and TMB_SIGNATURE != "high mutation burden"
             ):
                 matched_variants.extend(
                     gkb_match.match_category_variant(
                         graphkb_conn,
-                        'high mutation burden',
+                        "high mutation burden",
                         variant["variantTypeName"],
                         reference_class="Signature",
                     )

@@ -15,14 +15,14 @@ TMB_SIGNATURE_HIGH_THRESHOLD = (
 TMB_SIGNATURE_VARIANT_TYPE = "high signature"
 # Mapping micro-satellite from pipeline terms to GraphKB terms
 MSI_MAPPING = {
-    'microsatellite instability': {  # MSI
-        'displayName': 'microsatellite instability high signature',
-        'signatureName': 'microsatellite instability',
-        'variantTypeName': 'high signature',
+    "microsatellite instability": {  # MSI
+        "displayName": "microsatellite instability high signature",
+        "signatureName": "microsatellite instability",
+        "variantTypeName": "high signature",
     },
-    'microsatellite stable': {  # MSS
-        'displayName': 'microsatellite stable signature present',
-        'signatureName': 'microsatellite stable',
-        'variantTypeName': 'signature present',
+    "microsatellite stable": {  # MSS
+        "displayName": "microsatellite stable signature present",
+        "signatureName": "microsatellite stable",
+        "variantTypeName": "signature present",
     },
 }
