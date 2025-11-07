@@ -107,15 +107,15 @@ class IprConnection:
             # uploaded.
 
             projects = self.get("project")
-            project_names = [item['name'] for item in projects]
+            project_names = [item["name"] for item in projects]
 
             # if project is not exist, create one
-            if content['project'] not in project_names:
+            if content["project"] not in project_names:
                 logger.info(
                     f"Project not found - attempting to create project {content['project']}"
                 )
                 try:
-                    self.post("project", {'name': content['project']})
+                    self.post("project", {"name": content["project"]})
                 except Exception as err:
                     raise Exception(f"Project creation failed due to {err}")
 

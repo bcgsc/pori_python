@@ -639,7 +639,7 @@ def get_kb_disease_matches(
     disease_matches = []
 
     if not kb_disease_match:
-        kb_disease_match = 'cancer'
+        kb_disease_match = "cancer"
         if verbose:
             logger.warning(f"No disease provided; will use '{kb_disease_match}'")
 
@@ -657,20 +657,20 @@ def get_kb_disease_matches(
             base_records = gkb_util.convert_to_rid_list(
                 graphkb_conn.query(
                     gkb_vocab.query_by_name(
-                        'Disease',
+                        "Disease",
                         kb_disease_match,
                     )
                 )
             )
             if base_records:
                 response = graphkb_conn.post(
-                    f'/subgraphs/Disease',
+                    f"/subgraphs/Disease",
                     {
-                        'subgraphType': 'tree',
-                        'base': base_records,
+                        "subgraphType": "tree",
+                        "base": base_records,
                     },
                 )
-                disease_matches = list(response['result']['g']['nodes'].keys())
+                disease_matches = list(response["result"]["g"]["nodes"].keys())
 
         except Exception:
             if verbose:

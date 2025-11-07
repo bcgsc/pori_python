@@ -504,7 +504,7 @@ def ipr_report(
             include_nonspecific_template=include_nonspecific_template,
         )
         comments_list.append(ipr_comments)
-    comments = {'comments': "\n".join(comments_list)}
+    comments = {"comments": "\n".join(comments_list)}
 
     # REFORMATTING KBMATCHES
     # kbMatches -> kbMatches, kbMatchedStatements & kbStatementMatchedConditions

@@ -215,7 +215,7 @@ def graphkb_conn():
     def query_side_effect(*args, **kwargs):
         if args:
             # for TestGetKbDiseaseMatches
-            return [{'@rid': '#123:45'}]
+            return [{"@rid": "#123:45"}]
         query_index["value"] += 1
         idx = query_index["value"]
         return query_return_values[idx] if idx < len(query_return_values) else []
@@ -269,15 +269,15 @@ class TestGetKbDiseaseMatches:
     def test_get_kb_disease_matches_default_disease(self, graphkb_conn) -> None:
         get_kb_disease_matches(graphkb_conn)  # default to 'cancer'
         assert graphkb_conn.post.called
-        assert graphkb_conn.post.call_args_list[0].args[0] == '/subgraphs/Disease'
+        assert graphkb_conn.post.call_args_list[0].args[0] == "/subgraphs/Disease"
 
     def test_get_kb_disease_matches_disease_with_subgraphs(self, graphkb_conn) -> None:
-        get_kb_disease_matches(graphkb_conn, 'Breast Cancer')
+        get_kb_disease_matches(graphkb_conn, "Breast Cancer")
         assert graphkb_conn.post.called
-        assert graphkb_conn.post.call_args_list[0].args[0] == '/subgraphs/Disease'
+        assert graphkb_conn.post.call_args_list[0].args[0] == "/subgraphs/Disease"
 
     def test_get_kb_disease_matches_get_term_tree(self, graphkb_conn) -> None:
-        get_kb_disease_matches(graphkb_conn, 'Breast Cancer', useSubgraphsRoute=False)
+        get_kb_disease_matches(graphkb_conn, "Breast Cancer", useSubgraphsRoute=False)
         assert not graphkb_conn.post.called
 
 

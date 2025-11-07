@@ -520,7 +520,7 @@ def preprocess_tmb(
     if tmb_val >= tmb_high:
         return [
             {
-                "displayName": f'{TMB_SIGNATURE} {TMB_SIGNATURE_VARIANT_TYPE}',
+                "displayName": f"{TMB_SIGNATURE} {TMB_SIGNATURE_VARIANT_TYPE}",
                 "signatureName": TMB_SIGNATURE,
                 "variantTypeName": TMB_SIGNATURE_VARIANT_TYPE,
             }
