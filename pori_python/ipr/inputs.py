@@ -495,7 +495,7 @@ def preprocess_tmb(
             tmbur_tmb_val = float(
                 tmburMutationBurden["genomeIndelTmb"] + tmburMutationBurden["genomeSnvTmb"]
             )
-            if genomeTmb == None:
+            if genomeTmb is None:
                 logger.error(
                     "backwards compatibility: deriving genomeTmb from tmburMutationBurden genomeIndelTmb + genomeSnvTmb"
                 )
@@ -505,14 +505,14 @@ def preprocess_tmb(
 
     # genomeTmb
     # SDEV-4811 - mutation burden is now expected to be uploaded in genomeTmb as mutations/megabase
-    if genomeTmb != None and genomeTmb != "":
+    if genomeTmb:
         try:
             tmb_val = float(genomeTmb)
             if tmburMutationBurden and tmbur_tmb_val != tmb_val:
                 logger.warning(
                     f"genomeTmb given {tmb_val} does not match tmburMutationBurden TMB {tmbur_tmb_val}"
                 )
-        except Exception as err:
+        except TypeError as err:
             logger.error(f"genomeTmb parsing failure {genomeTmb}: {err}")
 
     # comparaing tmb_val to threshold
