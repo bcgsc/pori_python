@@ -328,7 +328,7 @@ def annotate_signature_variants(
     Returns:
         list of kbMatches records for IPR
     """
-    alterations: List[Hashabledict] = []
+    alterations: List[KbMatch] = []
 
     iterfunc = tqdm if show_progress else iter
     for variant in iterfunc(variants):
@@ -360,7 +360,7 @@ def annotate_signature_variants(
             ):
                 ipr_row["variant"] = variant["key"]
                 ipr_row["variantType"] = "sigv"
-                alterations.append(Hashabledict(ipr_row))
+                alterations.append(KbMatch(ipr_row))
 
         except ValueError as err:
             logger.error(f"failed to match signature category variant '{variant}': {err}")
