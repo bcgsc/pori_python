@@ -248,20 +248,20 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprCopyVariant]:
                 row["cnvState"] = display_name_mapping[kb_cat]
         row["variant"] = kb_cat
         row["variantType"] = "cnv"
-        chrband = row.get("chromosomeBand", False)
-        chrom = row.pop("chromosome", False)
-        if not chrom:
-            chrom = row.pop("chr", False)
-        # remove chr if it was not used for chrom
-        row.pop("chr", False)
-        if chrom:
+
+        chrom = ""
+        if "chromosome" in row:
+            chrom = str(row.pop("chromosome", ""))  # type: ignore
+        elif "chr" in row:
+            chrom = str(row.pop("chr", ""))  # type: ignore
+
+        chrband = row.get("chromosomeBand", "")
+        if chrom and chrband:
             # check that chr isn't already in the chrband;
             # this regex from https://vrs.ga4gh.org/en/1.2/terms_and_model.html#id25
-            if chrband and (re.match(r"^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband)):
-                if isinstance(chrom, int):
-                    chrom = str(chrom)
+            if re.match(r"^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband):
                 chrom = chrom.strip("chr")
-                row["chromosomeBand"] = chrom + row["chromosomeBand"]
+                row["chromosomeBand"] = chrom + chrband
 
     return ret_list
 

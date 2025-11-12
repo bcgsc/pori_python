@@ -160,6 +160,7 @@ class IprCopyVariant(IprGeneVariant):
     # variantType == 'cnv'
     kbCategory: str
     cnvState: str
+    chromosomeBand: str
 
 
 class IprExprVariant(IprGeneVariant):
