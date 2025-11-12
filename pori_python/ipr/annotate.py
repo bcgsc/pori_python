@@ -239,10 +239,11 @@ def annotate_positional_variants(
             continue
 
         for var_key in VARIANT_KEYS:
-            variant = row.get(var_key)
+            variant = row.get(var_key, "")
             matches = []
             if not variant or isnull(variant):
                 continue
+            variant = str(variant)
             try:
                 try:
                     matches = gkb_match.match_positional_variant(graphkb_conn, variant)
@@ -277,15 +278,15 @@ def annotate_positional_variants(
             except FeatureNotFoundError as err:
                 logger.debug(f"failed to match positional variants ({variant}): {err}")
                 errors += 1
-                if "gene" in row:
-                    problem_genes.add(row["gene"])
-                elif "gene1" in row and f"({row['gene1']})" in str(err):
-                    problem_genes.add(row["gene1"])
-                elif "gene2" in row and f"({row['gene2']})" in str(err):
-                    problem_genes.add(row["gene2"])
-                elif "gene1" in row and "gene2" in row:
-                    problem_genes.add(row["gene1"])
-                    problem_genes.add(row["gene2"])
+                if row.get("gene"):
+                    problem_genes.add(row["gene"])  # type: ignore
+                elif row.get("gene1") and f"({row['gene1']})" in str(err):  # type: ignore
+                    problem_genes.add(row["gene1"])  # type: ignore
+                elif row.get("gene2") and f"({row['gene2']})" in str(err):  # type: ignore
+                    problem_genes.add(row["gene2"])  # type: ignore
+                elif row.get("gene1") and row.get("gene2"):  # type: ignore
+                    problem_genes.add(row["gene1"])  # type: ignore
+                    problem_genes.add(row["gene2"])  # type: ignore
                 else:
                     raise err
             except HTTPError as err:
