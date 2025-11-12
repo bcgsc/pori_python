@@ -7,7 +7,7 @@ import jsonschema.exceptions
 import logging
 import os
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from typing import Callable, Dict, List, Sequence, Set
+from typing import Callable, Dict, List, Optional, Sequence, Set
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
@@ -15,9 +15,9 @@ from pori_python.types import (
     Hashabledict,
     IprCopyVariant,
     IprExprVariant,
+    IprFusionVariant,
     IprSignatureVariant,
     IprSmallMutationVariant,
-    IprStructuralVariant,
     IprVariant,
 )
 
@@ -305,7 +305,7 @@ def ipr_report(
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
     match_germline: bool = False,
-    custom_kb_match_filter: Callable = None,
+    custom_kb_match_filter: Optional[Callable] = None,
     async_upload: bool = False,
     mins_to_wait: int = 5,
     include_ipr_variant_text: bool = True,
@@ -392,7 +392,7 @@ def ipr_report(
     small_mutations: List[IprSmallMutationVariant] = preprocess_small_mutations(
         content.get("smallMutations", [])
     )
-    structural_variants: List[IprStructuralVariant] = preprocess_structural_variants(
+    structural_variants: List[IprFusionVariant] = preprocess_structural_variants(
         content.get("structuralVariants", [])
     )
     copy_variants: List[IprCopyVariant] = preprocess_copy_variants(content.get("copyVariants", []))
@@ -549,7 +549,7 @@ def ipr_report(
 
     ipr_spec = ipr_conn.get_spec()
     output = clean_unsupported_content(output, ipr_spec)
-    ipr_result = None
+    ipr_result = {}
     upload_error = None
 
     # UPLOAD TO IPR
