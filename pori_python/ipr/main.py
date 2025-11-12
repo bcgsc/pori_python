@@ -383,8 +383,8 @@ def ipr_report(
             *preprocess_hla(content.get("hlaTypes", [])),
             *preprocess_tmb(
                 tmb_high,
-                content.get("tmburMutationBurden", None),  # old tmb pipeline
-                content.get("genomeTmb", None),  # newer tmb pipeline
+                content.get("tmburMutationBurden", {}),  # old tmb pipeline
+                content.get("genomeTmb", ""),  # newer tmb pipeline
             ),
             *preprocess_msi(content.get("msi", None)),
         ]
