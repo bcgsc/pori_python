@@ -12,13 +12,13 @@ from typing import Callable, Dict, List, Optional, Sequence, Set
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
 from pori_python.types import (
-    Hashabledict,
     IprCopyVariant,
     IprExprVariant,
     IprFusionVariant,
     IprSignatureVariant,
     IprSmallMutationVariant,
     IprVariant,
+    KbMatch,
 )
 
 from .annotate import annotate_variants
@@ -428,7 +428,7 @@ def ipr_report(
     disease_matches: list[str] = get_kb_disease_matches(graphkb_conn, kb_disease_match)
 
     # GKB MATCHING (AKA ANNOTATION)
-    gkb_matches: List[Hashabledict] = annotate_variants(
+    gkb_matches: List[KbMatch] = annotate_variants(
         graphkb_conn=graphkb_conn,
         interactive=interactive,
         disease_matches=disease_matches,
@@ -453,16 +453,14 @@ def ipr_report(
     if match_germline:
         # verify germline kb statements matched germline observed variants, not somatic variants
         org_len = len(gkb_matches)
-        gkb_matches = [
-            Hashabledict(match) for match in germline_kb_matches(gkb_matches, all_variants)
-        ]
+        gkb_matches = germline_kb_matches(gkb_matches, all_variants)
         num_removed = org_len - len(gkb_matches)
         if num_removed:
             logger.info(f"Removing {num_removed} germline events without medical matches.")
 
     if custom_kb_match_filter:
         logger.info(f"custom_kb_match_filter on {len(gkb_matches)} variants")
-        gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
+        gkb_matches = custom_kb_match_filter(gkb_matches)
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
     # KEY ALTERATIONS

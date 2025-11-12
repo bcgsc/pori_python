@@ -213,7 +213,7 @@ def annotate_positional_variants(
     variants: Sequence[IprStructuralVariant] | Sequence[Hashabledict],
     disease_matches: List[str],
     show_progress: bool = False,
-) -> List[Hashabledict]:
+) -> List[KbMatch]:
     """Annotate SNP, INDEL or fusion variant calls with GraphKB and return in IPR match format.
 
     Hashable type is required to turn lists into sets.
@@ -228,7 +228,7 @@ def annotate_positional_variants(
     """
     VARIANT_KEYS = ("variant", "hgvsProtein", "hgvsCds", "hgvsGenomic")
     errors = 0
-    alterations: List[Hashabledict] = []
+    alterations: List[KbMatch] = []
     problem_genes = set()
 
     iterfunc = tqdm if show_progress else iter
@@ -273,7 +273,7 @@ def annotate_positional_variants(
                     ipr_row["variantType"] = row.get(
                         "variantType", "mut" if row.get("gene") else "sv"
                     )
-                    alterations.append(Hashabledict(ipr_row))
+                    alterations.append(ipr_row)
 
             except FeatureNotFoundError as err:
                 logger.debug(f"failed to match positional variants ({variant}): {err}")
@@ -361,7 +361,7 @@ def annotate_signature_variants(
             ):
                 ipr_row["variant"] = variant["key"]
                 ipr_row["variantType"] = "sigv"
-                alterations.append(KbMatch(ipr_row))
+                alterations.append(ipr_row)
 
         except ValueError as err:
             logger.error(f"failed to match signature category variant '{variant}': {err}")
@@ -385,7 +385,7 @@ def annotate_variants(
     structural_variants: Sequence[IprStructuralVariant] = [],
     copy_variants: List[IprCopyVariant] = [],
     expression_variants: List[IprExprVariant] = [],
-) -> List[Hashabledict]:
+) -> List[KbMatch]:
     """Annotating (matching to GraphKB) all observed variants, per type
     Args:
         graphkb_conn: the graphkb api connection object
@@ -399,7 +399,7 @@ def annotate_variants(
     Returns:
         A list of matched Statements to GraphKB
     """
-    gkb_matches: List[Hashabledict] = []
+    gkb_matches: List[KbMatch] = []
 
     # MATCHING SIGNATURE CATEGORY VARIANTS
     logger.info(f"annotating {len(signature_variants)} signatures")
@@ -434,27 +434,21 @@ def annotate_variants(
     # MATCHING COPY VARIANTS
     logger.info(f"annotating {len(copy_variants)} copy variants")
     gkb_matches.extend(
-        [
-            Hashabledict(copy_var)
-            for copy_var in annotate_copy_variants(
-                graphkb_conn, disease_matches, copy_variants, show_progress=interactive
-            )
-        ]
+        annotate_copy_variants(
+            graphkb_conn, disease_matches, copy_variants, show_progress=interactive
+        )
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     # MATCHING EXPRESSION VARIANTS
     logger.info(f"annotating {len(expression_variants)} expression variants")
     gkb_matches.extend(
-        [
-            Hashabledict(exp_var)
-            for exp_var in annotate_expression_variants(
-                graphkb_conn,
-                disease_matches,
-                expression_variants,
-                show_progress=interactive,
-            )
-        ]
+        annotate_expression_variants(
+            graphkb_conn,
+            disease_matches,
+            expression_variants,
+            show_progress=interactive,
+        )
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
