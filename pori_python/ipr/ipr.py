@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from copy import copy
 from itertools import product
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple, cast
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, cast
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
@@ -510,7 +510,8 @@ def get_kb_matched_statements(
     for item in gkb_matches:
         stmt = copy(item)
         stmt["requiredKbMatches"].sort()
-        kbs = KbMatchedStatement({key: val for (key, val) in stmt.items() if key in kbs_keys})
+        kbs_dict = {key: val for (key, val) in stmt.items() if key in kbs_keys}
+        kbs = cast(KbMatchedStatement, kbs_dict)
         dict_key = str(kbs)
         kbMatchedStatements[dict_key] = kbs
     return [*kbMatchedStatements.values()]
@@ -569,7 +570,7 @@ def get_kb_statement_matched_conditions(
 
     for kbStmt in kbMatchedStatements:
         stmts = [item for item in gkb_matches if item["kbStatementId"] == kbStmt["kbStatementId"]]
-        requirements = {}
+        requirements: Dict[str, str | Any] = {}
         for requirement in stmts[0]["requiredKbMatches"]:
             if not requirements.get(requirement, False):
                 # only use explicit variant/statement links
@@ -602,7 +603,7 @@ def get_kb_statement_matched_conditions(
             )
             kbmc = KbMatchedStatementConditionSet(
                 {
-                    "kbStatementId": conditionSet["kbStatementId"],
+                    "kbStatementId": str(conditionSet.get("kbStatementId", "")),
                     "matchedConditions": matchedConditions,
                 }
             )
@@ -622,11 +623,12 @@ def get_kb_matches_sections(
     kb_statement_matched_conditions = get_kb_statement_matched_conditions(
         gkb_matches, allow_partial_matches
     )
-    return {
+    ret_dict = {
         "kbMatches": kb_variants,
         "kbMatchedStatements": kb_matched_statements,
         "kbStatementMatchedConditions": kb_statement_matched_conditions,
     }
+    return cast(KbMatchSections, ret_dict)
 
 
 def get_kb_disease_matches(
