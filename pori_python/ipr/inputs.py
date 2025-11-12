@@ -11,7 +11,7 @@ import pandas as pd
 import re
 from Bio.Data.IUPACData import protein_letters_3to1
 from numpy import nan
-from typing import Any, Callable, Dict, Iterable, List, Set, Tuple, cast
+from typing import Any, Callable, Dict, Iterable, List, Sequence, Set, Tuple, cast
 
 from pori_python.graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from pori_python.types import (
@@ -441,7 +441,7 @@ def preprocess_signature_variants(rows: Iterable[Dict]) -> List[IprSignatureVari
     return result
 
 
-def preprocess_cosmic(rows: Iterable[Dict]) -> Iterable[Dict]:
+def preprocess_cosmic(rows: Iterable[Dict]) -> Sequence[Dict]:
     """
     Process cosmic inputs into preformatted signature inputs
     Note: Cosmic and dMMR already evaluated against thresholds in gsc_report
@@ -456,7 +456,7 @@ def preprocess_cosmic(rows: Iterable[Dict]) -> Iterable[Dict]:
     ]
 
 
-def preprocess_hla(rows: Iterable[Dict]) -> Iterable[Dict]:
+def preprocess_hla(rows: Iterable[Dict]) -> Sequence[Dict]:
     """
     Process hla inputs into preformatted signature inputs
     """
@@ -480,7 +480,7 @@ def preprocess_hla(rows: Iterable[Dict]) -> Iterable[Dict]:
 
 def preprocess_tmb(
     tmb_high: float, tmburMutationBurden: Dict = {}, genomeTmb: float | str = ""
-) -> Iterable[Dict]:
+) -> Sequence[Dict]:
     """
     Process tumour mutation burden (tmb) input(s) into preformatted signature input.
     Get compared to threshold; signature CategoryVariant created only if threshold met.
@@ -530,7 +530,7 @@ def preprocess_tmb(
     return []
 
 
-def preprocess_msi(msi: Any) -> Iterable[Dict]:
+def preprocess_msi(msi: Any) -> Sequence[Dict]:
     """
     Process micro-satellite input into preformatted signature input.
     Both msi & mss gets mapped to corresponding GraphKB Signature CategoryVariants.
