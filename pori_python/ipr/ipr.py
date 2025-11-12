@@ -441,7 +441,7 @@ def multi_variant_filtering(
     statements = res["result"]
 
     # Get set of excluded Vocabulary RIDs for variant types
-    excluded = {}
+    excluded = set()
     if len(excludedTypes) != 0 and excludedTypes[0] != "":
         excluded = gkb_vocab.get_terms_set(graphkb_conn, excludedTypes)
 
