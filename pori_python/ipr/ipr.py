@@ -664,7 +664,7 @@ def get_kb_disease_matches(
             )
             if base_records:
                 response = graphkb_conn.post(
-                    f"/subgraphs/Disease",
+                    "/subgraphs/Disease",
                     {
                         "subgraphType": "tree",
                         "base": base_records,

@@ -104,7 +104,6 @@ def graphkb_conn():
 class TestAnnotation:
     def test_annotate_nonsense_vs_missense(self, graphkb_conn):
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
-        disease = "cancer"
         for key in ("prot_only", "cds_only", "genome_only", "pref"):
             matched = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[key]], DISEASE_RIDS)
             # nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
@@ -114,7 +113,6 @@ class TestAnnotation:
 
     def test_annotate_nonsense_vs_missense_protein(self, graphkb_conn):
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
-        disease = "cancer"
         for key in ("prot_only", "pref"):
             matched = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[key]], DISEASE_RIDS)
             # nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
@@ -237,7 +235,6 @@ class TestAnnotation:
 
     def test_wt_not_matched(self, graphkb_conn):
         """Verify wildtypes are not matched to mutations."""
-        disease = "cancer"
         matches = annotate_positional_variants(
             graphkb_conn, [KBDEV1231_TP53_ERR_MATCH_WT], DISEASE_RIDS
         )

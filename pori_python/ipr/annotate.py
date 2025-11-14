@@ -381,7 +381,7 @@ def annotate_variants(
     disease_matches: List[str] = [],
     signature_variants: List[IprSignatureVariant] = [],
     small_mutations: List[IprSmallMutationVariant] = [],
-    structural_variants: List[IprStructuralVariant] = [],
+    structural_variants: Sequence[IprStructuralVariant] = [],
     copy_variants: List[IprCopyVariant] = [],
     expression_variants: List[IprExprVariant] = [],
 ) -> List[Hashabledict]:
