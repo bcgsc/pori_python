@@ -266,7 +266,7 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[KbMatch], all_variants: Sequence[IprVariant]
+    kb_matches: Sequence[KbMatch] | Sequence[Hashabledict], all_variants: Sequence[IprVariant]
 ) -> Tuple[List[Dict], Dict]:
     """Create the list of significant variants matched by the KB.
 
@@ -328,10 +328,10 @@ def create_key_alterations(
 
 
 def germline_kb_matches(
-    kb_matches: List[KbMatch],
+    kb_matches: List[KbMatch] | List[Hashabledict],
     all_variants: Sequence[IprVariant],
     assume_somatic: bool = True,
-) -> List[KbMatch]:
+) -> List[Hashabledict]:
     """Filter kb_matches for matching to germline or somatic events using the 'germline' optional property.
 
     Statements related to pharmacogenomic toxicity or cancer predisposition are only relevant if
@@ -346,9 +346,9 @@ def germline_kb_matches(
     Returns:
         filtered list of kb_matches
     """
-    ret_list = []
-    germ_alts = [alt for alt in kb_matches if alt["category"] in GERMLINE_BASE_TERMS]
-    somatic_alts = [alt for alt in kb_matches if alt not in germ_alts]
+    ret_list: List[Hashabledict] = []
+    germ_alts = [Hashabledict(alt) for alt in kb_matches if alt["category"] in GERMLINE_BASE_TERMS]
+    somatic_alts = [Hashabledict(alt) for alt in kb_matches if alt not in germ_alts]
     if germ_alts:
         logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
         for alt in germ_alts:

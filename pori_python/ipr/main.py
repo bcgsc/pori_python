@@ -12,13 +12,13 @@ from typing import Callable, Dict, List, Optional, Sequence, Set
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
 from pori_python.types import (
+    Hashabledict,
     IprCopyVariant,
     IprExprVariant,
     IprFusionVariant,
     IprSignatureVariant,
     IprSmallMutationVariant,
     IprVariant,
-    KbMatch,
 )
 
 from .annotate import annotate_variants
@@ -428,7 +428,7 @@ def ipr_report(
     disease_matches: list[str] = get_kb_disease_matches(graphkb_conn, kb_disease_match)
 
     # GKB MATCHING (AKA ANNOTATION)
-    gkb_matches: List[KbMatch] = annotate_variants(
+    gkb_matches: List[Hashabledict] = annotate_variants(
         graphkb_conn=graphkb_conn,
         interactive=interactive,
         disease_matches=disease_matches,

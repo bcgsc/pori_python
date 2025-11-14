@@ -249,13 +249,16 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprCopyVariant]:
         row["variant"] = kb_cat
         row["variantType"] = "cnv"
 
+        # Find chromosome and remove chromosome values
         chrom = ""
         if "chromosome" in row:
-            chrom = str(row.pop("chromosome", ""))  # type: ignore
-        elif "chr" in row:
-            chrom = str(row.pop("chr", ""))  # type: ignore
+            chrom = str(row.pop("chromosome", "")) or chrom  # type: ignore
+        if "chr" in row:
+            chrom = str(row.pop("chr", "")) or chrom  # type: ignore
 
+        # Include chromosome in chromosomeBand
         chrband = row.get("chromosomeBand", "")
+
         if chrom and chrband:
             # check that chr isn't already in the chrband;
             # this regex from https://vrs.ga4gh.org/en/1.2/terms_and_model.html#id25
