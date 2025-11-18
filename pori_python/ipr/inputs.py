@@ -257,7 +257,7 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprCopyVariant]:
         if chrom:
             # check that chr isn't already in the chrband;
             # this regex from https://vrs.ga4gh.org/en/1.2/terms_and_model.html#id25
-            if chrband and (re.match("^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband)):
+            if chrband and (re.match(r"^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband)):
                 if isinstance(chrom, int):
                     chrom = str(chrom)
                 chrom = chrom.strip("chr")
@@ -479,7 +479,7 @@ def preprocess_hla(rows: Iterable[Dict]) -> Iterable[Dict]:
 
 
 def preprocess_tmb(
-    tmb_high: float, tmburMutationBurden: Dict = None, genomeTmb: str = None
+    tmb_high: float, tmburMutationBurden: Dict = {}, genomeTmb: float | str = ""
 ) -> Iterable[Dict]:
     """
     Process tumour mutation burden (tmb) input(s) into preformatted signature input.
@@ -495,7 +495,7 @@ def preprocess_tmb(
             tmbur_tmb_val = float(
                 tmburMutationBurden["genomeIndelTmb"] + tmburMutationBurden["genomeSnvTmb"]
             )
-            if genomeTmb == None:
+            if not genomeTmb and not isinstance(genomeTmb, float):
                 logger.error(
                     "backwards compatibility: deriving genomeTmb from tmburMutationBurden genomeIndelTmb + genomeSnvTmb"
                 )
@@ -505,14 +505,16 @@ def preprocess_tmb(
 
     # genomeTmb
     # SDEV-4811 - mutation burden is now expected to be uploaded in genomeTmb as mutations/megabase
-    if genomeTmb != None and genomeTmb != "":
+    if isinstance(genomeTmb, float):
+        tmb_val = genomeTmb
+    elif genomeTmb:
         try:
             tmb_val = float(genomeTmb)
             if tmburMutationBurden and tmbur_tmb_val != tmb_val:
                 logger.warning(
                     f"genomeTmb given {tmb_val} does not match tmburMutationBurden TMB {tmbur_tmb_val}"
                 )
-        except Exception as err:
+        except TypeError as err:
             logger.error(f"genomeTmb parsing failure {genomeTmb}: {err}")
 
     # comparaing tmb_val to threshold
@@ -520,7 +522,7 @@ def preprocess_tmb(
     if tmb_val >= tmb_high:
         return [
             {
-                "displayName": f'{TMB_SIGNATURE} {TMB_SIGNATURE_VARIANT_TYPE}',
+                "displayName": f"{TMB_SIGNATURE} {TMB_SIGNATURE_VARIANT_TYPE}",
                 "signatureName": TMB_SIGNATURE,
                 "variantTypeName": TMB_SIGNATURE_VARIANT_TYPE,
             }
