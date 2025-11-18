@@ -1,4 +1,4 @@
-chromosome	chromosomeBand	gene	cnvState	kbCategory	ploidyCorrCpChange	start	end	lohState	variant
+chromosome	chromosomeBand	gene	cnvState	kbCategory	copyChange	start	end	lohState	variant
 1	q22.1	MYH16	Neutral		0	82238818	102114782	HET
 1	p36.22	TNFRSF8	Neutral		0	747529	16892759	HET
 1	q12	TSHZ3	Neutral		0	27733203	53323762	HET
