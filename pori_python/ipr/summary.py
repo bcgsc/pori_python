@@ -9,8 +9,8 @@ from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.constants import RELEVANCE_BASE_TERMS
 from pori_python.graphkb.statement import categorize_relevance
 from pori_python.graphkb.util import convert_to_rid_list
-from pori_python.ipr.inputs import create_graphkb_sv_notation
 from pori_python.ipr.connection import IprConnection
+from pori_python.ipr.inputs import create_graphkb_sv_notation
 from pori_python.types import (
     Hashabledict,
     IprVariant,
@@ -430,32 +430,32 @@ def get_ipr_analyst_comments(
             project_matches = [
                 item
                 for item in itemlist
-                if 'project' in item.keys() and item['project']['name'] == project_name
+                if "project" in item.keys() and item["project"]["name"] == project_name
             ]
             if project_matches:
                 itemlist = project_matches
             elif include_nonspecific_project:
-                itemlist = [item for item in itemlist if 'project' not in item.keys()]
+                itemlist = [item for item in itemlist if "project" not in item.keys()]
             else:
                 itemlist = []
 
             template_matches = [
                 item
                 for item in itemlist
-                if 'template' in item.keys() and item['template']['name'] == report_type
+                if "template" in item.keys() and item["template"]["name"] == report_type
             ]
             if template_matches:
                 itemlist = template_matches
             elif include_nonspecific_template:
-                itemlist = [item for item in itemlist if 'template' not in item.keys()]
+                itemlist = [item for item in itemlist if "template" not in item.keys()]
             else:
                 itemlist = []
 
-            disease_matches = [item for item in itemlist if disease_name in item['cancerType']]
+            disease_matches = [item for item in itemlist if disease_name in item["cancerType"]]
             if disease_matches:
                 itemlist = disease_matches
             elif include_nonspecific_disease:
-                itemlist = [item for item in itemlist if not item['cancerType']]
+                itemlist = [item for item in itemlist if not item["cancerType"]]
             else:
                 itemlist = []
 

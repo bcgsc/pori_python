@@ -5,8 +5,8 @@ from typing import Dict
 from unittest.mock import MagicMock, patch
 
 from pori_python.ipr.connection import IprConnection
-from pori_python.ipr import main
 from pori_python.ipr.main import create_report
+
 from .constants import EXCLUDE_INTEGRATION_TESTS
 
 EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"

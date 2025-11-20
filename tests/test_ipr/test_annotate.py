@@ -12,6 +12,7 @@ from pori_python.ipr.constants import (
 )
 from pori_python.ipr.inputs import preprocess_signature_variants
 from pori_python.types import IprSmallMutationVariant
+
 from .test_ipr import DISEASE_RIDS
 
 EXCLUDE_BCGSC_TESTS = os.environ.get("EXCLUDE_BCGSC_TESTS") == "1"
@@ -103,7 +104,6 @@ def graphkb_conn():
 class TestAnnotation:
     def test_annotate_nonsense_vs_missense(self, graphkb_conn):
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
-        disease = "cancer"
         for key in ("prot_only", "cds_only", "genome_only", "pref"):
             matched = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[key]], DISEASE_RIDS)
             # nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
@@ -113,7 +113,6 @@ class TestAnnotation:
 
     def test_annotate_nonsense_vs_missense_protein(self, graphkb_conn):
         """Verify missense (point mutation) is not mistaken for a nonsense (stop codon) mutation."""
-        disease = "cancer"
         for key in ("prot_only", "pref"):
             matched = annotate_positional_variants(graphkb_conn, [TP53_MUT_DICT[key]], DISEASE_RIDS)
             # nonsense - stop codon - should not match.  This is missense not nonsense (#164:933).
@@ -123,7 +122,7 @@ class TestAnnotation:
 
     def test_annotate_signature_variants_cosmic(self, graphkb_conn):
         """Test a Cosmic Signature CVs with known GKB statements"""
-        signature = 'SBS10B'
+        signature = "SBS10B"
         cosmic = annotate_signature_variants(
             graphkb_conn,
             DISEASE_RIDS,
@@ -142,7 +141,7 @@ class TestAnnotation:
     @pytest.mark.skip(reason="no GKB statement for dMMR Signature CVs yet")
     def test_annotate_signature_variants_dmmr(self, graphkb_conn):
         """Test a dMMR (from Cosmic) Signature CVs with known GKB statements"""
-        signature = 'DMMR'
+        signature = "DMMR"
         dmmr = annotate_signature_variants(
             graphkb_conn,
             DISEASE_RIDS,
@@ -161,7 +160,7 @@ class TestAnnotation:
     @pytest.mark.skip(reason="no GKB statement for HLA Signature CVs yet")
     def test_annotate_signature_variants_hla(self, graphkb_conn):
         """Test an HLA Signature CVs with known GKB statements"""
-        signature = 'HLA-A*02:01'
+        signature = "HLA-A*02:01"
         hla = annotate_signature_variants(
             graphkb_conn,
             DISEASE_RIDS,
@@ -200,7 +199,7 @@ class TestAnnotation:
         msi = annotate_signature_variants(
             graphkb_conn,
             DISEASE_RIDS,
-            preprocess_signature_variants([MSI_MAPPING.get('microsatellite instability')]),
+            preprocess_signature_variants([MSI_MAPPING.get("microsatellite instability")]),
         )
         assert len(msi) != 0
 
@@ -217,7 +216,7 @@ class TestAnnotation:
         for key, alt_rep in TP53_MUT_DICT.items():
             if key == ref_key:
                 continue
-            if key in ('cds_only', 'genome_only'):
+            if key in ("cds_only", "genome_only"):
                 # KBDEV-1259. Temporarely disabled until issue resolution.
                 continue
             alt = annotate_positional_variants(graphkb_conn, [alt_rep], DISEASE_RIDS)
@@ -236,7 +235,6 @@ class TestAnnotation:
 
     def test_wt_not_matched(self, graphkb_conn):
         """Verify wildtypes are not matched to mutations."""
-        disease = "cancer"
         matches = annotate_positional_variants(
             graphkb_conn, [KBDEV1231_TP53_ERR_MATCH_WT], DISEASE_RIDS
         )

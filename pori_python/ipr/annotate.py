@@ -344,12 +344,12 @@ def annotate_signature_variants(
             # Keep support for 'high mutation burden' until statement datafix
             if (
                 variant["signatureName"] == TMB_SIGNATURE
-                and TMB_SIGNATURE != 'high mutation burden'
+                and TMB_SIGNATURE != "high mutation burden"
             ):
                 matched_variants.extend(
                     gkb_match.match_category_variant(
                         graphkb_conn,
-                        'high mutation burden',
+                        "high mutation burden",
                         variant["variantTypeName"],
                         reference_class="Signature",
                     )
@@ -381,7 +381,7 @@ def annotate_variants(
     disease_matches: List[str] = [],
     signature_variants: List[IprSignatureVariant] = [],
     small_mutations: List[IprSmallMutationVariant] = [],
-    structural_variants: List[IprStructuralVariant] = [],
+    structural_variants: Sequence[IprStructuralVariant] = [],
     copy_variants: List[IprCopyVariant] = [],
     expression_variants: List[IprExprVariant] = [],
 ) -> List[Hashabledict]:

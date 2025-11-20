@@ -109,7 +109,7 @@ class TestGetEquivalentFeatures:
     def test_ensembl_protein(self, conn):
         for feature, expected in ensemblProteinSample:
             equivalent_features = match.get_equivalent_features(conn, feature)
-            equivalent_features = [el['displayName'] for el in equivalent_features]
+            equivalent_features = [el["displayName"] for el in equivalent_features]
             for equivalent_feature in expected:
                 assert equivalent_feature in equivalent_features
 

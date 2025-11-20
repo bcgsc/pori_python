@@ -135,7 +135,7 @@ def match_category_variant(
     gene_source: str = "",
     gene_is_source_id: bool = False,
     ignore_cache: bool = False,
-    reference_class: str = 'Feature',
+    reference_class: str = "Feature",
 ) -> List[Variant]:
     """
     Returns a list of variants matching the input variant
@@ -155,7 +155,7 @@ def match_category_variant(
     """
     # disambiguate the reference to find all equivalent representations
     references: List[str] = []
-    if reference_class == 'Feature':
+    if reference_class == "Feature":
         references = convert_to_rid_list(
             get_equivalent_features(
                 conn,
@@ -169,12 +169,12 @@ def match_category_variant(
             raise FeatureNotFoundError(
                 f"unable to find the gene ({reference_name}) or any equivalent representations"
             )
-    if reference_class == 'Signature':
+    if reference_class == "Signature":
         references = convert_to_rid_list(
             get_equivalent_terms(
                 conn,
                 reference_name.lower(),
-                ontology_class='Signature',
+                ontology_class="Signature",
                 ignore_cache=ignore_cache,
             )
         )
@@ -315,16 +315,16 @@ def equivalent_types(
 
     # Convert rid to displayName if needed
     if looks_like_rid(type1):
-        type1 = conn.get_records_by_id([type1])[0]['displayName']
+        type1 = conn.get_records_by_id([type1])[0]["displayName"]
     if looks_like_rid(type2):
-        type2 = conn.get_records_by_id([type2])[0]['displayName']
+        type2 = conn.get_records_by_id([type2])[0]["displayName"]
 
     # Get type terms from observed variant
     terms1 = []
     if strict:
         try:
-            terms1.append(get_term_by_name(conn, type1)['@rid'])
-        except:
+            terms1.append(get_term_by_name(conn, type1)["@rid"])
+        except Exception:
             pass
     else:
         terms1 = get_terms_set(conn, [type1])
@@ -444,7 +444,7 @@ def compare_positional_variants(
             return False
 
     # Equivalent types
-    if variant.get('type') and reference_variant.get('type'):
+    if variant.get("type") and reference_variant.get("type"):
         if not equivalent_types(conn, variant["type"], reference_variant["type"]):
             return False
 
