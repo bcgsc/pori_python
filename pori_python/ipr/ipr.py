@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from copy import copy
 from itertools import product
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple, cast
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple, cast
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import statement as gkb_statement
@@ -266,7 +266,7 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[Hashabledict], all_variants: Sequence[IprVariant]
+    kb_matches: Sequence[KbMatch] | Sequence[Hashabledict], all_variants: Sequence[IprVariant]
 ) -> Tuple[List[Dict], Dict]:
     """Create the list of significant variants matched by the KB.
 
@@ -328,7 +328,7 @@ def create_key_alterations(
 
 
 def germline_kb_matches(
-    kb_matches: List[Hashabledict],
+    kb_matches: List[KbMatch] | List[Hashabledict],
     all_variants: Sequence[IprVariant],
     assume_somatic: bool = True,
 ) -> List[Hashabledict]:
@@ -346,9 +346,9 @@ def germline_kb_matches(
     Returns:
         filtered list of kb_matches
     """
-    ret_list = []
-    germ_alts = [alt for alt in kb_matches if alt["category"] in GERMLINE_BASE_TERMS]
-    somatic_alts = [alt for alt in kb_matches if alt not in germ_alts]
+    ret_list: List[Hashabledict] = []
+    germ_alts = [Hashabledict(alt) for alt in kb_matches if alt["category"] in GERMLINE_BASE_TERMS]
+    somatic_alts = [Hashabledict(alt) for alt in kb_matches if alt not in germ_alts]
     if germ_alts:
         logger.info(f"checking germline status of {GERMLINE_BASE_TERMS}")
         for alt in germ_alts:
@@ -441,7 +441,7 @@ def multi_variant_filtering(
     statements = res["result"]
 
     # Get set of excluded Vocabulary RIDs for variant types
-    excluded = {}
+    excluded = set()
     if len(excludedTypes) != 0 and excludedTypes[0] != "":
         excluded = gkb_vocab.get_terms_set(graphkb_conn, excludedTypes)
 
@@ -510,7 +510,8 @@ def get_kb_matched_statements(
     for item in gkb_matches:
         stmt = copy(item)
         stmt["requiredKbMatches"].sort()
-        kbs = KbMatchedStatement({key: val for (key, val) in stmt.items() if key in kbs_keys})
+        kbs_dict = {key: val for (key, val) in stmt.items() if key in kbs_keys}
+        kbs = cast(KbMatchedStatement, kbs_dict)
         dict_key = str(kbs)
         kbMatchedStatements[dict_key] = kbs
     return [*kbMatchedStatements.values()]
@@ -569,7 +570,7 @@ def get_kb_statement_matched_conditions(
 
     for kbStmt in kbMatchedStatements:
         stmts = [item for item in gkb_matches if item["kbStatementId"] == kbStmt["kbStatementId"]]
-        requirements = {}
+        requirements: Dict[str, str | Any] = {}
         for requirement in stmts[0]["requiredKbMatches"]:
             if not requirements.get(requirement, False):
                 # only use explicit variant/statement links
@@ -602,7 +603,7 @@ def get_kb_statement_matched_conditions(
             )
             kbmc = KbMatchedStatementConditionSet(
                 {
-                    "kbStatementId": conditionSet["kbStatementId"],
+                    "kbStatementId": str(conditionSet.get("kbStatementId", "")),
                     "matchedConditions": matchedConditions,
                 }
             )
@@ -622,11 +623,12 @@ def get_kb_matches_sections(
     kb_statement_matched_conditions = get_kb_statement_matched_conditions(
         gkb_matches, allow_partial_matches
     )
-    return {
+    ret_dict = {
         "kbMatches": kb_variants,
         "kbMatchedStatements": kb_matched_statements,
         "kbStatementMatchedConditions": kb_statement_matched_conditions,
     }
+    return cast(KbMatchSections, ret_dict)
 
 
 def get_kb_disease_matches(

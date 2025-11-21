@@ -48,7 +48,7 @@ EXPECTED_HLA = {
     "HLA-C*06",
 }
 EXPECTED_TMB = {TMB_SIGNATURE}
-EXPECTED_MSI = {MSI_MAPPING.get("microsatellite instability")["signatureName"]}
+EXPECTED_MSI = {MSI_MAPPING.get("microsatellite instability", {})["signatureName"]}
 
 
 def read_data_file(filename):

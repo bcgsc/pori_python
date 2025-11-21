@@ -66,6 +66,11 @@ class Statement(Record):
     displayNameTemplate: str
 
 
+class Hashabledict(dict):
+    def __hash__(self):
+        return hash(frozenset(self))
+
+
 class KbMatch(TypedDict):
     variant: str
     variantType: str
@@ -91,7 +96,8 @@ class KbMatch(TypedDict):
 
 
 class KbVariantMatch(TypedDict):
-    variantKey: str
+    variant: str
+    # variantKey: str
     variantType: str
     kbVariant: str
     kbVariantId: str
@@ -128,11 +134,6 @@ class KbMatchSections(TypedDict):
     kbMatchedStatementConditions: List[KbMatchedStatementConditionSet]
 
 
-class Hashabledict(dict):
-    def __hash__(self):
-        return hash(frozenset(self))
-
-
 class IprVariantBase(TypedDict):
     """Required properties of all variants for IPR."""
 
@@ -160,6 +161,7 @@ class IprCopyVariant(IprGeneVariant):
     # variantType == 'cnv'
     kbCategory: str
     cnvState: str
+    chromosomeBand: str
 
 
 class IprExprVariant(IprGeneVariant):

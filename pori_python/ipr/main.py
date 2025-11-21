@@ -453,16 +453,14 @@ def ipr_report(
     if match_germline:
         # verify germline kb statements matched germline observed variants, not somatic variants
         org_len = len(gkb_matches)
-        gkb_matches = [
-            Hashabledict(match) for match in germline_kb_matches(gkb_matches, all_variants)
-        ]
+        gkb_matches = germline_kb_matches(gkb_matches, all_variants)
         num_removed = org_len - len(gkb_matches)
         if num_removed:
             logger.info(f"Removing {num_removed} germline events without medical matches.")
 
     if custom_kb_match_filter:
         logger.info(f"custom_kb_match_filter on {len(gkb_matches)} variants")
-        gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
+        gkb_matches = custom_kb_match_filter(gkb_matches)
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
     # KEY ALTERATIONS
