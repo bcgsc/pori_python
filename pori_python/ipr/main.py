@@ -32,6 +32,7 @@ from .inputs import (
     preprocess_expression_variants,
     preprocess_hla,
     preprocess_msi,
+    preprocess_hrd,
     preprocess_signature_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
@@ -387,6 +388,7 @@ def ipr_report(
                 content.get("genomeTmb", ""),  # newer tmb pipeline
             ),
             *preprocess_msi(content.get("msi", None)),
+            *preprocess_hrd(content.get("hrd", None)),
         ]
     )
     small_mutations: List[IprSmallMutationVariant] = preprocess_small_mutations(
@@ -515,7 +517,6 @@ def ipr_report(
     # OUTPUT CONTENT
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
-
     output.update(kb_matched_sections)
     output.update(
         {
@@ -546,6 +547,18 @@ def ipr_report(
         }
     )
     output.setdefault("images", []).extend(select_expression_plots(gkb_matches, all_variants))
+
+    # TODO: fix this once hrdScore is created in ipr api/db
+    # this would also be the place to handle the alternate input format hrdScore instead of hrd: {score:}
+    if output.get('hrdScore') {
+        output['hrdetectScore'] = output['hrdScore']
+        output.pop('hrdScore')
+    } elif output.get('hrd') {
+        if output.get('hrd').get('score') {
+            output['hrdetectScore'] = output['hrd']['score']
+            output.pop('hrd')
+        }
+    }
 
     ipr_spec = ipr_conn.get_spec()
     output = clean_unsupported_content(output, ipr_spec)

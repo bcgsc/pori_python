@@ -28,6 +28,7 @@ from .constants import (
     DEFAULT_URL,
     HLA_SIGNATURE_VARIANT_TYPE,
     MSI_MAPPING,
+    HRD_MAPPING,
     TMB_SIGNATURE,
     TMB_SIGNATURE_VARIANT_TYPE,
 )
@@ -553,6 +554,23 @@ def preprocess_msi(msi: Any) -> Iterable[Dict]:
         # Signature CategoryVariant created either for msi or mss
         if msi_variant:
             return [msi_variant]
+
+    return []
+
+
+def preprocess_hrd(hrd: Any) -> Iterable[Dict]:
+    """
+    Process hrd input into preformatted signature input.
+    HRD gets mapped to corresponding GraphKB Signature CategoryVariants.
+    """
+    if hrd:
+        hrd_cat = hrd.get("kbCategory", "")
+
+        hrd_variant = HRD_MAPPING.get(hrd_cat, None)
+
+        # Signature CategoryVariant created either for msi or mss
+        if hrd_variant:
+            return [hrd_variant]
 
     return []
 

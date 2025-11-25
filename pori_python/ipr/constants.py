@@ -26,3 +26,16 @@ MSI_MAPPING = {
         "variantTypeName": "signature present",
     },
 }
+# Mapping hrd from pipeline terms to GraphKB terms
+HRD_MAPPING = {
+    "homologous recombination deficiency strong signature": {
+        "displayName": "homologous recombination deficiency strong signature",
+        "signatureName": "homologous recombination deficiency",
+        "variantTypeName": "strong signature",
+    },
+    "homologous recombination deficiency moderate signature": {
+        "displayName": "homologous recombination deficiency moderate signature",
+        "signatureName": "homologous recombination deficiency",
+        "variantTypeName": "moderate signature",
+    }
+}
