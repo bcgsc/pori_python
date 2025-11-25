@@ -553,7 +553,7 @@ def ipr_report(
     if output.get('hrd'):
         if output.get('hrd').get('score'):
             output['hrdScore'] = output['hrd']['score']
-            output.pop('hrd')  # kbmatches have already been made
+        output.pop('hrd')  # kbmatches have already been made
 
     ipr_spec = ipr_conn.get_spec()
     output = clean_unsupported_content(output, ipr_spec)
