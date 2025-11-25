@@ -541,6 +541,23 @@
             },
             "type": "array"
         },
+        "hrd": {
+            "items": {
+                "properties": {
+                    "kbCategory": {
+                        "type": "string"
+                    },
+                    "score": {
+                        "type": "number"
+                    }
+                },
+                "required": [
+                    "score"
+                ],
+                "type": "object"
+            },
+            "type": "array"
+        },
         "images": {
             "items": {
                 "example": {

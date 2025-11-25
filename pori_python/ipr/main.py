@@ -548,15 +548,12 @@ def ipr_report(
     )
     output.setdefault("images", []).extend(select_expression_plots(gkb_matches, all_variants))
 
-    # TODO: fix this once hrdScore is created in ipr api/db
-    # this would also be the place to handle the alternate input format hrdScore instead of hrd: {score:}
-    if output.get('hrdScore'):
-        output['hrdetectScore'] = output['hrdScore']
-        output.pop('hrdScore')
-    elif output.get('hrd'):
+    # if input includes hrdScore field, that is ok to pass to db
+    # but prefer the 'hrd' field if it exists
+    if output.get('hrd'):
         if output.get('hrd').get('score'):
-            output['hrdetectScore'] = output['hrd']['score']
-            output.pop('hrd')
+            output['hrdScore'] = output['hrd']['score']
+            output.pop('hrd')  # kbmatches have already been made
 
     ipr_spec = ipr_conn.get_spec()
     output = clean_unsupported_content(output, ipr_spec)
