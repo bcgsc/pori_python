@@ -550,15 +550,13 @@ def ipr_report(
 
     # TODO: fix this once hrdScore is created in ipr api/db
     # this would also be the place to handle the alternate input format hrdScore instead of hrd: {score:}
-    if output.get('hrdScore') {
+    if output.get('hrdScore'):
         output['hrdetectScore'] = output['hrdScore']
         output.pop('hrdScore')
-    } elif output.get('hrd') {
-        if output.get('hrd').get('score') {
+    elif output.get('hrd'):
+        if output.get('hrd').get('score'):
             output['hrdetectScore'] = output['hrd']['score']
             output.pop('hrd')
-        }
-    }
 
     ipr_spec = ipr_conn.get_spec()
     output = clean_unsupported_content(output, ipr_spec)
