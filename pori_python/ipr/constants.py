@@ -37,5 +37,5 @@ HRD_MAPPING = {
         "displayName": "homologous recombination deficiency moderate signature",
         "signatureName": "homologous recombination deficiency",
         "variantTypeName": "moderate signature",
-    }
+    },
 }

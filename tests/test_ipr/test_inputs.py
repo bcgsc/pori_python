@@ -51,7 +51,9 @@ EXPECTED_HLA = {
 }
 EXPECTED_TMB = {TMB_SIGNATURE}
 EXPECTED_MSI = {MSI_MAPPING.get("microsatellite instability")["signatureName"]}
-EXPECTED_HRD = {HRD_MAPPING.get("homologous recombination deficiency strong signature")["signatureName"]}
+EXPECTED_HRD = {
+    HRD_MAPPING.get("homologous recombination deficiency strong signature")["signatureName"]
+}
 
 
 def read_data_file(filename):
@@ -290,7 +292,6 @@ class TestPreProcessSignatureVariants:
 
         signatureNames = {r.get("signatureName", "") for r in self.hrd}
         assert len(EXPECTED_HRD.symmetric_difference(signatureNames)) == 0
-
 
     def test_preprocess_signature_variants(self) -> None:
         records = preprocess_signature_variants(
