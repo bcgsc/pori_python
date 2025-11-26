@@ -542,21 +542,18 @@
             "type": "array"
         },
         "hrd": {
-            "items": {
-                "properties": {
-                    "kbCategory": {
-                        "type": "string"
-                    },
-                    "score": {
-                        "type": "number"
-                    }
+            "properties": {
+                "kbCategory": {
+                    "type": "string"
                 },
-                "required": [
-                    "score"
-                ],
-                "type": "object"
+                "score": {
+                    "type": "number"
+                }
             },
-            "type": "array"
+            "required": [
+                "score"
+            ],
+            "type": "object"
         },
         "images": {
             "items": {
