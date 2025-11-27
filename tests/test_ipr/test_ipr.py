@@ -186,10 +186,7 @@ def base_graphkb_statement(disease_id: str = "disease", relevance_rid: str = "ot
                     "displayName": "KRAS increased expression",
                 },
             ],
-            "evidence": [{
-                "displayName": "pmid12345",
-                "sourceId": "nct12345"
-            }],
+            "evidence": [{"displayName": "pmid12345", "sourceId": "nct12345"}],
             "subject": {
                 "@class": "dummy_value",
                 "@rid": "101:010",
