@@ -8,6 +8,7 @@ from unittest import mock
 from pori_python.graphkb.match import INPUT_COPY_CATEGORIES
 from pori_python.ipr.constants import (
     MSI_MAPPING,
+    HRD_MAPPING,
     TMB_SIGNATURE,
     TMB_SIGNATURE_HIGH_THRESHOLD,
 )
@@ -21,6 +22,7 @@ from pori_python.ipr.inputs import (
     preprocess_expression_variants,
     preprocess_hla,
     preprocess_msi,
+    preprocess_hrd,
     preprocess_signature_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
@@ -49,6 +51,9 @@ EXPECTED_HLA = {
 }
 EXPECTED_TMB = {TMB_SIGNATURE}
 EXPECTED_MSI = {MSI_MAPPING.get("microsatellite instability")["signatureName"]}
+EXPECTED_HRD = {
+    HRD_MAPPING.get("homologous recombination deficiency strong signature")["signatureName"]
+}
 
 
 def read_data_file(filename):
@@ -234,6 +239,13 @@ class TestPreProcessSignatureVariants:
             }
         ]
     )
+    hrd = preprocess_hrd(
+        {
+            "score": 9999,
+            "kbCategory": "homologous recombination deficiency strong signature",
+            "key": "homologous recombination deficiency strong signature",
+        }
+    )
 
     # tests on preprocessed records
     def test_preprocess_cosmic(self) -> None:
@@ -271,6 +283,15 @@ class TestPreProcessSignatureVariants:
 
         signatureNames = {r.get("signatureName", "") for r in self.msi}
         assert len(EXPECTED_MSI.symmetric_difference(signatureNames)) == 0
+
+    def test_preprocess_hrd(self) -> None:
+        assert self.hrd
+        assert len(self.hrd) == len(EXPECTED_HRD)
+        assert "variantTypeName" in self.hrd[0]
+        assert "displayName" in self.hrd[0]
+
+        signatureNames = {r.get("signatureName", "") for r in self.hrd}
+        assert len(EXPECTED_HRD.symmetric_difference(signatureNames)) == 0
 
     def test_preprocess_signature_variants(self) -> None:
         records = preprocess_signature_variants(
