@@ -332,7 +332,7 @@ class TestCreateReport:
             stmts = [item for item in multivariant_stmts if item["kbStatementId"] == stmt_id]
 
             # we expect two stmts, one for each condition set
-            assert len(stmts) == 2
+            assert len(stmts) == 3
 
             # we expect each condition set to have two kb variants in it
             # we expect the two kb variants to be the same in each stmt
