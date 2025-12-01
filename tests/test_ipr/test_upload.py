@@ -66,6 +66,16 @@ def loaded_reports(tmp_path_factory) -> Generator:
                 "collectionDate": "12-12-12",
             },
         ],
+        "msi": [
+            {
+                "score": 1000.0,
+                "kbCategory": "microsatellite instability",
+            }
+        ],
+        "hrd": {
+            "score": 9999.0,
+            "kbCategory": "homologous recombination deficiency strong signature",
+        },
         "expressionVariants": json.loads(
             pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(orient="records")
         ),
