@@ -167,7 +167,9 @@ def convert_statements_to_alterations(
         ]
         diseases = [c for c in statement["conditions"] if c["@class"] == "Disease"]
         disease_match = len(diseases) == 1 and diseases[0]["@rid"] in disease_matches
-        pmid = ";".join([e["displayName"] for e in statement["evidence"]])
+        reference = ";".join([e["displayName"] for e in statement["evidence"]])
+        if statement['relevance']['name'] == 'eligibility':
+            reference = ";".join([e["sourceId"] for e in statement["evidence"]])
 
         ipr_section = gkb_statement.categorize_relevance(
             graphkb_conn, statement["relevance"]["@rid"]
@@ -207,7 +209,7 @@ def convert_statements_to_alterations(
                     "variantType": "",
                     "kbVariantId": variant["@rid"],
                     "matchedCancer": disease_match,
-                    "reference": pmid,
+                    "reference": reference,
                     "relevance": statement["relevance"]["displayName"],
                     "kbRelevanceId": statement["relevance"]["@rid"],
                     "externalSource": (

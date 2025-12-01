@@ -186,7 +186,7 @@ def base_graphkb_statement(disease_id: str = "disease", relevance_rid: str = "ot
                     "displayName": "KRAS increased expression",
                 },
             ],
-            "evidence": [],
+            "evidence": [{"displayName": "pmid12345", "sourceId": "nct12345"}],
             "subject": {
                 "@class": "dummy_value",
                 "@rid": "101:010",
@@ -360,6 +360,27 @@ class TestConvertStatementsToAlterations:
         assert len(result) == 1
         row = result[0]
         assert row["category"] == "diagnostic"
+
+    def test_reference_from_displayname_for_noneligibility_stmts(self, graphkb_conn) -> None:
+        statement = base_graphkb_statement()
+
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
+        )
+        assert len(result) == 1
+        row = result[0]
+        assert row["reference"] == "pmid12345"
+
+    def test_reference_from_sourceid_for_eligibility_stmts(self, graphkb_conn) -> None:
+        statement = base_graphkb_statement()
+        statement["relevance"]["name"] = "eligibility"
+
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
+        )
+        assert len(result) == 1
+        row = result[0]
+        assert row["reference"] == "nct12345"
 
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
     def test_unapproved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
