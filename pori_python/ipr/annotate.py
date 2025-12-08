@@ -8,7 +8,7 @@ from requests.exceptions import HTTPError
 
 from pandas import isnull
 from tqdm import tqdm
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, Any
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb import match as gkb_match
@@ -213,7 +213,7 @@ def annotate_positional_variants(
     variants: Sequence[IprStructuralVariant] | Sequence[Hashabledict],
     disease_matches: List[str],
     show_progress: bool = False,
-) -> List[Hashabledict]:
+) -> List[KbMatch]:
     """Annotate SNP, INDEL or fusion variant calls with GraphKB and return in IPR match format.
 
     Hashable type is required to turn lists into sets.
@@ -228,7 +228,7 @@ def annotate_positional_variants(
     """
     VARIANT_KEYS = ("variant", "hgvsProtein", "hgvsCds", "hgvsGenomic")
     errors = 0
-    alterations: List[Hashabledict] = []
+    alterations: List[KbMatch] = []
     problem_genes = set()
 
     iterfunc = tqdm if show_progress else iter
@@ -239,7 +239,7 @@ def annotate_positional_variants(
             continue
 
         for var_key in VARIANT_KEYS:
-            variant = row.get(var_key)
+            variant: Any = row.get(var_key)
             matches = []
             if not variant or isnull(variant):
                 continue
@@ -249,7 +249,8 @@ def annotate_positional_variants(
                 except HTTPError as parse_err:
                     # DEVSU-1885 - fix malformed single deletion described as substitution of blank
                     # eg. deletion described as substitution with nothing: 'chr1:g.150951027T>'
-                    if (
+
+                    if isinstance(variant, str) and (
                         variant[-1] == ">"
                         and "g." in variant
                         and variant[-2].isalpha()
@@ -272,20 +273,21 @@ def annotate_positional_variants(
                     ipr_row["variantType"] = row.get(
                         "variantType", "mut" if row.get("gene") else "sv"
                     )
-                    alterations.append(Hashabledict(ipr_row))
+                    alterations.append(ipr_row)
 
             except FeatureNotFoundError as err:
                 logger.debug(f"failed to match positional variants ({variant}): {err}")
                 errors += 1
-                if "gene" in row:
-                    problem_genes.add(row["gene"])
-                elif "gene1" in row and f"({row['gene1']})" in str(err):
-                    problem_genes.add(row["gene1"])
-                elif "gene2" in row and f"({row['gene2']})" in str(err):
-                    problem_genes.add(row["gene2"])
-                elif "gene1" in row and "gene2" in row:
-                    problem_genes.add(row["gene1"])
-                    problem_genes.add(row["gene2"])
+                #if "gene" in row:
+                if row.get('gene'):
+                    problem_genes.add(row.get("gene"))
+                elif row.get("gene1") and f"({row.get('gene1')})" in str(err):
+                    problem_genes.add(row.get("gene1"))
+                elif row.get("gene2") and f"({row.get('gene2')})" in str(err):
+                    problem_genes.add(row.get("gene2"))
+                elif row.get("gene1") and row.get("gene2"):
+                    problem_genes.add(row.get("gene1"))
+                    problem_genes.add(row.get("gene2"))
                 else:
                     raise err
             except HTTPError as err:
@@ -293,8 +295,9 @@ def annotate_positional_variants(
                 logger.error(f"failed to match positional variants ({variant}): {err}")
 
     if problem_genes:
-        logger.error(f"gene finding failures for {sorted(problem_genes)}")
-        logger.error(f"{len(problem_genes)} gene finding failures for positional variants")
+        problem_gene_strs = [str(item) for item in problem_genes]
+        logger.error(f"gene finding failures for {sorted(problem_gene_strs)}")
+        logger.error(f"{len(problem_gene_strs)} gene finding failures for positional variants")
     if errors:
         logger.error(f"skipped {errors} positional variants due to errors")
 
@@ -328,7 +331,7 @@ def annotate_signature_variants(
     Returns:
         list of kbMatches records for IPR
     """
-    alterations: List[Hashabledict] = []
+    alterations: List[KbMatch] = []
 
     iterfunc = tqdm if show_progress else iter
     for variant in iterfunc(variants):
@@ -360,7 +363,7 @@ def annotate_signature_variants(
             ):
                 ipr_row["variant"] = variant["key"]
                 ipr_row["variantType"] = "sigv"
-                alterations.append(Hashabledict(ipr_row))
+                alterations.append(ipr_row)
 
         except ValueError as err:
             logger.error(f"failed to match signature category variant '{variant}': {err}")
@@ -371,7 +374,8 @@ def annotate_signature_variants(
     logger.info(
         f"matched {len(variants)} signature category variants to {len(alterations)} graphkb annotations"
     )
-
+    # TODO typecheck error
+    # Incompatible return value type (got "list[Hashabledict]", expected "list[KbMatch]")  [return-value]
     return alterations
 
 
@@ -403,30 +407,38 @@ def annotate_variants(
     # MATCHING SIGNATURE CATEGORY VARIANTS
     logger.info(f"annotating {len(signature_variants)} signatures")
     gkb_matches.extend(
+        [Hashabledict(sigvar)
+        for sigvar in
         annotate_signature_variants(
             graphkb_conn, disease_matches, signature_variants, show_progress=interactive
-        )
+        )]
     )
+    # TODO mypy error:
+    # Argument 1 to "extend" of "list" has incompatible type "list[KbMatch]"; expected "Iterable[Hashabledict]"  [arg-type]
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     # MATCHING SMALL MUTATIONS
     logger.info(f"annotating {len(small_mutations)} small mutations")
     gkb_matches.extend(
+        [Hashabledict(posvar)
+        for posvar in
         annotate_positional_variants(
             graphkb_conn, small_mutations, disease_matches, show_progress=interactive
-        )
+        )]
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     # MATCHING STRUCTURAL VARIANTS
     logger.info(f"annotating {len(structural_variants)} structural variants")
     gkb_matches.extend(
+        [Hashabledict(pos_var)
+        for pos_var in
         annotate_positional_variants(
             graphkb_conn,
             structural_variants,
             disease_matches,
             show_progress=interactive,
-        )
+        )]
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
