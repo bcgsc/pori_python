@@ -278,7 +278,7 @@ def annotate_positional_variants(
             except FeatureNotFoundError as err:
                 logger.debug(f"failed to match positional variants ({variant}): {err}")
                 errors += 1
-                #if "gene" in row:
+                # if "gene" in row:
                 if row.get('gene'):
                     problem_genes.add(row.get("gene"))
                 elif row.get("gene1") and f"({row.get('gene1')})" in str(err):
@@ -407,11 +407,12 @@ def annotate_variants(
     # MATCHING SIGNATURE CATEGORY VARIANTS
     logger.info(f"annotating {len(signature_variants)} signatures")
     gkb_matches.extend(
-        [Hashabledict(sigvar)
-        for sigvar in
-        annotate_signature_variants(
-            graphkb_conn, disease_matches, signature_variants, show_progress=interactive
-        )]
+        [
+            Hashabledict(sigvar)
+            for sigvar in annotate_signature_variants(
+                graphkb_conn, disease_matches, signature_variants, show_progress=interactive
+            )
+        ]
     )
     # TODO mypy error:
     # Argument 1 to "extend" of "list" has incompatible type "list[KbMatch]"; expected "Iterable[Hashabledict]"  [arg-type]
@@ -420,25 +421,27 @@ def annotate_variants(
     # MATCHING SMALL MUTATIONS
     logger.info(f"annotating {len(small_mutations)} small mutations")
     gkb_matches.extend(
-        [Hashabledict(posvar)
-        for posvar in
-        annotate_positional_variants(
-            graphkb_conn, small_mutations, disease_matches, show_progress=interactive
-        )]
+        [
+            Hashabledict(posvar)
+            for posvar in annotate_positional_variants(
+                graphkb_conn, small_mutations, disease_matches, show_progress=interactive
+            )
+        ]
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     # MATCHING STRUCTURAL VARIANTS
     logger.info(f"annotating {len(structural_variants)} structural variants")
     gkb_matches.extend(
-        [Hashabledict(pos_var)
-        for pos_var in
-        annotate_positional_variants(
-            graphkb_conn,
-            structural_variants,
-            disease_matches,
-            show_progress=interactive,
-        )]
+        [
+            Hashabledict(pos_var)
+            for pos_var in annotate_positional_variants(
+                graphkb_conn,
+                structural_variants,
+                disease_matches,
+                show_progress=interactive,
+            )
+        ]
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
