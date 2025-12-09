@@ -41,6 +41,7 @@ jobs:
         IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
         GRAPHKB_USER: ${{ secrets.GKB_TEST_USER }}
         GRAPHKB_PASS: ${{ secrets.GKB_TEST_PASS }}
+        GRAPHKB_URL: ${{ secrets.GRAPHKB_TEST_URL }}
         EXCLUDE_INTEGRATION_TESTS: 1
         # EXCLUDE_INTEGRATION_TESTS: ${{ matrix.python-version != '3.11' }}
       if: github.event_name != 'pull_request'
