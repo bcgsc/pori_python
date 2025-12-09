@@ -6,7 +6,6 @@ import time
 import zlib
 from typing import Dict, List
 
-from .constants import DEFAULT_URL
 from .util import logger
 
 IMAGE_MAX = 20  # cannot upload more than 20 images at a time
@@ -17,7 +16,7 @@ class IprConnection:
         self,
         username: str,
         password: str,
-        url: str = os.environ.get("IPR_URL", DEFAULT_URL),
+        url: str = os.environ.get("IPR_URL"),
     ):
         self.token = None
         self.url = url

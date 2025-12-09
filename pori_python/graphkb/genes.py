@@ -17,7 +17,6 @@ from .constants import (
     GSC_PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST,
     ONCOGENE,
     ONCOKB_SOURCE_NAME,
-    PREFERRED_GENE_SOURCE,
     PREFERRED_GENE_SOURCE_NAME,
     RELEVANCE_BASE_TERMS,
     TSO500_SOURCE_NAME,
@@ -267,7 +266,7 @@ def get_cancer_predisposition_info(
 
 
 def get_gene_linked_cancer_predisposition_info(
-    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+    conn: GraphKBConnection, source: str
 ) -> Tuple[List[str], Dict[str, Tuple[str, List[str]]]]:
     """
     Return two lists from GraphKB, one of cancer predisposition genes and one of associated variants.
@@ -372,7 +371,7 @@ def get_pharmacogenomic_info(
 
 
 def get_gene_linked_pharmacogenomic_info(
-    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+    conn: GraphKBConnection, source: str
 ) -> Tuple[List[str], Dict[str, Tuple[str, List[str]]]]:
     """
     Return two lists from GraphKB, one of pharmacogenomic genes and one of associated variants.

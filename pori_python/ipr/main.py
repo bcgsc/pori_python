@@ -23,7 +23,7 @@ from pori_python.types import (
 
 from .annotate import annotate_variants
 from .connection import IprConnection
-from .constants import DEFAULT_URL, TMB_SIGNATURE_HIGH_THRESHOLD
+from .constants import TMB_SIGNATURE_HIGH_THRESHOLD
 from .inputs import (
     check_comparators,
     check_variant_links,
@@ -86,7 +86,7 @@ def command_interface() -> None:
         "-c", "--content", required=True, type=file_path, help="Report Content as JSON"
     )
 
-    parser.add_argument("--ipr_url", default=os.environ.get("IPR_URL", DEFAULT_URL))
+    parser.add_argument("--ipr_url", default=os.environ.get("IPR_URL"))
     parser.add_argument(
         "--graphkb_username",
         help="username to use connecting to graphkb if different from ipr",
@@ -294,7 +294,7 @@ def ipr_report(
     username: str,
     password: str,
     content: Dict,
-    ipr_url: str = DEFAULT_URL,
+    ipr_url: str,
     log_level: str = "info",
     output_json_path: str = "",
     always_write_output_json: bool = False,

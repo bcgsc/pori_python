@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 from pori_python.types import ParsedVariant, PositionalVariant, Record
 
-from .constants import DEFAULT_LIMIT, DEFAULT_URL, TYPES_TO_NOTATION, AA_3to1_MAPPING
+from .constants import DEFAULT_LIMIT, TYPES_TO_NOTATION, AA_3to1_MAPPING
 
 QUERY_CACHE: Dict[Any, Any] = {}
 
@@ -98,7 +98,7 @@ def cache_key(request_body) -> str:
 class GraphKBConnection:
     def __init__(
         self,
-        url: str = os.environ.get("GRAPHKB_URL", DEFAULT_URL),
+        url: str = os.environ.get("GRAPHKB_URL"),
         username: str = "",
         password: str = "",
         use_global_cache: bool = True,
