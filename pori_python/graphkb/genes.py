@@ -266,7 +266,7 @@ def get_cancer_predisposition_info(
 
 
 def get_gene_linked_cancer_predisposition_info(
-    conn: GraphKBConnection, source: str
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, Tuple[str, List[str]]]]:
     """
     Return two lists from GraphKB, one of cancer predisposition genes and one of associated variants.
