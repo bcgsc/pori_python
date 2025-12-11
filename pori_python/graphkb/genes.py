@@ -274,16 +274,15 @@ def get_gene_linked_cancer_predisposition_info(
     GERO-272 - criteria for what counts as a "cancer predisposition" variant
 
     In short:
-    * Statement 'source' is 'CGL'
+    * Statement 'source' is 'CGL' (not related to the preferred gene source)
     * Statement 'relevance' is 'pathogenic'
     * gene is gotten from any associated 'PositionalVariant' records
 
     Example: https://graphkb.bcgsc.ca/view/Statement/155:11616
 
-
-
     Returns:
         genes: list of cancer predisposition genes
+            (using names from the source specified in this function's arguments)
         variants: dictionary mapping pharmacogenomic variant IDs to variant display names
     """
     genes = set()
