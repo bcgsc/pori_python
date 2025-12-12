@@ -222,6 +222,8 @@ class GraphKBConnection:
         1. get a first token from KeyCloak using username and password; self.login_demo()
         2. get a second token from the GraphKB API using keyCloakToken; self.login()
         """
+        if not self.url:
+            raise ValueError("no self.url set - cannot make a login demo")
         url_parts = urlsplit(self.url)
         base_url = f"{url_parts.scheme}://{url_parts.netloc}"
 
@@ -251,7 +253,8 @@ class GraphKBConnection:
         read_timeout = 61
 
         # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
-        if pori_demo or "pori-demo" in self.url:
+        if self.url and (pori_demo or "pori-demo" in self.url):
+            logger.warning(f"login demo")
             self.login_demo()
 
         # use requests package directly to avoid recursion loop on login failure

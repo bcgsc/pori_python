@@ -417,14 +417,14 @@ def ipr_report(
     )
 
     # GKB CONNECTION
+    gkb_user = graphkb_username if graphkb_username else username
+    gkb_pass = graphkb_password if graphkb_password else password
     if graphkb_url:
         logger.info(f"connecting to graphkb: {graphkb_url}")
         graphkb_conn = GraphKBConnection(graphkb_url)
     else:
-        graphkb_conn = GraphKBConnection()
-
-    gkb_user = graphkb_username if graphkb_username else username
-    gkb_pass = graphkb_password if graphkb_password else password
+        # graphkb_conn = GraphKBConnection()  # This will just error on trying to login
+        raise ValueError("graphkb_url is required")
 
     graphkb_conn.login(gkb_user, gkb_pass)
 
