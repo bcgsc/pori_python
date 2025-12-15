@@ -703,7 +703,6 @@ class TestKbMatchSectionPrep:
 
         stmts = sections['kbMatchedStatements']
         kbcs = sections['kbStatementMatchedConditions']
-        kbvars = sections['kbMatches']
         assert len(stmts) == 2
         assert len(kbcs) == 1  # X only
         assert kbcs[0]["kbStatementId"] == "X"
