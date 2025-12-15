@@ -10,7 +10,7 @@ from pori_python.ipr.ipr import (
     get_kb_matched_statements,
     get_kb_statement_matched_conditions,
     get_kb_variants,
-    get_kb_matches_sections
+    get_kb_matches_sections,
 )
 from pori_python.types import Statement
 
