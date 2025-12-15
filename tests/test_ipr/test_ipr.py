@@ -704,7 +704,6 @@ class TestKbMatchSectionPrep:
         stmts = sections['kbMatchedStatements']
         kbcs = sections['kbStatementMatchedConditions']
         kbvars = sections['kbMatches']
-        import pdb; pdb.set_trace()
         assert len(stmts) == 2
         assert len(kbcs) == 1  # X only
         assert kbcs[0]["kbStatementId"] == "X"
@@ -759,7 +758,47 @@ class TestKbMatchSectionPrep:
         but isn't part of any fully satisfied condition set,
         the kbvariant record should be removed from the kbvariants list
         """
+        input_fields = [
+            {
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "X",
+                "requiredKbMatches": ["test1", "test2", "test3"],
+            },
+            {
+                "variant": "B",
+                "kbVariantId": "test2",
+                "kbStatementId": "X",
+                "requiredKbMatches": ["test1", "test2", "test3"],
+            },
+            {
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "Y",
+                "requiredKbMatches": ["test4", "test1"],
+            },
+            {
+                "variant": "D",
+                "kbVariantId": "test4",
+                "kbStatementId": "Y",
+                "requiredKbMatches": ["test4", "test1"],
+            },
+        ]
+        for item in input_fields:  # we don't care about these for this test
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
+        gkb_matches = create_gkb_matches(input_fields)
+        sections1 = get_kb_matches_sections(gkb_matches, allow_partial_matches=False)
+        kbcs1 = sections1['kbStatementMatchedConditions']
+        kbvars1 = sections1['kbMatches']
+        assert len(kbcs1) == 1  # only fully matched condition sets included
+        assert len(kbvars1) == 2  # therefore, kbvars associated with stmt X are pruned
 
+        sections2 = get_kb_matches_sections(gkb_matches, allow_partial_matches=True)
+        kbcs2 = sections2['kbStatementMatchedConditions']
+        kbvars2 = sections2['kbMatches']
+        assert len(kbcs2) == 2  # all condition sets included
+        assert len(kbvars2) == 3  # therefore, no pruning
 
     def test_partial_matches_included(self):
         """check statements that are only partially supported
