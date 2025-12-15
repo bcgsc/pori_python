@@ -467,9 +467,6 @@ def ipr_report(
         gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
-    # KEY ALTERATIONS
-    key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
-
     # GENE INFORMATION
     logger.info("fetching gene annotations")
     gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
@@ -513,6 +510,10 @@ def ipr_report(
     kb_matched_sections = get_kb_matches_sections(
         gkb_matches, allow_partial_matches=allow_partial_matches
     )
+
+    # KEY ALTERATIONS
+    # must do after pruning of kbMatches for kb_matched_sections
+    key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
 
     # OUTPUT CONTENT
     # thread safe deep-copy the original content

@@ -10,6 +10,7 @@ from pori_python.ipr.ipr import (
     get_kb_matched_statements,
     get_kb_statement_matched_conditions,
     get_kb_variants,
+    get_kb_matches_sections
 )
 from pori_python.types import Statement
 
@@ -696,9 +697,14 @@ class TestKbMatchSectionPrep:
         for item in input_fields:  # we don't care about these for this test
             item["variantType"] = "test"
             item["kbVariant"] = "test"
+
         gkb_matches = create_gkb_matches(input_fields)
-        stmts = get_kb_matched_statements(gkb_matches)
-        kbcs = get_kb_statement_matched_conditions(gkb_matches)
+        sections = get_kb_matches_sections(gkb_matches, allow_partial_matches=False)
+
+        stmts = sections['kbMatchedStatements']
+        kbcs = sections['kbStatementMatchedConditions']
+        kbvars = sections['kbMatches']
+        import pdb; pdb.set_trace()
         assert len(stmts) == 2
         assert len(kbcs) == 1  # X only
         assert kbcs[0]["kbStatementId"] == "X"
@@ -747,6 +753,13 @@ class TestKbMatchSectionPrep:
         assert len(stmts) == 3
         assert len(kbcs) == 2  # X and Z but not Y
         assert "Y" not in [item["kbStatementId"] for item in kbcs]
+
+    def test_kbvariants_removed_from_set_when_not_part_of_full_conditionset_match(self):
+        """When there is a variant that fulfills one part of a statement's condition set,
+        but isn't part of any fully satisfied condition set,
+        the kbvariant record should be removed from the kbvariants list
+        """
+
 
     def test_partial_matches_included(self):
         """check statements that are only partially supported

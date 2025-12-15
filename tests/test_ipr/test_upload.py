@@ -332,6 +332,7 @@ class TestCreateReport:
         are met.
         This is also a test of multiple condition sets since there are two variants
         in the test data that satisfy one of the conditions (the APC mutation)."""
+        import pdb; pdb.set_trace()
         section = get_section(loaded_reports["sync"], "kb-matches/kb-matched-statements")
         multivariant_stmts = [item for item in section if item["reference"] == "pmid:27302369"]
 
