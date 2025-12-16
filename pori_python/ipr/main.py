@@ -372,10 +372,11 @@ def ipr_report(
 
     if upload_json:
         if not ipr_conn:
-            raise ValueError("ipr_url required to validate_json")
+            raise ValueError("ipr_url required to upload_json")
         ipr_result = ipr_conn.upload_report(
             content, mins_to_wait, async_upload, ignore_extra_fields
         )
+        return ipr_result
 
     # validate the JSON content follows the specification
     try:
@@ -569,6 +570,8 @@ def ipr_report(
 
     # UPLOAD TO IPR
     if ipr_upload:
+        if not ipr_conn:
+            raise ValueError("ipr_url required to upload_report")
         ipr_spec = ipr_conn.get_spec()
         output = clean_unsupported_content(output, ipr_spec)
         try:
