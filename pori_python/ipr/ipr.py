@@ -168,6 +168,7 @@ def convert_statements_to_alterations(
         diseases = [c for c in statement["conditions"] if c["@class"] == "Disease"]
         disease_match = len(diseases) == 1 and diseases[0]["@rid"] in disease_matches
         reference = ";".join([e["displayName"] for e in statement["evidence"]])
+
         if statement['relevance']['name'] == 'eligibility':
             reference = ";".join([e["sourceId"] for e in statement["evidence"]])
 
@@ -624,6 +625,20 @@ def get_kb_matches_sections(
     kb_statement_matched_conditions = get_kb_statement_matched_conditions(
         gkb_matches, allow_partial_matches
     )
+
+    if not allow_partial_matches:
+        # remove kb_matches that are not part of any fully matched condition set
+        unique_kb_variant_ids = list(
+            set(
+                [
+                    item['kbVariantId']
+                    for conditionSet in kb_statement_matched_conditions
+                    for item in conditionSet['matchedConditions']
+                ]
+            )
+        )
+        kb_variants = [item for item in kb_variants if item['kbVariantId'] in unique_kb_variant_ids]
+
     return {
         "kbMatches": kb_variants,
         "kbMatchedStatements": kb_matched_statements,
