@@ -358,6 +358,7 @@ def ipr_report(
     )
 
     # IPR CONNECTION
+    ipr_url = ipr_url if ipr_url else os.environ.get("IPR_URL", "")
     ipr_conn = None
     if ipr_url:
         ipr_conn = IprConnection(username, password, ipr_url)
@@ -420,6 +421,7 @@ def ipr_report(
     # GKB CONNECTION
     gkb_user = graphkb_username if graphkb_username else username
     gkb_pass = graphkb_password if graphkb_password else password
+    graphkb_url = graphkb_url if graphkb_url else os.environ.get("GRAPHKB_URL", "")
     if graphkb_url:
         logger.info(f"connecting to graphkb: {graphkb_url}")
         graphkb_conn = GraphKBConnection(graphkb_url)
