@@ -269,11 +269,22 @@ def select_expression_plots(
 
 
 def create_key_alterations(
-    kb_matches: List[Hashabledict], all_variants: Sequence[IprVariant]
+    kb_matches: List[Hashabledict],
+    all_variants: Sequence[IprVariant],
+    included_kb_matches: List[KbVariantMatch],
 ) -> Tuple[List[Dict], Dict]:
     """Create the list of significant variants matched by the KB.
 
     This list of matches is also used to create the variant counts.
+
+    kb_matches: the full list of matched kb objects found for the reported variants
+    all_variants: the full list of all reported variants, matched or unmatched
+    included_kb_matches: the list of kb_variant ids to be allowed in the key alterations table;
+        this is all kb_variants if partially matched statements are allowed, or
+        the subset of kb_variants that are conditions for at least one
+        fully satisfied statement condition set, if partially matched statements
+        are not allowed (ie, kb_variants that are not part of any fully satisfied
+        statement condition set are excluded)
     """
     alterations = []
     type_mapping = {
@@ -284,7 +295,12 @@ def create_key_alterations(
     }
     counts: Dict[str, Set] = {v: set() for v in type_mapping.values()}
     skipped_variant_types = []
+
+    included_kbvariant_ids = list(set([item['kbVariantId'] for item in included_kb_matches]))
+
     for kb_match in kb_matches:
+        if kb_match['kbVariantId'] not in included_kbvariant_ids:
+            continue
         variant_type = kb_match["variantType"]
         variant_key = kb_match["variant"]
         if kb_match["category"] == "unknown":
