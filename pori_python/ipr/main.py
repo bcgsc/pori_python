@@ -523,8 +523,9 @@ def ipr_report(
     )
 
     # KEY ALTERATIONS
-    # must do after pruning of kbMatches for kb_matched_sections
-    key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
+    key_alterations, variant_counts = create_key_alterations(
+        gkb_matches, all_variants, kb_matched_sections['kbMatches']
+    )
 
     # OUTPUT CONTENT
     # thread safe deep-copy the original content
