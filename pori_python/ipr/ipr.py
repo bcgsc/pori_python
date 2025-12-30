@@ -276,6 +276,15 @@ def create_key_alterations(
     """Create the list of significant variants matched by the KB.
 
     This list of matches is also used to create the variant counts.
+
+    kb_matches: the full list of matched kb objects found for the reported variants
+    all_variants: the full list of all reported variants, matched or unmatched
+    included_kb_matches: the list of kb_variant ids to be allowed in the key alterations table;
+        this is all kb_variants if partially matched statements are allowed, or
+        the subset of kb_variants that are conditions for at least one
+        fully satisfied statement condition set, if partially matched statements
+        are not allowed (ie, kb_variants that are not part of any fully satisfied
+        statement condition set are excluded)
     """
     alterations = []
     type_mapping = {
