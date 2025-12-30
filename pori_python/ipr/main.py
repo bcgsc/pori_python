@@ -294,7 +294,7 @@ def ipr_report(
     username: str,
     password: str,
     content: Dict,
-    ipr_url: str,
+    ipr_url: str = '',
     log_level: str = "info",
     output_json_path: str = "",
     always_write_output_json: bool = False,
@@ -324,7 +324,7 @@ def ipr_report(
     Args:
         username: the username for connecting to GraphKB and IPR
         password: the password for connecting to GraphKB and IPR
-        ipr_url: base URL to use in connecting to IPR
+        ipr_url: base URL to use in connecting to IPR (eg. https://ipr-api.bcgsc.ca/api)
         log_level: the logging level
         content: report content
         output_json_path: path to a JSON file to output the report upload body.
@@ -358,13 +358,22 @@ def ipr_report(
     )
 
     # IPR CONNECTION
-    ipr_conn = IprConnection(username, password, ipr_url)
+    ipr_url = ipr_url if ipr_url else os.environ.get("IPR_URL", "")
+    ipr_conn = None
+    if ipr_url:
+        ipr_conn = IprConnection(username, password, ipr_url)
+    else:
+        logger.warning("No ipr_url given")
 
     if validate_json:
+        if not ipr_conn:
+            raise ValueError("ipr_url required to validate_json")
         ipr_result = ipr_conn.validate_json(content)
         return ipr_result
 
     if upload_json:
+        if not ipr_conn:
+            raise ValueError("ipr_url required to upload_json")
         ipr_result = ipr_conn.upload_report(
             content, mins_to_wait, async_upload, ignore_extra_fields
         )
@@ -492,6 +501,8 @@ def ipr_report(
         comments_list.append(graphkb_comments)
 
     if include_ipr_variant_text:
+        if not ipr_conn:
+            raise ValueError("ipr_url required to upload_json")
         ipr_comments = get_ipr_analyst_comments(
             ipr_conn,
             gkb_matches,
@@ -556,13 +567,16 @@ def ipr_report(
             output['hrdScore'] = output['hrd']['score']
         output.pop('hrd')  # kbmatches have already been made
 
-    ipr_spec = ipr_conn.get_spec()
-    output = clean_unsupported_content(output, ipr_spec)
     ipr_result = {}
     upload_error = None
 
     # UPLOAD TO IPR
+
     if ipr_upload:
+        if not ipr_conn:
+            raise ValueError("ipr_url required to upload_report")
+        ipr_spec = ipr_conn.get_spec()
+        output = clean_unsupported_content(output, ipr_spec)
         try:
             logger.info(f"Uploading to IPR {ipr_conn.url}")
             ipr_result = ipr_conn.upload_report(
