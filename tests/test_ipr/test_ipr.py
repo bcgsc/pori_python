@@ -11,6 +11,7 @@ from pori_python.ipr.ipr import (
     get_kb_statement_matched_conditions,
     get_kb_variants,
     get_kb_matches_sections,
+    create_key_alterations,
 )
 from pori_python.types import Statement
 
@@ -484,15 +485,22 @@ GKB_MATCHES = [
         "kbContextId": "#135:8764",
         "kbRelevanceId": "#147:32",
         "kbStatementId": "#155:13511",
-        "requiredKbMatches": ["#159:5426", "#161:938"],
+        "requiredKbMatches": ["#159:54261", "#161:9381"],
         "kbVariant": "BRCA1 mutation",
-        "kbVariantId": "#161:938",
+        "kbVariantId": "#161:9381",
         "matchedCancer": False,
         "reference": "MOAlmanac FDA-56",
         "relevance": "therapy",
         "variantType": "mut",
         "reviewStatus": None,
     },
+]
+
+ALL_VARIANTS = [
+    {"variant": "var1", "key": '1', "variantType": 'mut'},
+    {"variant": "var2", "key": '2', "variantType": 'mut'},
+    {"variant": "var3", "key": '3', "variantType": 'mut'},
+    {"variant": "var4", "key": '4', "variantType": 'mut'},
 ]
 
 BASIC_GKB_MATCH = {
@@ -830,3 +838,21 @@ class TestKbMatchSectionPrep:
         kbcs = get_kb_statement_matched_conditions(gkb_matches, allow_partial_matches=True)
         assert len(stmts) == 2  # X and Y
         assert len(kbcs) == 2
+
+    def test_create_key_alterations_includes_only_pruned_kbmatches(self):
+        gkb_matches = create_gkb_matches(GKB_MATCHES)
+
+        sections1 = get_kb_matches_sections(gkb_matches, allow_partial_matches=False)
+        key_alts1, counts1 = create_key_alterations(
+            gkb_matches, ALL_VARIANTS, sections1['kbMatches']
+        )
+
+        sections2 = get_kb_matches_sections(gkb_matches, allow_partial_matches=True)
+        key_alts2, counts2 = create_key_alterations(
+            gkb_matches, ALL_VARIANTS, sections2['kbMatches']
+        )
+
+        # check partial-match-only variants are not included in key alterations when
+        # partial matches is false
+        assert len(key_alts1) == 3
+        assert len(key_alts2) == 4
