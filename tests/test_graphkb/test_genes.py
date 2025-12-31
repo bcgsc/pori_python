@@ -18,6 +18,7 @@ from pori_python.graphkb.genes import (
     get_pharmacogenomic_info,
     get_preferred_gene_name,
     get_therapeutic_associated_genes,
+    PREFERRED_GENE_SOURCE_NAME
 )
 from pori_python.graphkb.util import get_rid
 
