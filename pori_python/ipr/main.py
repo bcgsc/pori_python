@@ -367,13 +367,13 @@ def ipr_report(
 
     if validate_json:
         if not ipr_conn:
-            raise ValueError("ipr_url required to validate_json")
+            raise ValueError("ipr_url required to validate json")
         ipr_result = ipr_conn.validate_json(content)
         return ipr_result
 
     if upload_json:
         if not ipr_conn:
-            raise ValueError("ipr_url required to upload_json")
+            raise ValueError("ipr_url required to upload json")
         ipr_result = ipr_conn.upload_report(
             content, mins_to_wait, async_upload, ignore_extra_fields
         )
@@ -502,7 +502,7 @@ def ipr_report(
 
     if include_ipr_variant_text:
         if not ipr_conn:
-            raise ValueError("ipr_url required to upload_json")
+            raise ValueError("ipr_url required to to include ipr variant text")
         ipr_comments = get_ipr_analyst_comments(
             ipr_conn,
             gkb_matches,
@@ -575,7 +575,7 @@ def ipr_report(
 
     if ipr_upload:
         if not ipr_conn:
-            raise ValueError("ipr_url required to upload_report")
+            raise ValueError("ipr_url required to upload report")
         ipr_spec = ipr_conn.get_spec()
         output = clean_unsupported_content(output, ipr_spec)
         try:
