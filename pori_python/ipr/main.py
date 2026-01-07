@@ -363,7 +363,7 @@ def ipr_report(
     if ipr_url:
         ipr_conn = IprConnection(username, password, ipr_url)
     else:
-        logger.warning("No ipr_url given")
+        logger.error("No ipr_url given with no IPR_URL environment variable")
 
     if validate_json:
         if not ipr_conn:
