@@ -143,6 +143,8 @@ class GraphKBConnection:
         Returns:
             dict: the json response as a python dict
         """
+        if not self.url:
+            raise ValueError("no GraphKBConnection url set - cannot make a login demo")
         url = join_url(self.url, endpoint)
         self.request_count += 1
         connect_timeout = 7
@@ -223,7 +225,7 @@ class GraphKBConnection:
         2. get a second token from the GraphKB API using keyCloakToken; self.login()
         """
         if not self.url:
-            raise ValueError("no self.url set - cannot make a login demo")
+            raise ValueError("no GraphKBConnection url set - cannot make a login demo")
         url_parts = urlsplit(self.url)
         base_url = f"{url_parts.scheme}://{url_parts.netloc}"
 
@@ -252,8 +254,10 @@ class GraphKBConnection:
         connect_timeout = 7
         read_timeout = 61
 
-        # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
-        if self.url and (pori_demo or "pori-demo" in self.url):
+        if not self.url:
+            raise ValueError("no GraphKBConnection url set - cannot login")
+        elif pori_demo or "pori-demo" in self.url:
+            # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
             logger.warning("login demo")
             self.login_demo()
 
