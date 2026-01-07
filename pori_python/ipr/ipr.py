@@ -295,10 +295,10 @@ def create_key_alterations(
     counts: Dict[str, Set] = {v: set() for v in type_mapping.values()}
     skipped_variant_types = []
 
-    included_kbvariant_ids = list(set([item['kbVariantId'] for item in included_kb_matches]))
+    included_kbvariant_ids = list(set([item["kbVariantId"] for item in included_kb_matches]))
 
     for kb_match in kb_matches:
-        if kb_match['kbVariantId'] not in included_kbvariant_ids:
+        if kb_match["kbVariantId"] not in included_kbvariant_ids:
             continue
         variant_type = kb_match["variantType"]
         variant_key = kb_match["variant"]
@@ -646,13 +646,13 @@ def get_kb_matches_sections(
         unique_kb_variant_ids = list(
             set(
                 [
-                    item['kbVariantId']
+                    item["kbVariantId"]
                     for conditionSet in kb_statement_matched_conditions
-                    for item in conditionSet['matchedConditions']
+                    for item in conditionSet["matchedConditions"]
                 ]
             )
         )
-        kb_variants = [item for item in kb_variants if item['kbVariantId'] in unique_kb_variant_ids]
+        kb_variants = [item for item in kb_variants if item["kbVariantId"] in unique_kb_variant_ids]
 
     return {
         "kbMatches": kb_variants,

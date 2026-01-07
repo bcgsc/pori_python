@@ -5,13 +5,13 @@ from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.ipr.ipr import (
     convert_statements_to_alterations,
+    create_key_alterations,
     germline_kb_matches,
     get_kb_disease_matches,
     get_kb_matched_statements,
+    get_kb_matches_sections,
     get_kb_statement_matched_conditions,
     get_kb_variants,
-    get_kb_matches_sections,
-    create_key_alterations,
 )
 from pori_python.types import Statement
 
@@ -497,10 +497,10 @@ GKB_MATCHES = [
 ]
 
 ALL_VARIANTS = [
-    {"variant": "var1", "key": '1', "variantType": 'mut'},
-    {"variant": "var2", "key": '2', "variantType": 'mut'},
-    {"variant": "var3", "key": '3', "variantType": 'mut'},
-    {"variant": "var4", "key": '4', "variantType": 'mut'},
+    {"variant": "var1", "key": "1", "variantType": "mut"},
+    {"variant": "var2", "key": "2", "variantType": "mut"},
+    {"variant": "var3", "key": "3", "variantType": "mut"},
+    {"variant": "var4", "key": "4", "variantType": "mut"},
 ]
 
 BASIC_GKB_MATCH = {
@@ -709,8 +709,8 @@ class TestKbMatchSectionPrep:
         gkb_matches = create_gkb_matches(input_fields)
         sections = get_kb_matches_sections(gkb_matches, allow_partial_matches=False)
 
-        stmts = sections['kbMatchedStatements']
-        kbcs = sections['kbStatementMatchedConditions']
+        stmts = sections["kbMatchedStatements"]
+        kbcs = sections["kbStatementMatchedConditions"]
         assert len(stmts) == 2
         assert len(kbcs) == 1  # X only
         assert kbcs[0]["kbStatementId"] == "X"
@@ -796,14 +796,14 @@ class TestKbMatchSectionPrep:
             item["kbVariant"] = "test"
         gkb_matches = create_gkb_matches(input_fields)
         sections1 = get_kb_matches_sections(gkb_matches, allow_partial_matches=False)
-        kbcs1 = sections1['kbStatementMatchedConditions']
-        kbvars1 = sections1['kbMatches']
+        kbcs1 = sections1["kbStatementMatchedConditions"]
+        kbvars1 = sections1["kbMatches"]
         assert len(kbcs1) == 1  # only fully matched condition sets included
         assert len(kbvars1) == 2  # therefore, kbvars associated with stmt X are pruned
 
         sections2 = get_kb_matches_sections(gkb_matches, allow_partial_matches=True)
-        kbcs2 = sections2['kbStatementMatchedConditions']
-        kbvars2 = sections2['kbMatches']
+        kbcs2 = sections2["kbStatementMatchedConditions"]
+        kbvars2 = sections2["kbMatches"]
         assert len(kbcs2) == 2  # all condition sets included
         assert len(kbvars2) == 3  # therefore, no pruning
 
@@ -844,12 +844,12 @@ class TestKbMatchSectionPrep:
 
         sections1 = get_kb_matches_sections(gkb_matches, allow_partial_matches=False)
         key_alts1, counts1 = create_key_alterations(
-            gkb_matches, ALL_VARIANTS, sections1['kbMatches']
+            gkb_matches, ALL_VARIANTS, sections1["kbMatches"]
         )
 
         sections2 = get_kb_matches_sections(gkb_matches, allow_partial_matches=True)
         key_alts2, counts2 = create_key_alterations(
-            gkb_matches, ALL_VARIANTS, sections2['kbMatches']
+            gkb_matches, ALL_VARIANTS, sections2["kbMatches"]
         )
 
         # check partial-match-only variants are not included in key alterations when

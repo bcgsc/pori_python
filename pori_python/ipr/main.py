@@ -525,7 +525,7 @@ def ipr_report(
 
     # KEY ALTERATIONS
     key_alterations, variant_counts = create_key_alterations(
-        gkb_matches, all_variants, kb_matched_sections['kbMatches']
+        gkb_matches, all_variants, kb_matched_sections["kbMatches"]
     )
 
     # OUTPUT CONTENT
