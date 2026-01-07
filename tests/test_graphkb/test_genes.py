@@ -7,7 +7,6 @@ import pytest
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import (
-    PREFERRED_GENE_SOURCE_NAME,
     get_cancer_genes,
     get_cancer_predisposition_info,
     get_gene_information,
