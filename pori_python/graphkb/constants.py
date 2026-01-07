@@ -4,12 +4,7 @@ from typing import Dict
 from pori_python.types import CategoryBaseTermMapping
 
 DEFAULT_LIMIT = 1000
-GKB_BASE_URL = "https://graphkb-api.bcgsc.ca/api"
-GKB_STAGING_URL = "https://graphkbstaging-api.bcgsc.ca/api"
-GKB_DEV_URL = "https://graphkbdev-api.bcgsc.ca/api"
-DEFAULT_URL = GKB_BASE_URL
 
-PREFERRED_GENE_SOURCE = "#39:5"  # HGNC
 PREFERRED_GENE_SOURCE_NAME = "HGNC"
 
 BASE_RETURN_PROPERTIES = ["@rid", "@class"]

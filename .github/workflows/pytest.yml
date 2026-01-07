@@ -46,6 +46,7 @@ jobs:
         IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
         GRAPHKB_USER: ${{ secrets.GKB_TEST_USER }}
         GRAPHKB_PASS: ${{ secrets.GKB_TEST_PASS }}
+        GRAPHKB_URL: ${{ secrets.GKB_TEST_URL }}
         # SDEV-3381 - Turn off integration tests temporarily, till efficiency is increased
         # turn on integration tests for one python version only
         EXCLUDE_INTEGRATION_TESTS: ${{ matrix.python-version != '3.11' }}

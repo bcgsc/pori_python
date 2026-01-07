@@ -25,7 +25,6 @@ from pori_python.types import (
 
 from .constants import (
     COSMIC_SIGNATURE_VARIANT_TYPE,
-    DEFAULT_URL,
     HLA_SIGNATURE_VARIANT_TYPE,
     MSI_MAPPING,
     HRD_MAPPING,
@@ -39,7 +38,7 @@ protein_letters_3to1.setdefault("Ter", "*")
 SPECIFICATION = os.path.join(os.path.dirname(__file__), "content.spec.json")
 
 # content in the local specification should match the values in IPR_API_SPEC_JSON_URL
-IPR_API_SPEC_JSON_URL = f'{os.environ.get("IPR_URL", DEFAULT_URL)}/spec.json'
+IPR_API_SPEC_JSON_URL = f'{os.environ.get("IPR_URL")}/spec.json'
 
 # TODO: GERO-307 - use SPECIFICATION json to derive the variant required and optional details defined below
 
