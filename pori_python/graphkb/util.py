@@ -98,7 +98,7 @@ def cache_key(request_body) -> str:
 class GraphKBConnection:
     def __init__(
         self,
-        url: str = os.environ.get("GRAPHKB_URL"),
+        url: str = os.environ.get("GRAPHKB_URL", ""),
         username: str = "",
         password: str = "",
         use_global_cache: bool = True,
