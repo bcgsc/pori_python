@@ -477,9 +477,6 @@ def ipr_report(
         gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
-    # KEY ALTERATIONS
-    key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
-
     # GENE INFORMATION
     logger.info("fetching gene annotations")
     gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
@@ -524,6 +521,11 @@ def ipr_report(
     # kbMatches -> kbMatches, kbMatchedStatements & kbStatementMatchedConditions
     kb_matched_sections = get_kb_matches_sections(
         gkb_matches, allow_partial_matches=allow_partial_matches
+    )
+
+    # KEY ALTERATIONS
+    key_alterations, variant_counts = create_key_alterations(
+        gkb_matches, all_variants, kb_matched_sections['kbMatches']
     )
 
     # OUTPUT CONTENT
@@ -571,9 +573,10 @@ def ipr_report(
     upload_error = None
 
     # UPLOAD TO IPR
+
     if ipr_upload:
         if not ipr_conn:
-            raise ValueError("ipr_url required to upload_report")
+            raise ValueError("ipr_url required to upload report")
         ipr_spec = ipr_conn.get_spec()
         output = clean_unsupported_content(output, ipr_spec)
         try:

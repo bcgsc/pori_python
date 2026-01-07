@@ -172,7 +172,7 @@ def test_get_pharmacogenomic_info(conn):
     EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))"
 )
 def test_get_gene_linked_pharmacogenomic_info(conn):
-    genes, matches = get_gene_linked_pharmacogenomic_info(conn, PREFERRED_GENE_SOURCE_NAME)
+    genes, matches = get_gene_linked_pharmacogenomic_info(conn)
     for gene in PHARMACOGENOMIC_INITIAL_GENES:
         assert gene in genes, f"{gene} not found in get_pharmacogenomic_info"
         for rid, variant_info in matches.items():
@@ -198,7 +198,7 @@ def test_get_cancer_predisposition_info(conn):
     EXCLUDE_BCGSC_TESTS, reason="excluding BCGSC-specific tests (requires CGL loader))"
 )
 def test_get_gene_linked_cancer_predisposition_info(conn):
-    genes, matches = get_gene_linked_cancer_predisposition_info(conn, PREFERRED_GENE_SOURCE_NAME)
+    genes, matches = get_gene_linked_cancer_predisposition_info(conn)
     for gene in CANCER_PREDISP_INITIAL_GENES:
         assert gene in genes, f"{gene} not found in get_cancer_predisposition_info"
 
