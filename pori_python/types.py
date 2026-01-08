@@ -130,7 +130,7 @@ class KbMatchedStatementConditionSet(TypedDict):
 
 class KbMatchSections(TypedDict):
     kbMatchedStatements: List[KbMatchedStatement]
-    kbMatchedVariants: List[KbVariantMatch]
+    kbMatches: List[KbVariantMatch]
     kbMatchedStatementConditions: List[KbMatchedStatementConditionSet]
 
 
