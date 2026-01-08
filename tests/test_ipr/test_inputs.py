@@ -50,9 +50,11 @@ EXPECTED_HLA = {
     "HLA-C*06",
 }
 EXPECTED_TMB = {TMB_SIGNATURE}
-EXPECTED_MSI = {MSI_MAPPING.get("microsatellite instability")["signatureName"]}
+EXPECTED_MSI = {MSI_MAPPING.get("microsatellite instability", {}).get("signatureName", "")}
 EXPECTED_HRD = {
-    HRD_MAPPING.get("homologous recombination deficiency strong signature")["signatureName"]
+    HRD_MAPPING.get("homologous recombination deficiency strong signature", {}).get(
+        "signatureName", ""
+    )
 }
 
 

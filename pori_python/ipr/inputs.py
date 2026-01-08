@@ -560,7 +560,7 @@ def preprocess_msi(msi: Any) -> Sequence[Dict]:
     return []
 
 
-def preprocess_hrd(hrd: Any) -> Iterable[Dict]:
+def preprocess_hrd(hrd: Any) -> Sequence[Dict]:
     """
     Process hrd input into preformatted signature input.
     HRD gets mapped to corresponding GraphKB Signature CategoryVariants.
