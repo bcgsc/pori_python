@@ -16,7 +16,7 @@ class IprConnection:
         self,
         username: str,
         password: str,
-        url: str = os.environ.get("IPR_URL"),
+        url: str = os.environ.get("IPR_URL", ""),
     ):
         self.token = None
         self.url = url
