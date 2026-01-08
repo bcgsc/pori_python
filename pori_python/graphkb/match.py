@@ -315,15 +315,15 @@ def equivalent_types(
 
     # Convert rid to displayName if needed
     if looks_like_rid(type1):
-        type1 = conn.get_records_by_id([type1])[0]["displayName"]
+        type1 = str(conn.get_records_by_id([type1])[0].get("displayName", type1))
     if looks_like_rid(type2):
-        type2 = conn.get_records_by_id([type2])[0]["displayName"]
+        type2 = str(conn.get_records_by_id([type2])[0].get("displayName", type2))
 
     # Get type terms from observed variant
-    terms1 = []
+    terms1 = set()
     if strict:
         try:
-            terms1.append(get_term_by_name(conn, type1)["@rid"])
+            terms1.add(get_term_by_name(conn, type1)["@rid"])
         except Exception:
             pass
     else:

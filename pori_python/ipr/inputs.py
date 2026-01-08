@@ -11,7 +11,7 @@ import pandas as pd
 import re
 from Bio.Data.IUPACData import protein_letters_3to1
 from numpy import nan
-from typing import Any, Callable, Dict, Iterable, List, Set, Tuple, cast
+from typing import Any, Callable, Dict, Iterable, List, Sequence, Set, Tuple, cast
 
 from pori_python.graphkb.match import INPUT_COPY_CATEGORIES, INPUT_EXPRESSION_CATEGORIES
 from pori_python.types import (
@@ -26,8 +26,8 @@ from pori_python.types import (
 from .constants import (
     COSMIC_SIGNATURE_VARIANT_TYPE,
     HLA_SIGNATURE_VARIANT_TYPE,
-    MSI_MAPPING,
     HRD_MAPPING,
+    MSI_MAPPING,
     TMB_SIGNATURE,
     TMB_SIGNATURE_VARIANT_TYPE,
 )
@@ -248,20 +248,23 @@ def preprocess_copy_variants(rows: Iterable[Dict]) -> List[IprCopyVariant]:
                 row["cnvState"] = display_name_mapping[kb_cat]
         row["variant"] = kb_cat
         row["variantType"] = "cnv"
-        chrband = row.get("chromosomeBand", False)
-        chrom = row.pop("chromosome", False)
-        if not chrom:
-            chrom = row.pop("chr", False)
-        # remove chr if it was not used for chrom
-        row.pop("chr", False)
-        if chrom:
+
+        # Find chromosome and remove chromosome values
+        chrom = ""
+        if "chromosome" in row:
+            chrom = str(row.pop("chromosome", "")) or chrom  # type: ignore
+        if "chr" in row:
+            chrom = str(row.pop("chr", "")) or chrom  # type: ignore
+
+        # Include chromosome in chromosomeBand
+        chrband = row.get("chromosomeBand", "")
+
+        if chrom and chrband:
             # check that chr isn't already in the chrband;
             # this regex from https://vrs.ga4gh.org/en/1.2/terms_and_model.html#id25
-            if chrband and (re.match(r"^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband)):
-                if isinstance(chrom, int):
-                    chrom = str(chrom)
+            if re.match(r"^cen|[pq](ter|([1-9][0-9]*(\.[1-9][0-9]*)?))$", chrband):
                 chrom = chrom.strip("chr")
-                row["chromosomeBand"] = chrom + row["chromosomeBand"]
+                row["chromosomeBand"] = chrom + chrband
 
     return ret_list
 
@@ -441,7 +444,7 @@ def preprocess_signature_variants(rows: Iterable[Dict]) -> List[IprSignatureVari
     return result
 
 
-def preprocess_cosmic(rows: Iterable[Dict]) -> Iterable[Dict]:
+def preprocess_cosmic(rows: Iterable[Dict]) -> Sequence[Dict]:
     """
     Process cosmic inputs into preformatted signature inputs
     Note: Cosmic and dMMR already evaluated against thresholds in gsc_report
@@ -456,7 +459,7 @@ def preprocess_cosmic(rows: Iterable[Dict]) -> Iterable[Dict]:
     ]
 
 
-def preprocess_hla(rows: Iterable[Dict]) -> Iterable[Dict]:
+def preprocess_hla(rows: Iterable[Dict]) -> Sequence[Dict]:
     """
     Process hla inputs into preformatted signature inputs
     """
@@ -480,7 +483,7 @@ def preprocess_hla(rows: Iterable[Dict]) -> Iterable[Dict]:
 
 def preprocess_tmb(
     tmb_high: float, tmburMutationBurden: Dict = {}, genomeTmb: float | str = ""
-) -> Iterable[Dict]:
+) -> Sequence[Dict]:
     """
     Process tumour mutation burden (tmb) input(s) into preformatted signature input.
     Get compared to threshold; signature CategoryVariant created only if threshold met.
@@ -530,7 +533,7 @@ def preprocess_tmb(
     return []
 
 
-def preprocess_msi(msi: Any) -> Iterable[Dict]:
+def preprocess_msi(msi: Any) -> Sequence[Dict]:
     """
     Process micro-satellite input into preformatted signature input.
     Both msi & mss gets mapped to corresponding GraphKB Signature CategoryVariants.
@@ -557,7 +560,7 @@ def preprocess_msi(msi: Any) -> Iterable[Dict]:
     return []
 
 
-def preprocess_hrd(hrd: Any) -> Iterable[Dict]:
+def preprocess_hrd(hrd: Any) -> Sequence[Dict]:
     """
     Process hrd input into preformatted signature input.
     HRD gets mapped to corresponding GraphKB Signature CategoryVariants.

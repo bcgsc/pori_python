@@ -103,7 +103,7 @@ def annotate_expression_variants(
     disease_matches: List[str],
     variants: List[IprExprVariant],
     show_progress: bool = False,
-) -> List[KbMatch]:
+) -> List[Hashabledict]:
     """Annotate expression variants with GraphKB in the IPR alterations format.
 
     Args:
@@ -113,10 +113,10 @@ def annotate_expression_variants(
         show_progress (bool): Progressbar displayed for long runs.
 
     Returns:
-        list of kbMatches records for IPR
+        list of Hashabledict records for IPR
     """
     skipped = 0
-    alterations = []
+    alterations: List[Hashabledict] = []
     problem_genes = set()
     logger.info(f"Starting annotation of {len(variants)} expression category_variants")
     iterfunc = tqdm if show_progress else iter
@@ -133,7 +133,7 @@ def annotate_expression_variants(
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_matches):
                 ipr_row["variant"] = row["key"]
                 ipr_row["variantType"] = row.get("variantType", "exp")
-                alterations.append(ipr_row)
+                alterations.append(Hashabledict(ipr_row))
         except FeatureNotFoundError as err:
             problem_genes.add(gene)
             logger.debug(f"Unrecognized gene ({gene} {variant}): {err}")
@@ -156,7 +156,7 @@ def annotate_copy_variants(
     disease_matches: List[str],
     variants: List[IprCopyVariant],
     show_progress: bool = False,
-) -> List[KbMatch]:
+) -> List[Hashabledict]:
     """Annotate allowed copy variants with GraphKB in the IPR alterations format.
 
     Args:
@@ -169,7 +169,7 @@ def annotate_copy_variants(
         list of kbMatches records for IPR
     """
     skipped = 0
-    alterations = []
+    alterations: List[Hashabledict] = []
     problem_genes = set()
 
     logger.info(f"Starting annotation of {len(variants)} copy category_variants")
@@ -188,7 +188,7 @@ def annotate_copy_variants(
             for ipr_row in get_ipr_statements_from_variants(graphkb_conn, matches, disease_matches):
                 ipr_row["variant"] = row["key"]
                 ipr_row["variantType"] = row.get("variantType", "cnv")
-                alterations.append(ipr_row)
+                alterations.append(Hashabledict(ipr_row))
         except FeatureNotFoundError as err:
             problem_genes.add(gene)
             logger.debug(f"Unrecognized gene ({gene} {variant}): {err}")
@@ -213,7 +213,7 @@ def annotate_positional_variants(
     variants: Sequence[IprStructuralVariant] | Sequence[Hashabledict],
     disease_matches: List[str],
     show_progress: bool = False,
-) -> List[Hashabledict]:
+) -> Sequence[Hashabledict]:
     """Annotate SNP, INDEL or fusion variant calls with GraphKB and return in IPR match format.
 
     Hashable type is required to turn lists into sets.
@@ -239,10 +239,11 @@ def annotate_positional_variants(
             continue
 
         for var_key in VARIANT_KEYS:
-            variant = row.get(var_key)
+            variant = row.get(var_key, "")
             matches = []
             if not variant or isnull(variant):
                 continue
+            variant = str(variant)
             try:
                 try:
                     matches = gkb_match.match_positional_variant(graphkb_conn, variant)
@@ -277,15 +278,15 @@ def annotate_positional_variants(
             except FeatureNotFoundError as err:
                 logger.debug(f"failed to match positional variants ({variant}): {err}")
                 errors += 1
-                if "gene" in row:
-                    problem_genes.add(row["gene"])
-                elif "gene1" in row and f"({row['gene1']})" in str(err):
-                    problem_genes.add(row["gene1"])
-                elif "gene2" in row and f"({row['gene2']})" in str(err):
-                    problem_genes.add(row["gene2"])
-                elif "gene1" in row and "gene2" in row:
-                    problem_genes.add(row["gene1"])
-                    problem_genes.add(row["gene2"])
+                if row.get("gene"):
+                    problem_genes.add(row["gene"])  # type: ignore
+                elif row.get("gene1") and f"({row['gene1']})" in str(err):  # type: ignore
+                    problem_genes.add(row["gene1"])  # type: ignore
+                elif row.get("gene2") and f"({row['gene2']})" in str(err):  # type: ignore
+                    problem_genes.add(row["gene2"])  # type: ignore
+                elif row.get("gene1") and row.get("gene2"):  # type: ignore
+                    problem_genes.add(row["gene1"])  # type: ignore
+                    problem_genes.add(row["gene2"])  # type: ignore
                 else:
                     raise err
             except HTTPError as err:
@@ -314,7 +315,7 @@ def annotate_signature_variants(
     disease_matches: List[str],
     variants: List[IprSignatureVariant] = [],
     show_progress: bool = False,
-) -> List[KbMatch]:
+) -> List[Hashabledict]:
     """Annotate Signature variants with GraphKB in the IPR alterations format.
 
     Match to corresponding GraphKB Variants, then to linked GraphKB Statements
@@ -433,27 +434,21 @@ def annotate_variants(
     # MATCHING COPY VARIANTS
     logger.info(f"annotating {len(copy_variants)} copy variants")
     gkb_matches.extend(
-        [
-            Hashabledict(copy_var)
-            for copy_var in annotate_copy_variants(
-                graphkb_conn, disease_matches, copy_variants, show_progress=interactive
-            )
-        ]
+        annotate_copy_variants(
+            graphkb_conn, disease_matches, copy_variants, show_progress=interactive
+        )
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 
     # MATCHING EXPRESSION VARIANTS
     logger.info(f"annotating {len(expression_variants)} expression variants")
     gkb_matches.extend(
-        [
-            Hashabledict(exp_var)
-            for exp_var in annotate_expression_variants(
-                graphkb_conn,
-                disease_matches,
-                expression_variants,
-                show_progress=interactive,
-            )
-        ]
+        annotate_expression_variants(
+            graphkb_conn,
+            disease_matches,
+            expression_variants,
+            show_progress=interactive,
+        )
     )
     logger.debug(f"\tgkb_matches: {len(gkb_matches)}")
 

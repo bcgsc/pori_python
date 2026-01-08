@@ -31,8 +31,8 @@ from .inputs import (
     preprocess_cosmic,
     preprocess_expression_variants,
     preprocess_hla,
-    preprocess_msi,
     preprocess_hrd,
+    preprocess_msi,
     preprocess_signature_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
@@ -294,7 +294,7 @@ def ipr_report(
     username: str,
     password: str,
     content: Dict,
-    ipr_url: str = '',
+    ipr_url: str = "",
     log_level: str = "info",
     output_json_path: str = "",
     always_write_output_json: bool = False,
@@ -363,17 +363,17 @@ def ipr_report(
     if ipr_url:
         ipr_conn = IprConnection(username, password, ipr_url)
     else:
-        logger.warning("No ipr_url given")
+        logger.error("No ipr_url given with no IPR_URL environment variable")
 
     if validate_json:
         if not ipr_conn:
-            raise ValueError("ipr_url required to validate json")
+            raise ValueError("ipr_url required to validate_json")
         ipr_result = ipr_conn.validate_json(content)
         return ipr_result
 
     if upload_json:
         if not ipr_conn:
-            raise ValueError("ipr_url required to upload json")
+            raise ValueError("ipr_url required to upload_json")
         ipr_result = ipr_conn.upload_report(
             content, mins_to_wait, async_upload, ignore_extra_fields
         )
@@ -419,14 +419,15 @@ def ipr_report(
     )
 
     # GKB CONNECTION
+    gkb_user = graphkb_username if graphkb_username else username
+    gkb_pass = graphkb_password if graphkb_password else password
+    graphkb_url = graphkb_url if graphkb_url else os.environ.get("GRAPHKB_URL", "")
     if graphkb_url:
         logger.info(f"connecting to graphkb: {graphkb_url}")
         graphkb_conn = GraphKBConnection(graphkb_url)
     else:
-        graphkb_conn = GraphKBConnection()
-
-    gkb_user = graphkb_username if graphkb_username else username
-    gkb_pass = graphkb_password if graphkb_password else password
+        # graphkb_conn = GraphKBConnection()  # This will just error on trying to login
+        raise ValueError("graphkb_url is required")
 
     graphkb_conn.login(gkb_user, gkb_pass)
 
@@ -464,16 +465,14 @@ def ipr_report(
     if match_germline:
         # verify germline kb statements matched germline observed variants, not somatic variants
         org_len = len(gkb_matches)
-        gkb_matches = [
-            Hashabledict(match) for match in germline_kb_matches(gkb_matches, all_variants)
-        ]
+        gkb_matches = germline_kb_matches(gkb_matches, all_variants)
         num_removed = org_len - len(gkb_matches)
         if num_removed:
             logger.info(f"Removing {num_removed} germline events without medical matches.")
 
     if custom_kb_match_filter:
         logger.info(f"custom_kb_match_filter on {len(gkb_matches)} variants")
-        gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
+        gkb_matches = custom_kb_match_filter(gkb_matches)
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
     # GENE INFORMATION
@@ -502,7 +501,7 @@ def ipr_report(
 
     if include_ipr_variant_text:
         if not ipr_conn:
-            raise ValueError("ipr_url required to to include ipr variant text")
+            raise ValueError("ipr_url required to include_ipr_variant_text")
         ipr_comments = get_ipr_analyst_comments(
             ipr_conn,
             gkb_matches,
@@ -524,7 +523,7 @@ def ipr_report(
 
     # KEY ALTERATIONS
     key_alterations, variant_counts = create_key_alterations(
-        gkb_matches, all_variants, kb_matched_sections['kbMatches']
+        gkb_matches, all_variants, kb_matched_sections["kbMatches"]
     )
 
     # OUTPUT CONTENT
@@ -563,10 +562,10 @@ def ipr_report(
 
     # if input includes hrdScore field, that is ok to pass to db
     # but prefer the 'hrd' field if it exists
-    if output.get('hrd'):
-        if output.get('hrd').get('score'):
-            output['hrdScore'] = output['hrd']['score']
-        output.pop('hrd')  # kbmatches have already been made
+    if output.get("hrd"):
+        if output.get("hrd").get("score"):
+            output["hrdScore"] = output["hrd"]["score"]
+        output.pop("hrd")  # kbmatches have already been made
 
     ipr_result = {}
     upload_error = None

@@ -7,8 +7,8 @@ from unittest import mock
 
 from pori_python.graphkb.match import INPUT_COPY_CATEGORIES
 from pori_python.ipr.constants import (
-    MSI_MAPPING,
     HRD_MAPPING,
+    MSI_MAPPING,
     TMB_SIGNATURE,
     TMB_SIGNATURE_HIGH_THRESHOLD,
 )
@@ -21,8 +21,8 @@ from pori_python.ipr.inputs import (
     preprocess_cosmic,
     preprocess_expression_variants,
     preprocess_hla,
-    preprocess_msi,
     preprocess_hrd,
+    preprocess_msi,
     preprocess_signature_variants,
     preprocess_small_mutations,
     preprocess_structural_variants,
@@ -50,9 +50,11 @@ EXPECTED_HLA = {
     "HLA-C*06",
 }
 EXPECTED_TMB = {TMB_SIGNATURE}
-EXPECTED_MSI = {MSI_MAPPING.get("microsatellite instability")["signatureName"]}
+EXPECTED_MSI = {MSI_MAPPING.get("microsatellite instability", {}).get("signatureName", "")}
 EXPECTED_HRD = {
-    HRD_MAPPING.get("homologous recombination deficiency strong signature")["signatureName"]
+    HRD_MAPPING.get("homologous recombination deficiency strong signature", {}).get(
+        "signatureName", ""
+    )
 }
 
 
