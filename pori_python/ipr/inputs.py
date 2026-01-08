@@ -26,8 +26,8 @@ from pori_python.types import (
 from .constants import (
     COSMIC_SIGNATURE_VARIANT_TYPE,
     HLA_SIGNATURE_VARIANT_TYPE,
-    MSI_MAPPING,
     HRD_MAPPING,
+    MSI_MAPPING,
     TMB_SIGNATURE,
     TMB_SIGNATURE_VARIANT_TYPE,
 )
