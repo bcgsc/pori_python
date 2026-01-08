@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 from pori_python.types import ParsedVariant, PositionalVariant, Record
 
-from .constants import DEFAULT_LIMIT, DEFAULT_URL, TYPES_TO_NOTATION, AA_3to1_MAPPING
+from .constants import DEFAULT_LIMIT, TYPES_TO_NOTATION, AA_3to1_MAPPING
 
 QUERY_CACHE: Dict[Any, Any] = {}
 
@@ -98,7 +98,7 @@ def cache_key(request_body) -> str:
 class GraphKBConnection:
     def __init__(
         self,
-        url: str = os.environ.get("GRAPHKB_URL", DEFAULT_URL),
+        url: str = os.environ.get("GRAPHKB_URL", ""),
         username: str = "",
         password: str = "",
         use_global_cache: bool = True,
@@ -143,6 +143,8 @@ class GraphKBConnection:
         Returns:
             dict: the json response as a python dict
         """
+        if not self.url:
+            raise ValueError("no GraphKBConnection url set - cannot make a login demo")
         url = join_url(self.url, endpoint)
         self.request_count += 1
         connect_timeout = 7
@@ -222,6 +224,8 @@ class GraphKBConnection:
         1. get a first token from KeyCloak using username and password; self.login_demo()
         2. get a second token from the GraphKB API using keyCloakToken; self.login()
         """
+        if not self.url:
+            raise ValueError("no GraphKBConnection url set - cannot make a login demo")
         url_parts = urlsplit(self.url)
         base_url = f"{url_parts.scheme}://{url_parts.netloc}"
 
@@ -250,8 +254,11 @@ class GraphKBConnection:
         connect_timeout = 7
         read_timeout = 61
 
-        # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
-        if pori_demo or "pori-demo" in self.url:
+        if not self.url:
+            raise ValueError("no GraphKBConnection url set - cannot login")
+        elif pori_demo or "pori-demo" in self.url:
+            # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
+            logger.warning("login demo")
             self.login_demo()
 
         # use requests package directly to avoid recursion loop on login failure

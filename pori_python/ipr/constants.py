@@ -1,4 +1,3 @@
-DEFAULT_URL = "https://iprstaging-api.bcgsc.ca/api"
 GERMLINE_BASE_TERMS = ("pharmacogenomic", "cancer predisposition")  # based on graphkb.constants
 VARIANT_CLASSES = {"Variant", "CategoryVariant", "PositionalVariant", "CatalogueVariant"}
 
@@ -24,5 +23,18 @@ MSI_MAPPING = {
         "displayName": "microsatellite stable signature present",
         "signatureName": "microsatellite stable",
         "variantTypeName": "signature present",
+    },
+}
+# Mapping hrd from pipeline terms to GraphKB terms
+HRD_MAPPING = {
+    "homologous recombination deficiency strong signature": {
+        "displayName": "homologous recombination deficiency strong signature",
+        "signatureName": "homologous recombination deficiency",
+        "variantTypeName": "strong signature",
+    },
+    "homologous recombination deficiency moderate signature": {
+        "displayName": "homologous recombination deficiency moderate signature",
+        "signatureName": "homologous recombination deficiency",
+        "variantTypeName": "moderate signature",
     },
 }

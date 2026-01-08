@@ -17,7 +17,6 @@ from .constants import (
     GSC_PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST,
     ONCOGENE,
     ONCOKB_SOURCE_NAME,
-    PREFERRED_GENE_SOURCE,
     PREFERRED_GENE_SOURCE_NAME,
     RELEVANCE_BASE_TERMS,
     TSO500_SOURCE_NAME,
@@ -267,7 +266,7 @@ def get_cancer_predisposition_info(
 
 
 def get_gene_linked_cancer_predisposition_info(
-    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, Tuple[str, List[str]]]]:
     """
     Return two lists from GraphKB, one of cancer predisposition genes and one of associated variants.
@@ -275,16 +274,15 @@ def get_gene_linked_cancer_predisposition_info(
     GERO-272 - criteria for what counts as a "cancer predisposition" variant
 
     In short:
-    * Statement 'source' is 'CGL'
+    * Statement 'source' is 'CGL' (not related to the preferred gene source)
     * Statement 'relevance' is 'pathogenic'
     * gene is gotten from any associated 'PositionalVariant' records
 
     Example: https://graphkb.bcgsc.ca/view/Statement/155:11616
 
-
-
     Returns:
         genes: list of cancer predisposition genes
+            (using names from the source specified in this function's arguments)
         variants: dictionary mapping pharmacogenomic variant IDs to variant display names
     """
     genes = set()
@@ -372,7 +370,7 @@ def get_pharmacogenomic_info(
 
 
 def get_gene_linked_pharmacogenomic_info(
-    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE
+    conn: GraphKBConnection, source: str = PREFERRED_GENE_SOURCE_NAME
 ) -> Tuple[List[str], Dict[str, Tuple[str, List[str]]]]:
     """
     Return two lists from GraphKB, one of pharmacogenomic genes and one of associated variants.

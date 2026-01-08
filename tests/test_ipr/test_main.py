@@ -66,6 +66,16 @@ def report_upload_content(tmp_path_factory) -> Dict:
                     pd.read_csv(get_test_file("fusions.tab"), sep="\t").to_json(orient="records")
                 ),
                 "kbDiseaseMatch": "colorectal cancer",
+                "msi": [
+                    {
+                        "score": 1000.0,
+                        "kbCategory": "microsatellite instability",
+                    }
+                ],
+                "hrd": {
+                    "score": 9999.0,
+                    "kbCategory": "homologous recombination deficiency strong signature",
+                },
             },
             allow_nan=False,
         )

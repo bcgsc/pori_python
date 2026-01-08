@@ -66,6 +66,16 @@ def loaded_reports(tmp_path_factory) -> Generator:
                 "collectionDate": "12-12-12",
             },
         ],
+        "msi": [
+            {
+                "score": 1000.0,
+                "kbCategory": "microsatellite instability",
+            }
+        ],
+        "hrd": {
+            "score": 9999.0,
+            "kbCategory": "homologous recombination deficiency strong signature",
+        },
         "expressionVariants": json.loads(
             pd.read_csv(get_test_file("expression.short.tab"), sep="\t").to_json(orient="records")
         ),
@@ -332,7 +342,7 @@ class TestCreateReport:
             stmts = [item for item in multivariant_stmts if item["kbStatementId"] == stmt_id]
 
             # we expect two stmts, one for each condition set
-            assert len(stmts) == 2
+            assert len(stmts) == 3
 
             # we expect each condition set to have two kb variants in it
             # we expect the two kb variants to be the same in each stmt

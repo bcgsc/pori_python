@@ -23,7 +23,7 @@ from pori_python.types import (
 
 from .annotate import annotate_variants
 from .connection import IprConnection
-from .constants import DEFAULT_URL, TMB_SIGNATURE_HIGH_THRESHOLD
+from .constants import TMB_SIGNATURE_HIGH_THRESHOLD
 from .inputs import (
     check_comparators,
     check_variant_links,
@@ -31,6 +31,7 @@ from .inputs import (
     preprocess_cosmic,
     preprocess_expression_variants,
     preprocess_hla,
+    preprocess_hrd,
     preprocess_msi,
     preprocess_signature_variants,
     preprocess_small_mutations,
@@ -85,7 +86,7 @@ def command_interface() -> None:
         "-c", "--content", required=True, type=file_path, help="Report Content as JSON"
     )
 
-    parser.add_argument("--ipr_url", default=os.environ.get("IPR_URL", DEFAULT_URL))
+    parser.add_argument("--ipr_url", default=os.environ.get("IPR_URL"))
     parser.add_argument(
         "--graphkb_username",
         help="username to use connecting to graphkb if different from ipr",
@@ -293,7 +294,7 @@ def ipr_report(
     username: str,
     password: str,
     content: Dict,
-    ipr_url: str = DEFAULT_URL,
+    ipr_url: str = "",
     log_level: str = "info",
     output_json_path: str = "",
     always_write_output_json: bool = False,
@@ -323,7 +324,7 @@ def ipr_report(
     Args:
         username: the username for connecting to GraphKB and IPR
         password: the password for connecting to GraphKB and IPR
-        ipr_url: base URL to use in connecting to IPR
+        ipr_url: base URL to use in connecting to IPR (eg. https://ipr-api.bcgsc.ca/api)
         log_level: the logging level
         content: report content
         output_json_path: path to a JSON file to output the report upload body.
@@ -357,13 +358,22 @@ def ipr_report(
     )
 
     # IPR CONNECTION
-    ipr_conn = IprConnection(username, password, ipr_url)
+    ipr_url = ipr_url if ipr_url else os.environ.get("IPR_URL", "")
+    ipr_conn = None
+    if ipr_url:
+        ipr_conn = IprConnection(username, password, ipr_url)
+    else:
+        logger.error("No ipr_url given with no IPR_URL environment variable")
 
     if validate_json:
+        if not ipr_conn:
+            raise ValueError("ipr_url required to validate_json")
         ipr_result = ipr_conn.validate_json(content)
         return ipr_result
 
     if upload_json:
+        if not ipr_conn:
+            raise ValueError("ipr_url required to upload_json")
         ipr_result = ipr_conn.upload_report(
             content, mins_to_wait, async_upload, ignore_extra_fields
         )
@@ -387,6 +397,7 @@ def ipr_report(
                 content.get("genomeTmb", ""),  # newer tmb pipeline
             ),
             *preprocess_msi(content.get("msi", None)),
+            *preprocess_hrd(content.get("hrd", None)),
         ]
     )
     small_mutations: List[IprSmallMutationVariant] = preprocess_small_mutations(
@@ -408,14 +419,15 @@ def ipr_report(
     )
 
     # GKB CONNECTION
+    gkb_user = graphkb_username if graphkb_username else username
+    gkb_pass = graphkb_password if graphkb_password else password
+    graphkb_url = graphkb_url if graphkb_url else os.environ.get("GRAPHKB_URL", "")
     if graphkb_url:
         logger.info(f"connecting to graphkb: {graphkb_url}")
         graphkb_conn = GraphKBConnection(graphkb_url)
     else:
-        graphkb_conn = GraphKBConnection()
-
-    gkb_user = graphkb_username if graphkb_username else username
-    gkb_pass = graphkb_password if graphkb_password else password
+        # graphkb_conn = GraphKBConnection()  # This will just error on trying to login
+        raise ValueError("graphkb_url is required")
 
     graphkb_conn.login(gkb_user, gkb_pass)
 
@@ -463,9 +475,6 @@ def ipr_report(
         gkb_matches = custom_kb_match_filter(gkb_matches)
         logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
 
-    # KEY ALTERATIONS
-    key_alterations, variant_counts = create_key_alterations(gkb_matches, all_variants)
-
     # GENE INFORMATION
     logger.info("fetching gene annotations")
     gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
@@ -491,6 +500,8 @@ def ipr_report(
         comments_list.append(graphkb_comments)
 
     if include_ipr_variant_text:
+        if not ipr_conn:
+            raise ValueError("ipr_url required to include_ipr_variant_text")
         ipr_comments = get_ipr_analyst_comments(
             ipr_conn,
             gkb_matches,
@@ -510,10 +521,14 @@ def ipr_report(
         gkb_matches, allow_partial_matches=allow_partial_matches
     )
 
+    # KEY ALTERATIONS
+    key_alterations, variant_counts = create_key_alterations(
+        gkb_matches, all_variants, kb_matched_sections["kbMatches"]
+    )
+
     # OUTPUT CONTENT
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
-
     output.update(kb_matched_sections)
     output.update(
         {
@@ -545,13 +560,23 @@ def ipr_report(
     )
     output.setdefault("images", []).extend(select_expression_plots(gkb_matches, all_variants))
 
-    ipr_spec = ipr_conn.get_spec()
-    output = clean_unsupported_content(output, ipr_spec)
+    # if input includes hrdScore field, that is ok to pass to db
+    # but prefer the 'hrd' field if it exists
+    if output.get("hrd"):
+        if output.get("hrd").get("score"):
+            output["hrdScore"] = output["hrd"]["score"]
+        output.pop("hrd")  # kbmatches have already been made
+
     ipr_result = {}
     upload_error = None
 
     # UPLOAD TO IPR
+
     if ipr_upload:
+        if not ipr_conn:
+            raise ValueError("ipr_url required to upload report")
+        ipr_spec = ipr_conn.get_spec()
+        output = clean_unsupported_content(output, ipr_spec)
         try:
             logger.info(f"Uploading to IPR {ipr_conn.url}")
             ipr_result = ipr_conn.upload_report(

@@ -5,9 +5,11 @@ from pori_python.graphkb import statement as gkb_statement
 from pori_python.graphkb import vocab as gkb_vocab
 from pori_python.ipr.ipr import (
     convert_statements_to_alterations,
+    create_key_alterations,
     germline_kb_matches,
     get_kb_disease_matches,
     get_kb_matched_statements,
+    get_kb_matches_sections,
     get_kb_statement_matched_conditions,
     get_kb_variants,
 )
@@ -186,7 +188,7 @@ def base_graphkb_statement(disease_id: str = "disease", relevance_rid: str = "ot
                     "displayName": "KRAS increased expression",
                 },
             ],
-            "evidence": [],
+            "evidence": [{"displayName": "pmid12345", "sourceId": "nct12345"}],
             "subject": {
                 "@class": "dummy_value",
                 "@rid": "101:010",
@@ -361,6 +363,27 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row["category"] == "diagnostic"
 
+    def test_reference_from_displayname_for_noneligibility_stmts(self, graphkb_conn) -> None:
+        statement = base_graphkb_statement()
+
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
+        )
+        assert len(result) == 1
+        row = result[0]
+        assert row["reference"] == "pmid12345"
+
+    def test_reference_from_sourceid_for_eligibility_stmts(self, graphkb_conn) -> None:
+        statement = base_graphkb_statement()
+        statement["relevance"]["name"] = "eligibility"
+
+        result = convert_statements_to_alterations(
+            graphkb_conn, [statement], DISEASE_RIDS, {"variant_rid"}
+        )
+        assert len(result) == 1
+        row = result[0]
+        assert row["reference"] == "nct12345"
+
     @patch("pori_python.ipr.ipr.get_evidencelevel_mapping")
     def test_unapproved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
         mock_get_evidencelevel_mapping.return_value = {"other": "test"}
@@ -462,15 +485,22 @@ GKB_MATCHES = [
         "kbContextId": "#135:8764",
         "kbRelevanceId": "#147:32",
         "kbStatementId": "#155:13511",
-        "requiredKbMatches": ["#159:5426", "#161:938"],
+        "requiredKbMatches": ["#159:54261", "#161:9381"],
         "kbVariant": "BRCA1 mutation",
-        "kbVariantId": "#161:938",
+        "kbVariantId": "#161:9381",
         "matchedCancer": False,
         "reference": "MOAlmanac FDA-56",
         "relevance": "therapy",
         "variantType": "mut",
         "reviewStatus": None,
     },
+]
+
+ALL_VARIANTS = [
+    {"variant": "var1", "key": "1", "variantType": "mut"},
+    {"variant": "var2", "key": "2", "variantType": "mut"},
+    {"variant": "var3", "key": "3", "variantType": "mut"},
+    {"variant": "var4", "key": "4", "variantType": "mut"},
 ]
 
 BASIC_GKB_MATCH = {
@@ -675,9 +705,12 @@ class TestKbMatchSectionPrep:
         for item in input_fields:  # we don't care about these for this test
             item["variantType"] = "test"
             item["kbVariant"] = "test"
+
         gkb_matches = create_gkb_matches(input_fields)
-        stmts = get_kb_matched_statements(gkb_matches)
-        kbcs = get_kb_statement_matched_conditions(gkb_matches)
+        sections = get_kb_matches_sections(gkb_matches, allow_partial_matches=False)
+
+        stmts = sections["kbMatchedStatements"]
+        kbcs = sections["kbStatementMatchedConditions"]
         assert len(stmts) == 2
         assert len(kbcs) == 1  # X only
         assert kbcs[0]["kbStatementId"] == "X"
@@ -727,6 +760,53 @@ class TestKbMatchSectionPrep:
         assert len(kbcs) == 2  # X and Z but not Y
         assert "Y" not in [item["kbStatementId"] for item in kbcs]
 
+    def test_kbvariants_removed_from_set_when_not_part_of_full_conditionset_match(self):
+        """When there is a variant that fulfills one part of a statement's condition set,
+        but isn't part of any fully satisfied condition set,
+        the kbvariant record should be removed from the kbvariants list
+        """
+        input_fields = [
+            {
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "X",
+                "requiredKbMatches": ["test1", "test2", "test3"],
+            },
+            {
+                "variant": "B",
+                "kbVariantId": "test2",
+                "kbStatementId": "X",
+                "requiredKbMatches": ["test1", "test2", "test3"],
+            },
+            {
+                "variant": "A",
+                "kbVariantId": "test1",
+                "kbStatementId": "Y",
+                "requiredKbMatches": ["test4", "test1"],
+            },
+            {
+                "variant": "D",
+                "kbVariantId": "test4",
+                "kbStatementId": "Y",
+                "requiredKbMatches": ["test4", "test1"],
+            },
+        ]
+        for item in input_fields:  # we don't care about these for this test
+            item["variantType"] = "test"
+            item["kbVariant"] = "test"
+        gkb_matches = create_gkb_matches(input_fields)
+        sections1 = get_kb_matches_sections(gkb_matches, allow_partial_matches=False)
+        kbcs1 = sections1["kbStatementMatchedConditions"]
+        kbvars1 = sections1["kbMatches"]
+        assert len(kbcs1) == 1  # only fully matched condition sets included
+        assert len(kbvars1) == 2  # therefore, kbvars associated with stmt X are pruned
+
+        sections2 = get_kb_matches_sections(gkb_matches, allow_partial_matches=True)
+        kbcs2 = sections2["kbStatementMatchedConditions"]
+        kbvars2 = sections2["kbMatches"]
+        assert len(kbcs2) == 2  # all condition sets included
+        assert len(kbvars2) == 3  # therefore, no pruning
+
     def test_partial_matches_included(self):
         """check statements that are only partially supported
         are included when allow_partial_matches=True"""
@@ -758,3 +838,21 @@ class TestKbMatchSectionPrep:
         kbcs = get_kb_statement_matched_conditions(gkb_matches, allow_partial_matches=True)
         assert len(stmts) == 2  # X and Y
         assert len(kbcs) == 2
+
+    def test_create_key_alterations_includes_only_pruned_kbmatches(self):
+        gkb_matches = create_gkb_matches(GKB_MATCHES)
+
+        sections1 = get_kb_matches_sections(gkb_matches, allow_partial_matches=False)
+        key_alts1, counts1 = create_key_alterations(
+            gkb_matches, ALL_VARIANTS, sections1["kbMatches"]
+        )
+
+        sections2 = get_kb_matches_sections(gkb_matches, allow_partial_matches=True)
+        key_alts2, counts2 = create_key_alterations(
+            gkb_matches, ALL_VARIANTS, sections2["kbMatches"]
+        )
+
+        # check partial-match-only variants are not included in key alterations when
+        # partial matches is false
+        assert len(key_alts1) == 3
+        assert len(key_alts2) == 4

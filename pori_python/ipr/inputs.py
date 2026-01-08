@@ -25,8 +25,8 @@ from pori_python.types import (
 
 from .constants import (
     COSMIC_SIGNATURE_VARIANT_TYPE,
-    DEFAULT_URL,
     HLA_SIGNATURE_VARIANT_TYPE,
+    HRD_MAPPING,
     MSI_MAPPING,
     TMB_SIGNATURE,
     TMB_SIGNATURE_VARIANT_TYPE,
@@ -38,7 +38,7 @@ protein_letters_3to1.setdefault("Ter", "*")
 SPECIFICATION = os.path.join(os.path.dirname(__file__), "content.spec.json")
 
 # content in the local specification should match the values in IPR_API_SPEC_JSON_URL
-IPR_API_SPEC_JSON_URL = f'{os.environ.get("IPR_URL", DEFAULT_URL)}/spec.json'
+IPR_API_SPEC_JSON_URL = f'{os.environ.get("IPR_URL")}/spec.json'
 
 # TODO: GERO-307 - use SPECIFICATION json to derive the variant required and optional details defined below
 
@@ -556,6 +556,23 @@ def preprocess_msi(msi: Any) -> Sequence[Dict]:
         # Signature CategoryVariant created either for msi or mss
         if msi_variant:
             return [msi_variant]
+
+    return []
+
+
+def preprocess_hrd(hrd: Any) -> Iterable[Dict]:
+    """
+    Process hrd input into preformatted signature input.
+    HRD gets mapped to corresponding GraphKB Signature CategoryVariants.
+    """
+    if hrd:
+        hrd_cat = hrd.get("kbCategory", "")
+
+        hrd_variant = HRD_MAPPING.get(hrd_cat, None)
+
+        # Signature CategoryVariant created either for msi or mss
+        if hrd_variant:
+            return [hrd_variant]
 
     return []
 
