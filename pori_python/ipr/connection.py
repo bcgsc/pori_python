@@ -107,6 +107,10 @@ class IprConnection:
 
             projects = self.get("project")
             project_names = [item["name"] for item in projects]
+            project_users = {
+                item["name"]: [user["username"] for user in item.get("users", [])]
+                for item in projects
+            }
 
             # if project is not exist, create one
             if content["project"] not in project_names:
@@ -118,6 +122,9 @@ class IprConnection:
                 except Exception as err:
                     raise Exception(f"Project creation failed due to {err}")
 
+            if self.username not in project_users[content["project"]]:
+                raise Exception(f"User have no permission to create report in project {content['project']}")
+            
             if ignore_extra_fields:
                 initial_result = self.post("reports-async?ignore_extra_fields=true", content)
             else:
