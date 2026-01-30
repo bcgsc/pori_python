@@ -123,8 +123,10 @@ class IprConnection:
                     raise Exception(f"Project creation failed due to {err}")
 
             if self.username not in project_users[content["project"]]:
-                raise Exception(f"User have no permission to create report in project {content['project']}")
-            
+                raise Exception(
+                    f"User have no permission to create report in project {content['project']}"
+                )
+
             if ignore_extra_fields:
                 initial_result = self.post("reports-async?ignore_extra_fields=true", content)
             else:
