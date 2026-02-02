@@ -502,7 +502,7 @@ def ipr_report(
 
     if include_ipr_variant_text:
         if not ipr_conn:
-            raise ValueError("ipr_url required to to include ipr variant text")
+            raise ValueError("ipr_url required to include ipr variant text")
         ipr_comments = get_ipr_analyst_comments(
             ipr_conn,
             gkb_matches,
