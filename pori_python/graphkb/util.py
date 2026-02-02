@@ -252,6 +252,7 @@ class GraphKBConnection:
 
         # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
         if pori_demo or "pori-demo" in self.url:
+            logger.warning("login demo")
             self.login_demo()
 
         # use requests package directly to avoid recursion loop on login failure
