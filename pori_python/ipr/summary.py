@@ -305,16 +305,14 @@ def create_section_html(
         description = ". ".join(genes[0]["description"].split(". ")[:2])  # type: ignore
         sourceId = genes[0].get("sourceId", "")
 
-        output.append(
-            f"""
+        output.append(f"""
 <blockquote class="entrez_description" cite="{ENTREZ_GENE_URL}/{sourceId}">
     {description}.
 </blockquote>
 <p>
     {variants_text}
 </p>
-"""
-        )
+""")
 
     sentences_used: Set[str] = set()
 
