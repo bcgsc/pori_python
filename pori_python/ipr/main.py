@@ -419,7 +419,7 @@ def ipr_report(
     )
 
     # GKB CONNECTION
-    graphkb_conn = GraphKBConnection(graphkb_url) if graphkb_url else GraphKBConnection()    
+    graphkb_conn = GraphKBConnection(graphkb_url) if graphkb_url else GraphKBConnection()
     logger.info(f"connecting to graphkb: {graphkb_conn.url}")
 
     graphkb_conn.login(
