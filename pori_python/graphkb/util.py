@@ -125,6 +125,10 @@ class GraphKBConnection:
         if username and password:
             self.login(username=username, password=password)
 
+        # URL check
+        if not self.url:
+            raise ValueError("URL to a GraphKB API instance is required")
+
     @property
     def load(self) -> Optional[float]:
         if self.first_request and self.last_request:
@@ -252,6 +256,7 @@ class GraphKBConnection:
 
         # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
         if pori_demo or "pori-demo" in self.url:
+            logger.warning("login demo")
             self.login_demo()
 
         # use requests package directly to avoid recursion loop on login failure
