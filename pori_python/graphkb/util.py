@@ -125,6 +125,10 @@ class GraphKBConnection:
         if username and password:
             self.login(username=username, password=password)
 
+        # URL check
+        if not self.url:
+            raise ValueError("URL to a GraphKB API instance is required")
+
     @property
     def load(self) -> Optional[float]:
         if self.first_request and self.last_request:
