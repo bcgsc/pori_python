@@ -171,3 +171,37 @@ def get_preferred_gene_name(
 def pandas_falsy(field: Any) -> bool:
     """Check if a field is python falsy or pandas null."""
     return bool(pd.isnull(field) or not field)
+
+
+# the below is copied from
+# https://github.com/biopython/biopython/blob/master/Bio/Data/IUPACData.py
+# to allow us to remove otherwise unnecessary biopython dependency
+
+protein_letters_1to3 = {
+    "A": "Ala",
+    "C": "Cys",
+    "D": "Asp",
+    "E": "Glu",
+    "F": "Phe",
+    "G": "Gly",
+    "H": "His",
+    "I": "Ile",
+    "K": "Lys",
+    "L": "Leu",
+    "M": "Met",
+    "N": "Asn",
+    "P": "Pro",
+    "Q": "Gln",
+    "R": "Arg",
+    "S": "Ser",
+    "T": "Thr",
+    "V": "Val",
+    "W": "Trp",
+    "Y": "Tyr",
+}
+protein_letters_1to3_extended = {
+    **protein_letters_1to3,
+    **{"B": "Asx", "X": "Xaa", "Z": "Glx", "J": "Xle", "U": "Sec", "O": "Pyl"},
+}
+
+protein_letters_3to1 = {value: key for key, value in protein_letters_1to3.items()}
