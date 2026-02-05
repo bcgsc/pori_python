@@ -436,14 +436,14 @@ def ipr_report(
     disease_match_records: [list[str], list[str]] = get_kb_disease_matches(
         graphkb_conn, kb_disease_match
     )
-    disease_matches: list[str] = disease_match_records[0]
+    disease_match_rids: list[str] = disease_match_records[0]
     disease_match_names: list[str] = disease_match_records[1]
 
     # GKB MATCHING (AKA ANNOTATION)
     gkb_matches: List[Hashabledict] = annotate_variants(
         graphkb_conn=graphkb_conn,
         interactive=interactive,
-        disease_matches=disease_matches,
+        disease_matches=disease_match_rids,
         # Variants, per type:
         signature_variants=signature_variants,
         small_mutations=small_mutations,
@@ -496,7 +496,7 @@ def ipr_report(
         graphkb_comments = auto_analyst_comments(
             graphkb_conn,
             gkb_matches,
-            disease_matches=set(disease_matches),
+            disease_matches=set(disease_match_rids),
             variants=all_variants,
         )
         comments_list.append(graphkb_comments)
