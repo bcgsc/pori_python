@@ -385,6 +385,7 @@ def get_ipr_analyst_comments(
     ipr_conn: IprConnection,
     matches: Sequence[KbMatch] | Sequence[Hashabledict],
     disease_name: str,
+    disease_match_names: [str],
     project_name: str,
     report_type: str,
     include_nonspecific_disease: bool = False,
@@ -403,6 +404,7 @@ def get_ipr_analyst_comments(
         ipr_conn: connection to the ipr db
         matches: list of kbmatches which will be included in the report
         disease_name: str, eg 'colorectal cancer'
+        disease_match_names: list[str] of names considered to be equivalent to the disease name
         project_name: str, eg TEST or pog
         report_type: str, eg genomic or rapid
         include_nonspecific_disease: bool - true if variant texts that don't explicitly
@@ -419,6 +421,8 @@ def get_ipr_analyst_comments(
     output = []
     # get the list of variants to check for custom text for
     match_set = list(set([item["kbVariant"] for item in matches]))
+
+    disease_match_set = set([disease_name.lower()] + [item.lower() for item in disease_match_names])
 
     for variant in match_set:
         data = {
@@ -451,7 +455,15 @@ def get_ipr_analyst_comments(
             else:
                 itemlist = []
 
-            disease_matches = [item for item in itemlist if disease_name in item["cancerType"]]
+            disease_matches = [
+                item
+                for item in itemlist
+                if len(
+                    set([ct.lower() for ct in item["cancerType"]]).intersection(disease_match_set)
+                )
+                > 0
+            ]
+
             if disease_matches:
                 itemlist = disease_matches
             elif include_nonspecific_disease:

@@ -210,6 +210,7 @@ class TestVariantTextFromIPR:
             ipr_conn,
             matches=matches,
             disease_name="test1",
+            disease_match_names=[],
             project_name="test2",
             report_type="test3",
             include_nonspecific_project=False,
@@ -228,6 +229,7 @@ class TestVariantTextFromIPR:
             ipr_conn,
             matches=matches,
             disease_name="test1",
+            disease_match_names=[],
             project_name="notfound",
             report_type="test3",
             include_nonspecific_project=False,
@@ -243,6 +245,7 @@ class TestVariantTextFromIPR:
             ipr_conn,
             matches=matches,
             disease_name="test1",
+            disease_match_names=[],
             project_name="test2",
             report_type="notfound",
             include_nonspecific_project=True,
@@ -258,6 +261,7 @@ class TestVariantTextFromIPR:
             ipr_conn,
             matches=matches,
             disease_name="notfound",
+            disease_match_names=[],
             project_name="test2",
             report_type="test3",
             include_nonspecific_project=True,
@@ -273,6 +277,7 @@ class TestVariantTextFromIPR:
             ipr_conn,
             matches=matches,
             disease_name="test1",
+            disease_match_names=[],
             project_name="notfound",
             report_type="test3",
             include_nonspecific_project=True,
@@ -290,6 +295,7 @@ class TestVariantTextFromIPR:
             ipr_conn,
             matches=matches,
             disease_name="test1",
+            disease_match_names=[],
             project_name="test2",
             report_type="notfound",
             include_nonspecific_project=False,
@@ -307,6 +313,7 @@ class TestVariantTextFromIPR:
             ipr_conn,
             matches=matches,
             disease_name="notfound",
+            disease_match_names=[],
             project_name="test2",
             report_type="test3",
             include_nonspecific_project=False,
@@ -318,6 +325,25 @@ class TestVariantTextFromIPR:
         assert summary_lines[2] == "<p><p>no cancerType</p></p>"
         assert len(summary_lines) == 3
 
+    def test_includes_all_graphkb_disease_matches(self):
+        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
+        matches = [{"kbVariant": "ERBB2 amplification"}]
+        ipr_summary = get_ipr_analyst_comments(
+            ipr_conn,
+            matches=matches,
+            disease_name="notfound",
+            disease_match_names=["TEST1"],
+            project_name="test2",
+            report_type="test3",
+            include_nonspecific_project=False,
+            include_nonspecific_disease=False,
+            include_nonspecific_template=False,
+        )
+        summary_lines = ipr_summary.split("\n")
+        assert summary_lines[1] == "<h2>ERBB2 amplification (test1,test)</h2>"
+        assert summary_lines[2] == "<p><p>normal</p></p>"
+        assert len(summary_lines) == 3
+
     def test_prepare_section_for_multiple_variants(self):
         ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         # NB this test relies on matches being processed in this order
@@ -326,6 +352,7 @@ class TestVariantTextFromIPR:
             ipr_conn,
             matches=matches,
             disease_name="test1",
+            disease_match_names=[],
             project_name="test2",
             report_type="test3",
             include_nonspecific_project=False,
@@ -346,6 +373,7 @@ class TestVariantTextFromIPR:
             ipr_conn,
             matches=matches,
             disease_name="test1",
+            disease_match_names=[],
             project_name="test2",
             report_type="test3",
             include_nonspecific_project=False,

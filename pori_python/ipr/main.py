@@ -433,7 +433,11 @@ def ipr_report(
 
     # Matching disease RIDs from GraphKB using term tree
     # (Will raise uncatched error if no match)
-    disease_matches: list[str] = get_kb_disease_matches(graphkb_conn, kb_disease_match)
+    disease_match_records: [list[str], list[str]] = get_kb_disease_matches(
+        graphkb_conn, kb_disease_match
+    )
+    disease_matches: list[str] = disease_match_records[0]
+    disease_match_names: list[str] = disease_match_records[1]
 
     # GKB MATCHING (AKA ANNOTATION)
     gkb_matches: List[Hashabledict] = annotate_variants(
@@ -504,6 +508,7 @@ def ipr_report(
             ipr_conn,
             gkb_matches,
             disease_name=kb_disease_match,
+            disease_match_names=disease_match_names,
             project_name=content["project"],
             report_type=content["template"],
             include_nonspecific_disease=include_nonspecific_disease,
