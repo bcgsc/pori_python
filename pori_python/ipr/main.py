@@ -419,16 +419,13 @@ def ipr_report(
     )
 
     # GKB CONNECTION
-    if graphkb_url:
-        logger.info(f"connecting to graphkb: {graphkb_url}")
-        graphkb_conn = GraphKBConnection(graphkb_url)
-    else:
-        graphkb_conn = GraphKBConnection()
+    graphkb_conn = GraphKBConnection(graphkb_url) if graphkb_url else GraphKBConnection()
+    logger.info(f"connecting to graphkb: {graphkb_conn.url}")
 
-    gkb_user = graphkb_username if graphkb_username else username
-    gkb_pass = graphkb_password if graphkb_password else password
-
-    graphkb_conn.login(gkb_user, gkb_pass)
+    graphkb_conn.login(
+        graphkb_username if graphkb_username else username,
+        graphkb_password if graphkb_password else password,
+    )
 
     # DISEASE
     # Disease term from bioapps; expected OncoTree term
@@ -502,7 +499,7 @@ def ipr_report(
 
     if include_ipr_variant_text:
         if not ipr_conn:
-            raise ValueError("ipr_url required to to include ipr variant text")
+            raise ValueError("ipr_url required to include ipr variant text")
         ipr_comments = get_ipr_analyst_comments(
             ipr_conn,
             gkb_matches,
