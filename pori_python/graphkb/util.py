@@ -127,7 +127,7 @@ class GraphKBConnection:
 
         # URL check
         if not self.url:
-            raise ValueError("URL to a GraphKB API instance is required")
+            raise ValueError('URL to a GraphKB API instance is required')
 
     @property
     def load(self) -> Optional[float]:
@@ -254,8 +254,8 @@ class GraphKBConnection:
         read_timeout = 61
 
         # KBDEV-1328. Alt. GraphKB login for GSC's PORI online demo
-        if pori_demo or "pori-demo" in self.url:
-            logger.warning("login demo")
+        if pori_demo or 'pori-demo' in self.url:
+            logger.warning('login demo')
             self.login_demo()
 
         # use requests package directly to avoid recursion loop on login failure
