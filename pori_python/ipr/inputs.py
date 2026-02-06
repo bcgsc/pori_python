@@ -9,7 +9,6 @@ import jsonschema
 import os
 import pandas as pd
 import re
-from Bio.Data.IUPACData import protein_letters_3to1
 from numpy import nan
 from typing import Any, Callable, Dict, Iterable, List, Set, Tuple, cast
 
@@ -31,7 +30,7 @@ from .constants import (
     TMB_SIGNATURE,
     TMB_SIGNATURE_VARIANT_TYPE,
 )
-from .util import hash_key, logger, pandas_falsy
+from .util import hash_key, logger, pandas_falsy, protein_letters_3to1
 
 protein_letters_3to1.setdefault("Ter", "*")
 
