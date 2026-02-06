@@ -667,7 +667,7 @@ def get_kb_disease_matches(
     kb_disease_match: Optional[str] = None,
     verbose: bool = True,
     useSubgraphsRoute: bool = True,
-) -> tuple[list[str], list[str]]:
+) -> list[Dict]:
 
     disease_matches = []
 
@@ -727,6 +727,4 @@ def get_kb_disease_matches(
             logger.error(msg)
         raise ValueError(msg)
 
-    disease_match_rids = [item['@rid'] for item in disease_matches]
-    disease_match_names = [item['name'] for item in disease_matches]
-    return (disease_match_rids, disease_match_names)
+    return disease_matches
