@@ -217,7 +217,7 @@ def graphkb_conn():
     def query_side_effect(*args, **kwargs):
         if args:
             # for TestGetKbDiseaseMatches
-            return [{"@rid": "#123:45"}]
+            return [{"@rid": "#123:45", "name": "name_for_#123:45"}]
         query_index["value"] += 1
         idx = query_index["value"]
         return query_return_values[idx] if idx < len(query_return_values) else []
@@ -245,7 +245,7 @@ def graphkb_conn():
 
 @pytest.fixture(autouse=True)
 def mock_get_term_tree(monkeypatch):
-    mock_func = Mock(return_value=[{"@rid": d} for d in DISEASE_RIDS])
+    mock_func = Mock(return_value=[{"@rid": d, "name": 'name_of_' + d} for d in DISEASE_RIDS])
     monkeypatch.setattr(gkb_vocab, "get_term_tree", mock_func)
     yield mock_func
     mock_func.reset_mock()

@@ -667,7 +667,7 @@ def get_kb_disease_matches(
     kb_disease_match: Optional[str] = None,
     verbose: bool = True,
     useSubgraphsRoute: bool = True,
-) -> list[str]:
+) -> list[Dict]:
 
     disease_matches = []
 
@@ -703,7 +703,7 @@ def get_kb_disease_matches(
                         "base": base_records,
                     },
                 )
-                disease_matches = list(response["result"]["g"]["nodes"].keys())
+                disease_matches = list(response["result"]["g"]["nodes"].values())
 
         except Exception:
             if verbose:
@@ -715,15 +715,10 @@ def get_kb_disease_matches(
     if not useSubgraphsRoute:
         if verbose:
             logger.info(f"Matching disease ({kb_disease_match}) to graphkb using get_term_tree()")
-        disease_matches = list(
-            {
-                r["@rid"]
-                for r in gkb_vocab.get_term_tree(
-                    graphkb_conn,
-                    kb_disease_match,
-                    ontology_class="Disease",
-                )
-            }
+        disease_matches = gkb_vocab.get_term_tree(
+            graphkb_conn,
+            kb_disease_match,
+            ontology_class="Disease",
         )
 
     if not disease_matches:
