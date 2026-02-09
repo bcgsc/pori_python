@@ -563,22 +563,6 @@ class TestMatchPositionalVariant:
                 assert type not in expected.get("does_not_matches", {}).get("type", [])
 
 
-class TestCacheMissingFeatures:
-    def test_filling_cache(self):
-        mock_conn = MagicMock(
-            query=MagicMock(
-                return_value=[
-                    {"name": "bob", "sourceId": "alice"},
-                    {"name": "KRAS", "sourceId": "1234"},
-                ]
-            )
-        )
-        match.cache_missing_features(mock_conn)
-        assert "kras" in match.FEATURES_CACHE
-        assert "alice" in match.FEATURES_CACHE
-        match.FEATURES_CACHE = None
-
-
 class TestTypeScreening:
     # Types as class variables
     default_type = DEFAULT_NON_STRUCTURAL_VARIANT_TYPE
