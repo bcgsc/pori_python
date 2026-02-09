@@ -111,22 +111,6 @@ def get_equivalent_features(
     )
 
 
-def cache_missing_features(conn: GraphKBConnection) -> None:
-    """
-    Create a cache of features that exist to avoid repeatedly querying
-    for missing features
-    """
-    genes = cast(
-        List[Ontology],
-        conn.query({"target": "Feature", "returnProperties": ["name", "sourceId"], "neighbors": 0}),
-    )
-    for gene in genes:
-        if gene["name"]:
-            FEATURES_CACHE.add(gene["name"].lower())
-        if gene["sourceId"]:
-            FEATURES_CACHE.add(gene["sourceId"].lower())
-
-
 def match_category_variant(
     conn: GraphKBConnection,
     reference_name: str,
