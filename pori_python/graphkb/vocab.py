@@ -7,14 +7,14 @@ from .util import convert_to_rid_list
 
 
 def query_by_name(ontology_class: str, base_term_name: str) -> Dict:
-    return {"target": ontology_class, "filters": {"name": base_term_name}}
+    return {'target': ontology_class, 'filters': {'name': base_term_name}}
 
 
 def get_equivalent_terms(
     conn: GraphKBConnection,
     base_term_name: str,
-    root_exclude_term: str = "",
-    ontology_class: str = "Vocabulary",
+    root_exclude_term: str = '',
+    ontology_class: str = 'Vocabulary',
     ignore_cache: bool = False,
     build_base_query: Callable = query_by_name,
 ) -> List[Ontology]:
@@ -32,10 +32,10 @@ def get_equivalent_terms(
         List[Ontology],
         conn.query(
             {
-                "target": {"target": base_records, "queryType": "descendants"},
-                "queryType": "similarTo",
-                "treeEdges": [],
-                "returnProperties": ["sourceId", "sourceIdVersion", "deprecated", "name", "@rid"],
+                'target': {'target': base_records, 'queryType': 'descendants'},
+                'queryType': 'similarTo',
+                'treeEdges': [],
+                'returnProperties': ['sourceId', 'sourceIdVersion', 'deprecated', 'name', '@rid'],
             },
             ignore_cache=ignore_cache,
         ),
@@ -51,30 +51,30 @@ def get_equivalent_terms(
             convert_to_rid_list(
                 conn.query(
                     {
-                        "target": {"target": root_records, "queryType": "descendants"},
-                        "queryType": "similarTo",
-                        "treeEdges": [],
-                        "returnProperties": [
-                            "sourceId",
-                            "sourceIdVersion",
-                            "deprecated",
-                            "name",
-                            "@rid",
+                        'target': {'target': root_records, 'queryType': 'descendants'},
+                        'queryType': 'similarTo',
+                        'treeEdges': [],
+                        'returnProperties': [
+                            'sourceId',
+                            'sourceIdVersion',
+                            'deprecated',
+                            'name',
+                            '@rid',
                         ],
                     },
                     ignore_cache=ignore_cache,
                 )
             )
         )
-        return [term for term in base_term_parents if term["@rid"] not in exclude]
+        return [term for term in base_term_parents if term['@rid'] not in exclude]
     return base_term_parents
 
 
 def get_term_tree(
     conn: GraphKBConnection,
     base_term_name: str,
-    root_exclude_term: str = "",
-    ontology_class: str = "Vocabulary",
+    root_exclude_term: str = '',
+    ontology_class: str = 'Vocabulary',
     include_superclasses: bool = True,
     ignore_cache: bool = False,
     build_base_query: Callable = query_by_name,
@@ -102,10 +102,10 @@ def get_term_tree(
         List[Ontology],
         conn.query(
             {
-                "target": {"target": base_records, "queryType": "ancestors"},
-                "queryType": "similarTo",
-                "treeEdges": [],
-                "returnProperties": ["sourceId", "sourceIdVersion", "deprecated", "name", "@rid"],
+                'target': {'target': base_records, 'queryType': 'ancestors'},
+                'queryType': 'similarTo',
+                'treeEdges': [],
+                'returnProperties': ['sourceId', 'sourceIdVersion', 'deprecated', 'name', '@rid'],
             },
             ignore_cache=ignore_cache,
         ),
@@ -126,7 +126,7 @@ def get_term_tree(
     terms = {}
     # merge the two lists
     for term in child_terms + parent_terms:
-        terms[term["@rid"]] = term
+        terms[term['@rid']] = term
 
     return list(terms.values())
 
@@ -134,7 +134,7 @@ def get_term_tree(
 def get_term_by_name(
     conn: GraphKBConnection,
     name: str,
-    ontology_class: str = "Vocabulary",
+    ontology_class: str = 'Vocabulary',
     ignore_cache: bool = False,
     **kwargs,
 ) -> Ontology:
@@ -156,15 +156,15 @@ def get_term_by_name(
     """
     result = conn.query(
         {
-            "target": ontology_class,
-            "filters": {"name": name},
-            "returnProperties": [
-                "sourceId",
-                "sourceIdVersion",
-                "deprecated",
-                "name",
-                "@rid",
-                "@class",
+            'target': ontology_class,
+            'filters': {'name': name},
+            'returnProperties': [
+                'sourceId',
+                'sourceIdVersion',
+                'deprecated',
+                'name',
+                '@rid',
+                '@class',
             ],
         },
         ignore_cache=ignore_cache,
@@ -172,7 +172,7 @@ def get_term_by_name(
     )
 
     if len(result) != 1:
-        raise AssertionError(f"unable to find term ({name}) by name")
+        raise AssertionError(f'unable to find term ({name}) by name')
     return cast(Ontology, result[0])
 
 

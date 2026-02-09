@@ -54,19 +54,19 @@ from .util import LOG_LEVELS, logger, trim_empty_values
 CACHE_GENE_MINIMUM = 5000
 RENAMED_GENE_PROPERTIES = {
     # old_name: new_name
-    "cancerRelated": "kbStatementRelated",
-    "cancerGene": "cancerGeneListMatch",
+    'cancerRelated': 'kbStatementRelated',
+    'cancerGene': 'cancerGeneListMatch',
 }
 
 
 def file_path(path: str) -> str:
     if not os.path.exists(path):
-        raise argparse.ArgumentTypeError(f"{repr(path)} is not a valid filename. does not exist")
+        raise argparse.ArgumentTypeError(f'{repr(path)} is not a valid filename. does not exist')
     return path
 
 
 def timestamp() -> str:
-    return datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    return datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
 
 def command_interface() -> None:
@@ -74,92 +74,92 @@ def command_interface() -> None:
     Parsed arguments are used to call the ipr_report() function.
     """
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    req = parser.add_argument_group("required arguments")
-    (req if not os.environ.get("USER") else parser).add_argument(
-        "--username",
-        required=not os.environ.get("USER"),
-        default=os.environ.get("USER"),
-        help="username to use connecting to graphkb/ipr",
+    req = parser.add_argument_group('required arguments')
+    (req if not os.environ.get('USER') else parser).add_argument(
+        '--username',
+        required=not os.environ.get('USER'),
+        default=os.environ.get('USER'),
+        help='username to use connecting to graphkb/ipr',
     )
-    req.add_argument("--password", required=True, help="password to use connecting to graphkb/ipr")
+    req.add_argument('--password', required=True, help='password to use connecting to graphkb/ipr')
     req.add_argument(
-        "-c", "--content", required=True, type=file_path, help="Report Content as JSON"
+        '-c', '--content', required=True, type=file_path, help='Report Content as JSON'
     )
 
-    parser.add_argument("--ipr_url", default=os.environ.get("IPR_URL"))
+    parser.add_argument('--ipr_url', default=os.environ.get('IPR_URL'))
     parser.add_argument(
-        "--graphkb_username",
-        help="username to use connecting to graphkb if different from ipr",
+        '--graphkb_username',
+        help='username to use connecting to graphkb if different from ipr',
     )
     parser.add_argument(
-        "--graphkb_password",
-        help="password to use connecting to graphkb if different from ipr",
+        '--graphkb_password',
+        help='password to use connecting to graphkb if different from ipr',
     )
-    parser.add_argument("--graphkb_url", default=os.environ.get("GRAPHKB_URL", None))
-    parser.add_argument("--log_level", default="info", choices=LOG_LEVELS.keys())
+    parser.add_argument('--graphkb_url', default=os.environ.get('GRAPHKB_URL', None))
+    parser.add_argument('--log_level', default='info', choices=LOG_LEVELS.keys())
     parser.add_argument(
-        "--therapeutics",
+        '--therapeutics',
         default=False,
-        help="Generate therapeutic options",
-        action="store_true",
+        help='Generate therapeutic options',
+        action='store_true',
     )
     parser.add_argument(
-        "--skip_comments",
+        '--skip_comments',
         default=False,
-        action="store_true",
-        help="Turn off generating the analyst comments section of the report",
+        action='store_true',
+        help='Turn off generating the analyst comments section of the report',
     )
     parser.add_argument(
-        "-o",
-        "--output_json_path",
-        default=f"pori_python_report_{timestamp()}.json",
-        help="path to a JSON to output the report upload body",
+        '-o',
+        '--output_json_path',
+        default=f'pori_python_report_{timestamp()}.json',
+        help='path to a JSON to output the report upload body',
     )
     parser.add_argument(
-        "-w",
-        "--always_write_output_json",
-        action="store_true",
-        help="Write to output_json_path on successful IPR uploads instead of just when the upload fails",
+        '-w',
+        '--always_write_output_json',
+        action='store_true',
+        help='Write to output_json_path on successful IPR uploads instead of just when the upload fails',
     )
     parser.add_argument(
-        "--async_upload",
+        '--async_upload',
         default=False,
-        action="store_true",
-        help="True if reports-async ipr endpoint should be used instead of basic reports",
+        action='store_true',
+        help='True if reports-async ipr endpoint should be used instead of basic reports',
     )
     parser.add_argument(
-        "--mins_to_wait",
+        '--mins_to_wait',
         default=5,
-        action="store",
-        help="is using reports-async, number of minutes to wait before throwing error",
+        action='store',
+        help='is using reports-async, number of minutes to wait before throwing error',
     )
     parser.add_argument(
-        "--allow_partial_matches",
+        '--allow_partial_matches',
         default=False,
-        action="store_true",
-        help="True to include matches to multivariant statements where not all variants are present",
+        action='store_true',
+        help='True to include matches to multivariant statements where not all variants are present',
     )
     parser.add_argument(
-        "--upload_json",
+        '--upload_json',
         default=False,
-        action="store_true",
-        help="True to skip all the preprocessing and just submit a json to ipr",
+        action='store_true',
+        help='True to skip all the preprocessing and just submit a json to ipr',
     )
     parser.add_argument(
-        "--validate_json",
+        '--validate_json',
         default=False,
-        action="store_true",
-        help="True if only need to validate the json",
+        action='store_true',
+        help='True if only need to validate the json',
     )
     parser.add_argument(
-        "--ignore_extra_fields",
+        '--ignore_extra_fields',
         default=False,
-        action="store_true",
-        help="True if ignore extra fields in json",
+        action='store_true',
+        help='True if ignore extra fields in json',
     )
     args = parser.parse_args()
 
-    with open(args.content, "r") as fh:
+    with open(args.content, 'r') as fh:
         content = json.load(fh)
 
     ipr_report(
@@ -192,38 +192,38 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
     """
     if (
         ipr_spec
-        and "components" in ipr_spec.keys()
-        and "schemas" in ipr_spec["components"].keys()
-        and "genesCreate" in ipr_spec["components"]["schemas"].keys()
-        and "properties" in ipr_spec["components"]["schemas"]["genesCreate"].keys()
+        and 'components' in ipr_spec.keys()
+        and 'schemas' in ipr_spec['components'].keys()
+        and 'genesCreate' in ipr_spec['components']['schemas'].keys()
+        and 'properties' in ipr_spec['components']['schemas']['genesCreate'].keys()
     ):
-        genes_spec = ipr_spec["components"]["schemas"]["genesCreate"]["properties"].keys()
+        genes_spec = ipr_spec['components']['schemas']['genesCreate']['properties'].keys()
 
         # check what ipr report upload expects and adjust contents to match
         for old_name, new_name in RENAMED_GENE_PROPERTIES.items():
             if old_name in genes_spec:
                 logger.warning(
-                    f"Legacy IPR - Renaming property {new_name} to {old_name} for compatibility to ipr_spec"
+                    f'Legacy IPR - Renaming property {new_name} to {old_name} for compatibility to ipr_spec'
                 )
-                for gene in upload_content["genes"]:
+                for gene in upload_content['genes']:
                     if new_name in gene:
                         gene[old_name] = gene[new_name]
                         gene.pop(new_name)
             else:
                 outdate_properties = 0
-                for gene in upload_content["genes"]:
+                for gene in upload_content['genes']:
                     if old_name in gene:
                         gene[new_name] = gene[old_name]
                         gene.pop(old_name)
                         outdate_properties += 1
                 if outdate_properties:
                     logger.warning(
-                        f"Renamed property {old_name} to {new_name} on {outdate_properties} genes for ipr_spec"
+                        f'Renamed property {old_name} to {new_name} on {outdate_properties} genes for ipr_spec'
                     )
 
         # remove any unhandled incompatible keys
         removed_keys: Dict[str, int] = {}
-        for gene in upload_content["genes"]:
+        for gene in upload_content['genes']:
             unsupported_keys = [key for key in gene.keys() if key not in genes_spec]
             for key in unsupported_keys:
                 if key in removed_keys:
@@ -234,23 +234,23 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         for key, count in removed_keys.items():
             logger.warning(f"IPR unsupported property '{key}' removed from {count} genes.")
 
-    drop_columns = ["variant", "variantType", "histogramImage"]
+    drop_columns = ['variant', 'variantType', 'histogramImage']
     # DEVSU-2034 - use a 'displayName'
     VARIANT_LIST_KEYS = [
-        "expressionVariants",
-        "smallMutations",
-        "copyVariants",
-        "structuralVariants",
-        "probeResults",
-        "signatureVariants",
+        'expressionVariants',
+        'smallMutations',
+        'copyVariants',
+        'structuralVariants',
+        'probeResults',
+        'signatureVariants',
     ]
     for variant_list_section in VARIANT_LIST_KEYS:
         for variant in upload_content.get(variant_list_section, []):
-            if not variant.get("displayName"):
-                variant["displayName"] = (
-                    variant.get("variant") or variant.get("kbCategory") or variant.get("key", "")
+            if not variant.get('displayName'):
+                variant['displayName'] = (
+                    variant.get('variant') or variant.get('kbCategory') or variant.get('key', '')
                 )
-            if variant_list_section == "probeResults":
+            if variant_list_section == 'probeResults':
                 # currently probeResults will error if they do NOT have a 'variant' column.
                 # smallMutations will error if they DO have a 'variant' column.
                 continue
@@ -258,29 +258,29 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
                 if col in variant:
                     del variant[col]
     # tmburMutationBurden is a single value, not list
-    if upload_content.get("tmburMutationBurden"):
-        if not upload_content["tmburMutationBurden"].get("displayName"):
-            upload_content["tmburMutationBurden"]["displayName"] = upload_content[
-                "tmburMutationBurden"
-            ].get("kbCategory", "")
+    if upload_content.get('tmburMutationBurden'):
+        if not upload_content['tmburMutationBurden'].get('displayName'):
+            upload_content['tmburMutationBurden']['displayName'] = upload_content[
+                'tmburMutationBurden'
+            ].get('kbCategory', '')
 
     # TODO: check this is still necessary
-    for row in upload_content["kbMatches"]:
-        if "kbContextId" in row:
-            del row["kbContextId"]
-        if "kbRelevanceId" in row:
-            del row["kbRelevanceId"]
-        if "requiredKbMatches" in row:
-            del row["requiredKbMatches"]
+    for row in upload_content['kbMatches']:
+        if 'kbContextId' in row:
+            del row['kbContextId']
+        if 'kbRelevanceId' in row:
+            del row['kbRelevanceId']
+        if 'requiredKbMatches' in row:
+            del row['requiredKbMatches']
 
-    for row in upload_content["kbMatchedStatements"]:
-        if "kbContextId" in row:
-            del row["kbContextId"]
-        if "kbRelevanceId" in row:
-            del row["kbRelevanceId"]
+    for row in upload_content['kbMatchedStatements']:
+        if 'kbContextId' in row:
+            del row['kbContextId']
+        if 'kbRelevanceId' in row:
+            del row['kbRelevanceId']
 
     # Removing cosmicSignatures. Temporary
-    upload_content.pop("cosmicSignatures", None)
+    upload_content.pop('cosmicSignatures', None)
 
     return upload_content
 
@@ -295,14 +295,14 @@ def ipr_report(
     password: str,
     content: Dict,
     ipr_url: str = '',
-    log_level: str = "info",
-    output_json_path: str = "",
+    log_level: str = 'info',
+    output_json_path: str = '',
     always_write_output_json: bool = False,
     ipr_upload: bool = True,
     interactive: bool = False,
-    graphkb_username: str = "",
-    graphkb_password: str = "",
-    graphkb_url: str = "",
+    graphkb_username: str = '',
+    graphkb_password: str = '',
+    graphkb_url: str = '',
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
     match_germline: bool = False,
@@ -353,27 +353,27 @@ def ipr_report(
     # set the default logging configuration
     logging.basicConfig(
         level=LOG_LEVELS[log_level],
-        format="%(asctime)s %(name)s %(levelname)s %(message)s",
-        datefmt="%m-%d-%y %H:%M:%S",
+        format='%(asctime)s %(name)s %(levelname)s %(message)s',
+        datefmt='%m-%d-%y %H:%M:%S',
     )
 
     # IPR CONNECTION
-    ipr_url = ipr_url if ipr_url else os.environ.get("IPR_URL", "")
+    ipr_url = ipr_url if ipr_url else os.environ.get('IPR_URL', '')
     ipr_conn = None
     if ipr_url:
         ipr_conn = IprConnection(username, password, ipr_url)
     else:
-        logger.warning("No ipr_url given")
+        logger.warning('No ipr_url given')
 
     if validate_json:
         if not ipr_conn:
-            raise ValueError("ipr_url required to validate json")
+            raise ValueError('ipr_url required to validate json')
         ipr_result = ipr_conn.validate_json(content)
         return ipr_result
 
     if upload_json:
         if not ipr_conn:
-            raise ValueError("ipr_url required to upload json")
+            raise ValueError('ipr_url required to upload json')
         ipr_result = ipr_conn.upload_report(
             content, mins_to_wait, async_upload, ignore_extra_fields
         )
@@ -383,32 +383,32 @@ def ipr_report(
     try:
         validate_report_content(content)
     except jsonschema.exceptions.ValidationError as err:
-        logger.error("Failed schema check - report variants may be corrupted or unmatched.")
-        logger.error(f"Failed schema check: {err}")
+        logger.error('Failed schema check - report variants may be corrupted or unmatched.')
+        logger.error(f'Failed schema check: {err}')
 
     # INPUT VARIANTS VALIDATION & PREPROCESSING (OBSERVED BIOMARKERS)
     signature_variants: List[IprSignatureVariant] = preprocess_signature_variants(
         [
-            *preprocess_cosmic(content.get("cosmicSignatures", [])),  # includes dMMR
-            *preprocess_hla(content.get("hlaTypes", [])),
+            *preprocess_cosmic(content.get('cosmicSignatures', [])),  # includes dMMR
+            *preprocess_hla(content.get('hlaTypes', [])),
             *preprocess_tmb(
                 tmb_high,
-                content.get("tmburMutationBurden", {}),  # old tmb pipeline
-                content.get("genomeTmb", ""),  # newer tmb pipeline
+                content.get('tmburMutationBurden', {}),  # old tmb pipeline
+                content.get('genomeTmb', ''),  # newer tmb pipeline
             ),
-            *preprocess_msi(content.get("msi", None)),
-            *preprocess_hrd(content.get("hrd", None)),
+            *preprocess_msi(content.get('msi', None)),
+            *preprocess_hrd(content.get('hrd', None)),
         ]
     )
     small_mutations: List[IprSmallMutationVariant] = preprocess_small_mutations(
-        content.get("smallMutations", [])
+        content.get('smallMutations', [])
     )
     structural_variants: List[IprFusionVariant] = preprocess_structural_variants(
-        content.get("structuralVariants", [])
+        content.get('structuralVariants', [])
     )
-    copy_variants: List[IprCopyVariant] = preprocess_copy_variants(content.get("copyVariants", []))
+    copy_variants: List[IprCopyVariant] = preprocess_copy_variants(content.get('copyVariants', []))
     expression_variants: List[IprExprVariant] = preprocess_expression_variants(
-        content.get("expressionVariants", [])
+        content.get('expressionVariants', [])
     )
     # Additional checks
     if expression_variants:
@@ -420,7 +420,7 @@ def ipr_report(
 
     # GKB CONNECTION
     graphkb_conn = GraphKBConnection(graphkb_url) if graphkb_url else GraphKBConnection()
-    logger.info(f"connecting to graphkb: {graphkb_conn.url}")
+    logger.info(f'connecting to graphkb: {graphkb_conn.url}')
 
     graphkb_conn.login(
         graphkb_username if graphkb_username else username,
@@ -429,7 +429,7 @@ def ipr_report(
 
     # DISEASE
     # Disease term from bioapps; expected OncoTree term
-    kb_disease_match: str = content["kbDiseaseMatch"]
+    kb_disease_match: str = content['kbDiseaseMatch']
 
     # Matching disease RIDs from GraphKB using term tree
     # (Will raise uncatched error if no match)
@@ -468,26 +468,26 @@ def ipr_report(
         ]
         num_removed = org_len - len(gkb_matches)
         if num_removed:
-            logger.info(f"Removing {num_removed} germline events without medical matches.")
+            logger.info(f'Removing {num_removed} germline events without medical matches.')
 
     if custom_kb_match_filter:
-        logger.info(f"custom_kb_match_filter on {len(gkb_matches)} variants")
+        logger.info(f'custom_kb_match_filter on {len(gkb_matches)} variants')
         gkb_matches = [Hashabledict(match) for match in custom_kb_match_filter(gkb_matches)]
-        logger.info(f"\t custom_kb_match_filter left {len(gkb_matches)} variants")
+        logger.info(f'\t custom_kb_match_filter left {len(gkb_matches)} variants')
 
     # GENE INFORMATION
-    logger.info("fetching gene annotations")
+    logger.info('fetching gene annotations')
     gene_information = get_gene_information(graphkb_conn, sorted(genes_with_variants))
 
     # THERAPEUTIC OPTIONS
     if generate_therapeutics:
-        logger.info("generating therapeutic options")
+        logger.info('generating therapeutic options')
         targets = create_therapeutic_options(graphkb_conn, gkb_matches, all_variants)
     else:
         targets = []
 
     # ANALYST COMMENTS
-    logger.info("generating analyst comments")
+    logger.info('generating analyst comments')
 
     comments_list = []
     if generate_comments:
@@ -501,20 +501,20 @@ def ipr_report(
 
     if include_ipr_variant_text:
         if not ipr_conn:
-            raise ValueError("ipr_url required to include ipr variant text")
+            raise ValueError('ipr_url required to include ipr variant text')
         ipr_comments = get_ipr_analyst_comments(
             ipr_conn,
             gkb_matches,
             disease_name=kb_disease_match,
             disease_match_names=disease_match_names,
-            project_name=content["project"],
-            report_type=content["template"],
+            project_name=content['project'],
+            report_type=content['template'],
             include_nonspecific_disease=include_nonspecific_disease,
             include_nonspecific_project=include_nonspecific_project,
             include_nonspecific_template=include_nonspecific_template,
         )
         comments_list.append(ipr_comments)
-    comments = {"comments": "\n".join(comments_list)}
+    comments = {'comments': '\n'.join(comments_list)}
 
     # REFORMATTING KBMATCHES
     # kbMatches -> kbMatches, kbMatchedStatements & kbStatementMatchedConditions
@@ -533,33 +533,33 @@ def ipr_report(
     output.update(kb_matched_sections)
     output.update(
         {
-            "copyVariants": [
-                trim_empty_values(c) for c in copy_variants if c["gene"] in genes_with_variants
+            'copyVariants': [
+                trim_empty_values(c) for c in copy_variants if c['gene'] in genes_with_variants
             ],
-            "smallMutations": [trim_empty_values(s) for s in small_mutations],
-            "expressionVariants": [
+            'smallMutations': [trim_empty_values(s) for s in small_mutations],
+            'expressionVariants': [
                 trim_empty_values(e)
                 for e in expression_variants
-                if e["gene"] in genes_with_variants
+                if e['gene'] in genes_with_variants
             ],
-            "kbDiseaseMatch": kb_disease_match,
-            "kbUrl": graphkb_conn.url,
-            "kbVersion": timestamp(),
-            "structuralVariants": [
+            'kbDiseaseMatch': kb_disease_match,
+            'kbUrl': graphkb_conn.url,
+            'kbVersion': timestamp(),
+            'structuralVariants': [
                 trim_empty_values(s)
                 for s in filter_structural_variants(
                     structural_variants, gkb_matches, gene_information
                 )
             ],
-            "signatureVariants": [trim_empty_values(s) for s in signature_variants],
-            "genes": gene_information,
-            "genomicAlterationsIdentified": key_alterations,
-            "variantCounts": variant_counts,
-            "analystComments": comments,
-            "therapeuticTarget": targets,
+            'signatureVariants': [trim_empty_values(s) for s in signature_variants],
+            'genes': gene_information,
+            'genomicAlterationsIdentified': key_alterations,
+            'variantCounts': variant_counts,
+            'analystComments': comments,
+            'therapeuticTarget': targets,
         }
     )
-    output.setdefault("images", []).extend(select_expression_plots(gkb_matches, all_variants))
+    output.setdefault('images', []).extend(select_expression_plots(gkb_matches, all_variants))
 
     # if input includes hrdScore field, that is ok to pass to db
     # but prefer the 'hrd' field if it exists
@@ -575,11 +575,11 @@ def ipr_report(
 
     if ipr_upload:
         if not ipr_conn:
-            raise ValueError("ipr_url required to upload report")
+            raise ValueError('ipr_url required to upload report')
         ipr_spec = ipr_conn.get_spec()
         output = clean_unsupported_content(output, ipr_spec)
         try:
-            logger.info(f"Uploading to IPR {ipr_conn.url}")
+            logger.info(f'Uploading to IPR {ipr_conn.url}')
             ipr_result = ipr_conn.upload_report(
                 output, mins_to_wait, async_upload, ignore_extra_fields
             )
@@ -587,16 +587,16 @@ def ipr_report(
             output.update(ipr_result)
         except Exception as err:
             upload_error = err
-            logger.error(f"ipr_conn.upload_report failed: {err}", exc_info=True)
+            logger.error(f'ipr_conn.upload_report failed: {err}', exc_info=True)
 
     # SAVE TO JSON FILE
     if always_write_output_json:
-        logger.info(f"Writing IPR upload json to: {output_json_path}")
-        with open(output_json_path, "w") as fh:
+        logger.info(f'Writing IPR upload json to: {output_json_path}')
+        with open(output_json_path, 'w') as fh:
             fh.write(json.dumps(output))
 
-    logger.info(f"made {graphkb_conn.request_count} requests to graphkb")
-    logger.info(f"average load {int(graphkb_conn.load or 0)} req/s")
+    logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
+    logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
     if upload_error:
         raise upload_error
     return output

@@ -28,10 +28,10 @@ from .util import (
     logger,
 )
 
-OTHER_DISEASES = "other disease types"
-ENTREZ_GENE_URL = "https://www.ncbi.nlm.nih.gov/gene"
+OTHER_DISEASES = 'other disease types'
+ENTREZ_GENE_URL = 'https://www.ncbi.nlm.nih.gov/gene'
 # TODO: https://www.bcgsc.ca/jira/browse/DEVSU-1181
-GRAPHKB_GUI = "https://graphkb.bcgsc.ca"
+GRAPHKB_GUI = 'https://graphkb.bcgsc.ca'
 
 
 def filter_by_record_class(
@@ -45,17 +45,17 @@ def filter_by_record_class(
         else:
             return name in record_classes
 
-    return [rec for rec in record_list if check(rec["@class"])]
+    return [rec for rec in record_list if check(rec['@class'])]
 
 
 def natural_join(word_list: List[str]) -> str:
     if len(word_list) > 1:
-        return ", ".join(word_list[:-1]) + ", and " + word_list[-1]
-    return "".join(word_list)
+        return ', '.join(word_list[:-1]) + ', and ' + word_list[-1]
+    return ''.join(word_list)
 
 
 def get_displayname(rec: Record) -> str:
-    ret_val = rec.get("displayName", rec["@rid"])
+    ret_val = rec.get('displayName', rec['@rid'])
     return str(ret_val)
 
 
@@ -66,26 +66,26 @@ def natural_join_records(
     return natural_join(word_list)
 
 
-def create_graphkb_link(record_ids: List[str], record_class: str = "Statement") -> str:
+def create_graphkb_link(record_ids: List[str], record_class: str = 'Statement') -> str:
     """
     Create a link for a set of statements to the GraphKB client
     """
     record_ids = sorted(list(set(record_ids)))
     if len(record_ids) == 1:
         return f'{GRAPHKB_GUI}/view/{record_class}/{record_ids[0].replace("#", "")}'
-    complex_param = base64.b64encode(json.dumps({"target": record_ids}).encode("utf-8"))
-    search_params = {"complex": complex_param, "@class": record_class}
-    return f"{GRAPHKB_GUI}/data/table?{urlencode(search_params)}"
+    complex_param = base64.b64encode(json.dumps({'target': record_ids}).encode('utf-8'))
+    search_params = {'complex': complex_param, '@class': record_class}
+    return f'{GRAPHKB_GUI}/data/table?{urlencode(search_params)}'
 
 
 def merge_diseases(
     diseases: List[Ontology] | List[Record], disease_matches: Set[str] = set()
 ) -> str:
     if len(convert_to_rid_set(diseases) - disease_matches) >= 2 and all(
-        [d["@class"] == "Disease" for d in diseases]
+        [d['@class'] == 'Disease' for d in diseases]
     ):
         words = sorted(
-            list(set([get_displayname(s) for s in diseases if s["@rid"] in disease_matches]))
+            list(set([get_displayname(s) for s in diseases if s['@rid'] in disease_matches]))
         )
         words.append(OTHER_DISEASES)
         return natural_join(words)
@@ -105,54 +105,54 @@ def substitute_sentence_template(
     """Create the filled-in sentence template for a given template and list of substitutions
     which may be the result of the aggregation of 1 or more statements.
     """
-    disease_conditions = filter_by_record_class(conditions, "Disease")
+    disease_conditions = filter_by_record_class(conditions, 'Disease')
     variant_conditions = filter_by_record_class(
-        conditions, "CategoryVariant", "CatalogueVariant", "PositionalVariant"
+        conditions, 'CategoryVariant', 'CatalogueVariant', 'PositionalVariant'
     )
     other_conditions = filter_by_record_class(
         conditions,
-        "CategoryVariant",
-        "CatalogueVariant",
-        "PositionalVariant",
-        "Disease",
+        'CategoryVariant',
+        'CatalogueVariant',
+        'PositionalVariant',
+        'Disease',
         exclude=True,
     )
-    result = template.replace(r"{relevance}", relevance["displayName"])
+    result = template.replace(r'{relevance}', relevance['displayName'])
 
-    if r"{subject}" in template:
+    if r'{subject}' in template:
         # remove subject from the conditions replacements
         subjects_ids = convert_to_rid_set(subjects)
         disease_conditions = [
-            cast(Ontology, d) for d in disease_conditions if d["@rid"] not in subjects_ids
+            cast(Ontology, d) for d in disease_conditions if d['@rid'] not in subjects_ids
         ]
         variant_conditions = [
-            cast(Ontology, d) for d in variant_conditions if d["@rid"] not in subjects_ids
+            cast(Ontology, d) for d in variant_conditions if d['@rid'] not in subjects_ids
         ]
-        other_conditions = [d for d in other_conditions if d["@rid"] not in subjects_ids]
+        other_conditions = [d for d in other_conditions if d['@rid'] not in subjects_ids]
 
-        result = result.replace(r"{subject}", merge_diseases(subjects, disease_matches))
+        result = result.replace(r'{subject}', merge_diseases(subjects, disease_matches))
 
-    if r"{conditions:disease}" in template:
+    if r'{conditions:disease}' in template:
         result = result.replace(
-            r"{conditions:disease}", merge_diseases(disease_conditions, disease_matches)
+            r'{conditions:disease}', merge_diseases(disease_conditions, disease_matches)
         )
     else:
         other_conditions.extend(disease_conditions)
 
-    if r"{conditions:variant}" in template:
-        result = result.replace(r"{conditions:variant}", natural_join_records(variant_conditions))
+    if r'{conditions:variant}' in template:
+        result = result.replace(r'{conditions:variant}', natural_join_records(variant_conditions))
     else:
         other_conditions.extend(variant_conditions)
 
-    result = result.replace(r"{conditions}", natural_join_records(other_conditions))
+    result = result.replace(r'{conditions}', natural_join_records(other_conditions))
 
-    link_url = create_graphkb_link(statement_rids) if statement_rids else ""
+    link_url = create_graphkb_link(statement_rids) if statement_rids else ''
 
-    if r"{evidence}" in template:
-        evidence_str = ", ".join(sorted(list({e["displayName"] for e in evidence})))
+    if r'{evidence}' in template:
+        evidence_str = ', '.join(sorted(list({e['displayName'] for e in evidence})))
         if link_url:
             evidence_str = f'<a href="{link_url}" target="_blank" rel="noopener">{evidence_str}</a>'
-        result = result.replace(r"{evidence}", evidence_str)
+        result = result.replace(r'{evidence}', evidence_str)
 
     return result
 
@@ -170,18 +170,18 @@ def aggregate_statements(
 
     def generate_key(statement: Statement) -> Tuple:
         result = [
-            cond.get("displayName", cond["@rid"])
-            for cond in filter_by_record_class(statement["conditions"], "Disease", exclude=True)
-            if cond["@rid"] != statement["subject"]["@rid"]
+            cond.get('displayName', cond['@rid'])
+            for cond in filter_by_record_class(statement['conditions'], 'Disease', exclude=True)
+            if cond['@rid'] != statement['subject']['@rid']
         ]
-        if statement.get("subject", {}).get("@class", "Disease") != "Disease":
-            subject = statement["subject"]
-            if subject["@class"] == "Therapy":
-                alt = get_preferred_drug_representation(graphkb_conn, subject["@rid"])
-                statement["subject"] = alt
-            result.append(statement["subject"]["displayName"])
-        result.append(statement["relevance"]["displayName"])
-        result.append(statement["displayNameTemplate"])
+        if statement.get('subject', {}).get('@class', 'Disease') != 'Disease':
+            subject = statement['subject']
+            if subject['@class'] == 'Therapy':
+                alt = get_preferred_drug_representation(graphkb_conn, subject['@rid'])
+                statement['subject'] = alt
+            result.append(statement['subject']['displayName'])
+        result.append(statement['relevance']['displayName'])
+        result.append(statement['displayNameTemplate'])
         return tuple(sorted(set(result)))
 
     for statement in statements:
@@ -193,12 +193,12 @@ def aggregate_statements(
         conditions = []
         subjects = []
         evidence = []
-        relevance = group[0]["relevance"]
-        template = group[0]["displayNameTemplate"]
+        relevance = group[0]['relevance']
+        template = group[0]['displayNameTemplate']
         for statement in group:
-            conditions.extend(statement["conditions"])
-            evidence.extend(statement["evidence"])
-            subjects.append(statement["subject"])
+            conditions.extend(statement['conditions'])
+            evidence.extend(statement['evidence'])
+            subjects.append(statement['subject'])
 
         sentence = substitute_sentence_template(
             template,
@@ -211,35 +211,35 @@ def aggregate_statements(
         )
 
         for statement in group:
-            result[statement["@rid"]] = sentence
+            result[statement['@rid']] = sentence
     return result
 
 
 def display_variant(variant: IprVariant) -> str:
     """Short, human readable variant description string."""
-    gene = variant.get("gene", "")
-    if not gene and "gene1" in variant and "gene2" in variant:
+    gene = variant.get('gene', '')
+    if not gene and 'gene1' in variant and 'gene2' in variant:
         gene = f'({variant.get("gene1", "")},{variant.get("gene2", "")})'
 
-    if variant.get("kbCategory"):
+    if variant.get('kbCategory'):
         return f'{variant.get("kbCategory")} of {gene}'
 
     # Special display of IprFusionVariant with exons
-    if variant.get("exon1") or variant.get("exon2"):
+    if variant.get('exon1') or variant.get('exon2'):
         return create_graphkb_sv_notation(variant)  # type: ignore
 
     # Use chosen legacy 'proteinChange' or an hgvs description of lowest detail.
     hgvs = variant.get(
-        "proteinChange",
-        variant.get("hgvsProtein", variant.get("hgvsCds", variant.get("hgvsGenomic", ""))),
+        'proteinChange',
+        variant.get('hgvsProtein', variant.get('hgvsCds', variant.get('hgvsGenomic', ''))),
     )
 
     if gene and hgvs:
-        return f"{gene}:{hgvs}"
-    elif variant.get("variant"):
-        return str(variant.get("variant"))
+        return f'{gene}:{hgvs}'
+    elif variant.get('variant'):
+        return str(variant.get('variant'))
 
-    raise ValueError(f"Unable to form display_variant of {variant}")
+    raise ValueError(f'Unable to form display_variant of {variant}')
 
 
 def display_variants(gene_name: str, variants: List[IprVariant]) -> str:
@@ -247,11 +247,11 @@ def display_variants(gene_name: str, variants: List[IprVariant]) -> str:
     variants_text = natural_join(result)
     if len(result) > 1:
         return (
-            f"Multiple variants of the gene {gene_name} were observed in this case: {variants_text}"
+            f'Multiple variants of the gene {gene_name} were observed in this case: {variants_text}'
         )
     elif result:
-        return f"{variants_text[0].upper()}{variants_text[1:]} was observed in this case."
-    return ""
+        return f'{variants_text[0].upper()}{variants_text[1:]} was observed in this case.'
+    return ''
 
 
 def create_section_html(
@@ -264,33 +264,33 @@ def create_section_html(
     """
     Generate HTML for a gene section of the comments
     """
-    output = [f"<h2>{gene_name}</h2>"]
+    output = [f'<h2>{gene_name}</h2>']
 
     sentence_categories: Dict[str, str] = {}
 
     for statement_id, sentence in sentences_by_statement_id.items():
-        relevance = statements[statement_id]["relevance"]["@rid"]
+        relevance = statements[statement_id]['relevance']['@rid']
         category = categorize_relevance(
             graphkb_conn,
             relevance,
-            RELEVANCE_BASE_TERMS + [("resistance", ["no sensitivity"])],
+            RELEVANCE_BASE_TERMS + [('resistance', ['no sensitivity'])],
         )
         sentence_categories[sentence] = category
 
     # get the entrez gene descriptive hugo name
     genes = graphkb_conn.query(
         {
-            "target": "Feature",
-            "filters": {
-                "AND": [
+            'target': 'Feature',
+            'filters': {
+                'AND': [
                     {
-                        "source": {
-                            "target": "Source",
-                            "filters": {"name": "entrez gene"},
+                        'source': {
+                            'target': 'Source',
+                            'filters': {'name': 'entrez gene'},
                         }
                     },
-                    {"name": gene_name},
-                    {"biotype": "gene"},
+                    {'name': gene_name},
+                    {'biotype': 'gene'},
                 ]
             },
         }
@@ -300,10 +300,10 @@ def create_section_html(
     variants_text = display_variants(gene_name, exp_variants)
     if not variants_text:
         # exclude sections where they are not linked to an experimental variant. this can occur when there are co-occurent statements collected
-        return ""
-    if genes and genes[0].get("description", ""):
-        description = ". ".join(genes[0]["description"].split(". ")[:2])  # type: ignore
-        sourceId = genes[0].get("sourceId", "")
+        return ''
+    if genes and genes[0].get('description', ''):
+        description = '. '.join(genes[0]['description'].split('. ')[:2])  # type: ignore
+        sourceId = genes[0].get('sourceId', '')
 
         output.append(
             f"""
@@ -319,27 +319,27 @@ def create_section_html(
     sentences_used: Set[str] = set()
 
     for section in [
-        {s for (s, v) in sentence_categories.items() if v == "diagnostic"},
-        {s for (s, v) in sentence_categories.items() if v == "biological"},
-        {s for (s, v) in sentence_categories.items() if v in ["therapeutic", "prognostic"]},
+        {s for (s, v) in sentence_categories.items() if v == 'diagnostic'},
+        {s for (s, v) in sentence_categories.items() if v == 'biological'},
+        {s for (s, v) in sentence_categories.items() if v in ['therapeutic', 'prognostic']},
         {
             s
             for (s, v) in sentence_categories.items()
             if v
             not in [
-                "diagnostic",
-                "biological",
-                "therapeutic",
-                "prognostic",
-                "resistance",
+                'diagnostic',
+                'biological',
+                'therapeutic',
+                'prognostic',
+                'resistance',
             ]
         },
-        {s for (s, v) in sentence_categories.items() if v == "resistance"},
+        {s for (s, v) in sentence_categories.items() if v == 'resistance'},
     ]:
-        content = ". ".join(sorted(list(section - sentences_used)))
+        content = '. '.join(sorted(list(section - sentences_used)))
         sentences_used.update(section)
-        output.append(f"<p>{content}</p>")
-    return "\n".join(output)
+        output.append(f'<p>{content}</p>')
+    return '\n'.join(output)
 
 
 def section_statements_by_genes(
@@ -349,16 +349,16 @@ def section_statements_by_genes(
     genes: Dict[str, Set[str]] = {}
 
     for statement in statements:
-        for condition in statement["conditions"]:
-            if condition.get("biotype", "") == "gene":
-                gene = get_preferred_gene_name(graphkb_conn, condition["@rid"])
-                genes.setdefault(gene, set()).add(statement["@rid"])
+        for condition in statement['conditions']:
+            if condition.get('biotype', '') == 'gene':
+                gene = get_preferred_gene_name(graphkb_conn, condition['@rid'])
+                genes.setdefault(gene, set()).add(statement['@rid'])
             else:
-                for cond_ref_key in ("reference1", "reference2"):
+                for cond_ref_key in ('reference1', 'reference2'):
                     cond_ref_gene = condition.get(cond_ref_key)
                     if cond_ref_gene:
                         gene = get_preferred_gene_name(graphkb_conn, str(cond_ref_gene))
-                        genes.setdefault(gene, set()).add(statement["@rid"])
+                        genes.setdefault(gene, set()).add(statement['@rid'])
 
     return genes
 
@@ -372,12 +372,12 @@ def prep_single_ipr_variant_comment(variant_text):
     Returns:
         section: html-formatted string
     """
-    cancer_type = ",".join(variant_text["cancerType"])
+    cancer_type = ','.join(variant_text['cancerType'])
     if not cancer_type:
-        cancer_type = "no specific cancer types"
-    cancer_type = f" ({cancer_type})"
-    section = [f"<h2>{variant_text['variantName']}{cancer_type}</h2>"]
-    section.append(f"<p>{variant_text['text']}</p>")
+        cancer_type = 'no specific cancer types'
+    cancer_type = f' ({cancer_type})'
+    section = [f'<h2>{variant_text["variantName"]}{cancer_type}</h2>']
+    section.append(f'<p>{variant_text["text"]}</p>')
     return section
 
 
@@ -416,42 +416,42 @@ def get_ipr_analyst_comments(
     Returns:
         html-formatted string
     """
-    output_header = "<h3>The comments below were automatically drawn from curated text stored in IPR for variant matches in this report, and have not been manually reviewed</h3>"
-    no_comments_found_output = "No comments found in IPR for variants in this report"
+    output_header = '<h3>The comments below were automatically drawn from curated text stored in IPR for variant matches in this report, and have not been manually reviewed</h3>'
+    no_comments_found_output = 'No comments found in IPR for variants in this report'
     output = []
     # get the list of variants to check for custom text for
-    match_set = list(set([item["kbVariant"] for item in matches]))
+    match_set = list(set([item['kbVariant'] for item in matches]))
 
     disease_match_set = set([disease_name.lower()] + [item.lower() for item in disease_match_names])
 
     for variant in match_set:
         data = {
-            "variantName": variant,
+            'variantName': variant,
         }
         itemlist: list[dict] = []
-        itemlist = ipr_conn.get("variant-text", data=data)  # type: ignore
+        itemlist = ipr_conn.get('variant-text', data=data)  # type: ignore
         if itemlist:
             project_matches = [
                 item
                 for item in itemlist
-                if "project" in item.keys() and item["project"]["name"] == project_name
+                if 'project' in item.keys() and item['project']['name'] == project_name
             ]
             if project_matches:
                 itemlist = project_matches
             elif include_nonspecific_project:
-                itemlist = [item for item in itemlist if "project" not in item.keys()]
+                itemlist = [item for item in itemlist if 'project' not in item.keys()]
             else:
                 itemlist = []
 
             template_matches = [
                 item
                 for item in itemlist
-                if "template" in item.keys() and item["template"]["name"] == report_type
+                if 'template' in item.keys() and item['template']['name'] == report_type
             ]
             if template_matches:
                 itemlist = template_matches
             elif include_nonspecific_template:
-                itemlist = [item for item in itemlist if "template" not in item.keys()]
+                itemlist = [item for item in itemlist if 'template' not in item.keys()]
             else:
                 itemlist = []
 
@@ -459,7 +459,7 @@ def get_ipr_analyst_comments(
                 item
                 for item in itemlist
                 if len(
-                    set([ct.lower() for ct in item["cancerType"]]).intersection(disease_match_set)
+                    set([ct.lower() for ct in item['cancerType']]).intersection(disease_match_set)
                 )
                 > 0
             ]
@@ -467,7 +467,7 @@ def get_ipr_analyst_comments(
             if disease_matches:
                 itemlist = disease_matches
             elif include_nonspecific_disease:
-                itemlist = [item for item in itemlist if not item["cancerType"]]
+                itemlist = [item for item in itemlist if not item['cancerType']]
             else:
                 itemlist = []
 
@@ -478,7 +478,7 @@ def get_ipr_analyst_comments(
     if not output:
         return no_comments_found_output
     output.insert(0, output_header)
-    return "\n".join(output)
+    return '\n'.join(output)
 
 
 def auto_analyst_comments(
@@ -490,12 +490,12 @@ def auto_analyst_comments(
     """Given a list of GraphKB matches, generate a text summary to add to the report."""
     templates: Dict[str, List[Statement]] = {}
     statements: Dict[str, Statement] = {}
-    variants_by_keys = {v["key"]: v for v in variants}
+    variants_by_keys = {v['key']: v for v in variants}
     variant_keys_by_statement_ids: Dict[str, Set[str]] = {}
 
     for match in matches:
-        rid = match["kbStatementId"]
-        exp_variant = match["variant"]
+        rid = match['kbStatementId']
+        exp_variant = match['variant']
         variant_keys_by_statement_ids.setdefault(rid, set()).add(exp_variant)
 
     exp_variants_by_statements: Dict[str, List[IprVariant]] = {}
@@ -503,16 +503,16 @@ def auto_analyst_comments(
         try:
             exp_variants_by_statements[rid] = [variants_by_keys[key] for key in keys]
         except KeyError as err:
-            logger.warning(f"No specific variant matched for {rid}:{keys} - {err}")
+            logger.warning(f'No specific variant matched for {rid}:{keys} - {err}')
             exp_variants_by_statements[rid] = []
 
     # get details for statements
     for match in matches:
-        rid = match["kbStatementId"].replace("#", "")
-        result = graphkb_conn.request(f"/statements/{rid}?neighbors=1")["result"]
+        rid = match['kbStatementId'].replace('#', '')
+        result = graphkb_conn.request(f'/statements/{rid}?neighbors=1')['result']
 
-        templates.setdefault(result["displayNameTemplate"], []).append(result)
-        statements[result["@rid"]] = result
+        templates.setdefault(result['displayNameTemplate'], []).append(result)
+        statements[result['@rid']] = result
 
     # aggregate similar sentences
     sentences = {}
@@ -523,7 +523,7 @@ def auto_analyst_comments(
     statements_by_genes = section_statements_by_genes(graphkb_conn, list(statements.values()))
 
     output: List[str] = [
-        "<h3>The comments below were automatically generated from matches to GraphKB and have not been manually reviewed</h3>"
+        '<h3>The comments below were automatically generated from matches to GraphKB and have not been manually reviewed</h3>'
     ]
 
     for section, statement_rids in sorted(
@@ -532,7 +532,7 @@ def auto_analyst_comments(
         exp_variants = {}
         for variant_list in [exp_variants_by_statements[r] for r in statement_rids]:
             for variant in variant_list:
-                exp_variants[variant["key"]] = variant
+                exp_variants[variant['key']] = variant
 
         output.append(
             create_section_html(
@@ -544,4 +544,4 @@ def auto_analyst_comments(
             )
         )
 
-    return "\n".join(output)
+    return '\n'.join(output)
