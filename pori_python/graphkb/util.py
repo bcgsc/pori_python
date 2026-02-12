@@ -106,7 +106,7 @@ class GraphKBConnection:
 
         Args:
         - use_global_cache: cache requests across all requests to GKB
-        - cache_db: Path or connection URL to the database which stors the requests cache. see https://requests-cache.readthedocs.io/en/v0.6.4/user_guide.html#cache-name
+        - cache_name: Path or connection URL to the database which stors the requests cache. see https://requests-cache.readthedocs.io/en/v0.6.4/user_guide.html#cache-name
         """
         if use_global_cache:
             if not cache_name:
