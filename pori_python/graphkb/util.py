@@ -17,8 +17,6 @@ from pori_python.types import ParsedVariant, PositionalVariant, Record
 
 from .constants import DEFAULT_LIMIT, TYPES_TO_NOTATION, AA_3to1_MAPPING
 
-QUERY_CACHE: Dict[Any, Any] = {}
-
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
 
