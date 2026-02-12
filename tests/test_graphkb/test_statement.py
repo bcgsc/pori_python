@@ -26,6 +26,7 @@ def graphkb_conn():
         - get_term_tree(term)
             - query(query(term))
     """
+
     def make_rid_list(*values):
         return [{'@rid': v} for v in values]
 
@@ -97,6 +98,7 @@ class TestCategorizeRelevance:
             graphkb_conn, '1', [('blargh', ['some', 'blargh'])]
         )
         assert category == 'blargh'
+
 
 @pytest.mark.skipif(
     EXCLUDE_BCGSC_TESTS, reason='db-specific rid; requires Inferred Functional Annotation source'
