@@ -99,6 +99,7 @@ class GraphKBConnection:
         password: str = '',
         use_global_cache: bool = True,
         cache_name: str = '',
+        **session_kwargs
     ):
         """
         Docstring for __init__
@@ -114,6 +115,7 @@ class GraphKBConnection:
                     cache_control=True,
                     allowable_methods=['GET', 'POST'],
                     ignored_parameters=['Authorization'],
+                    **session_kwargs
                 )
             else:
                 self.http = CustomSession(
@@ -121,9 +123,10 @@ class GraphKBConnection:
                     cache_control=True,
                     allowable_methods=['GET', 'POST'],
                     ignored_parameters=['Authorization'],
+                    **session_kwargs
                 )
         else:
-            self.http = requests.Session()
+            self.http = requests.Session(**session_kwargs)
         retries = Retry(
             total=100,
             connect=5,
