@@ -8,6 +8,7 @@ import os
 import re
 import time
 from datetime import datetime
+from requests_cache import CacheMixin
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 from urllib3.util.retry import Retry
 from urllib.parse import urlsplit
@@ -15,8 +16,6 @@ from urllib.parse import urlsplit
 from pori_python.types import ParsedVariant, PositionalVariant, Record
 
 from .constants import DEFAULT_LIMIT, TYPES_TO_NOTATION, AA_3to1_MAPPING
-
-QUERY_CACHE: Dict[Any, Any] = {}
 
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
@@ -88,11 +87,8 @@ def millis_interval(start: datetime, end: datetime) -> int:
     return millis
 
 
-def cache_key(request_body) -> str:
-    """Create a cache key for a query request to GraphKB."""
-    body = json.dumps(request_body, sort_keys=True)
-    hash_code = hashlib.md5(f'/query{body}'.encode('utf-8')).hexdigest()
-    return hash_code
+class CustomSession(CacheMixin, requests.Session):
+    pass
 
 
 class GraphKBConnection:
@@ -102,8 +98,35 @@ class GraphKBConnection:
         username: str = '',
         password: str = '',
         use_global_cache: bool = True,
+        cache_name: str = '',
+        **session_kwargs,
     ):
-        self.http = requests.Session()
+        """
+        Docstring for __init__
+
+        Args:
+        - use_global_cache: cache requests across all requests to GKB
+        - cache_name: Path or connection URL to the database which stors the requests cache. see https://requests-cache.readthedocs.io/en/v0.6.4/user_guide.html#cache-name
+        """
+        if use_global_cache:
+            if not cache_name:
+                self.http = CustomSession(
+                    backend='memory',
+                    cache_control=True,
+                    allowable_methods=['GET', 'POST'],
+                    ignored_parameters=['Authorization'],
+                    **session_kwargs,
+                )
+            else:
+                self.http = CustomSession(
+                    cache_name,
+                    cache_control=True,
+                    allowable_methods=['GET', 'POST'],
+                    ignored_parameters=['Authorization'],
+                    **session_kwargs,
+                )
+        else:
+            self.http = requests.Session(**session_kwargs)
         retries = Retry(
             total=100,
             connect=5,
@@ -117,8 +140,10 @@ class GraphKBConnection:
         self.url = url
         self.username = username
         self.password = password
-        self.headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-        self.cache: Dict[Any, Any] = {} if not use_global_cache else QUERY_CACHE
+        self.headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
         self.request_count = 0
         self.first_request: Optional[datetime] = None
         self.last_request: Optional[datetime] = None
@@ -137,7 +162,13 @@ class GraphKBConnection:
                 return self.request_count * 1000 / msec
         return None
 
-    def request(self, endpoint: str, method: str = 'GET', **kwargs) -> Dict:
+    def request(
+        self,
+        endpoint: str,
+        method: str = 'GET',
+        headers: Optional[dict[str, str]] = None,
+        **kwargs,
+    ) -> Dict:
         """Request wrapper to handle adding common headers and logging.
 
         Args:
@@ -157,6 +188,11 @@ class GraphKBConnection:
         timeout = None
         if endpoint in ['query', 'parse']:
             timeout = (connect_timeout, read_timeout)
+
+        request_headers = {}
+        request_headers.update(self.headers)
+        if headers is not None:
+            request_headers.update(headers)
 
         start_time = datetime.now()
 
@@ -179,8 +215,8 @@ class GraphKBConnection:
                     need_refresh_login = False
 
                 self.request_count += 1
-                resp = requests.request(
-                    method, url, headers=self.headers, timeout=timeout, **kwargs
+                resp = self.http.request(
+                    method, url, headers=request_headers, timeout=timeout, **kwargs
                 )
                 if resp.status_code == 401 or resp.status_code == 403:
                     logger.debug(f'/{endpoint} - {resp.status_code} - retrying')
@@ -293,11 +329,6 @@ class GraphKBConnection:
     def refresh_login(self) -> None:
         self.login(self.username, self.password)
 
-    def set_cache_data(self, request_body: Dict, result: List[Record]) -> None:
-        """Explicitly add a query to the cache."""
-        hash_code = cache_key(request_body)
-        self.cache[hash_code] = result
-
     def query(
         self,
         request_body: Dict = {},
@@ -309,23 +340,22 @@ class GraphKBConnection:
         """
         Query GraphKB
         """
+        headers = {}
+        if ignore_cache or force_refresh:
+            headers = {'Cache-Control': 'no-cache'}
+
         result: List[Record] = []
-        hash_code = ''
-
-        if not ignore_cache and paginate:
-            hash_code = cache_key(request_body)
-            if hash_code in self.cache and not force_refresh:
-                return self.cache[hash_code]
-
         while True:
-            content = self.post('query', data={**request_body, 'limit': limit, 'skip': len(result)})
+            content = self.post(
+                'query',
+                data={**request_body, 'limit': limit, 'skip': len(result)},
+                headers=headers,
+            )
             records = content['result']
             result.extend(records)
             if len(records) < limit or not paginate:
                 break
 
-        if not ignore_cache and paginate:
-            self.cache[hash_code] = result
         return result
 
     def parse(self, hgvs_string: str, requireFeatures: bool = False) -> ParsedVariant:

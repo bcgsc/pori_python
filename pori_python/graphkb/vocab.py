@@ -181,9 +181,6 @@ def get_terms_set(
 ) -> Set[str]:
     """Get a set of vocabulary rids given some base/parent term names."""
     base_terms = [base_terms] if isinstance(base_terms, str) else base_terms
-    cache_key = tuple(sorted(base_terms))
-    if graphkb_conn.cache.get(cache_key, None) and not ignore_cache:
-        return graphkb_conn.cache[cache_key]
     terms = set()
     for base_term in base_terms:
         terms.update(
@@ -193,6 +190,4 @@ def get_terms_set(
                 )
             )
         )
-    if not ignore_cache:
-        graphkb_conn.cache[cache_key] = terms
     return terms
