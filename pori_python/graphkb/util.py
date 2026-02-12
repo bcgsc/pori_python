@@ -100,7 +100,7 @@ class GraphKBConnection:
         username: str = '',
         password: str = '',
         use_global_cache: bool = True,
-        cache_name: str = "",
+        cache_name: str = '',
     ):
         """
         Docstring for __init__
@@ -112,17 +112,17 @@ class GraphKBConnection:
         if use_global_cache:
             if not cache_name:
                 self.http = CustomSession(
-                    backend="memory",
+                    backend='memory',
                     cache_control=True,
-                    allowable_methods=["GET", "POST"],
-                    ignored_parameters=["Authorization"],
+                    allowable_methods=['GET', 'POST'],
+                    ignored_parameters=['Authorization'],
                 )
             else:
                 self.http = CustomSession(
                     cache_name,
                     cache_control=True,
-                    allowable_methods=["GET", "POST"],
-                    ignored_parameters=["Authorization"],
+                    allowable_methods=['GET', 'POST'],
+                    ignored_parameters=['Authorization'],
                 )
         else:
             self.http = requests.Session()
@@ -139,15 +139,10 @@ class GraphKBConnection:
         self.url = url
         self.username = username
         self.password = password
-<<<<<<< HEAD
         self.headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
         }
-=======
-        self.headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-        self.cache: Dict[Any, Any] = {} if not use_global_cache else QUERY_CACHE
->>>>>>> develop
         self.request_count = 0
         self.first_request: Optional[datetime] = None
         self.last_request: Optional[datetime] = None
@@ -166,17 +161,13 @@ class GraphKBConnection:
                 return self.request_count * 1000 / msec
         return None
 
-<<<<<<< HEAD
     def request(
         self,
         endpoint: str,
-        method: str = "GET",
+        method: str = 'GET',
         headers: Optional[dict[str, str]] = None,
         **kwargs,
     ) -> Dict:
-=======
-    def request(self, endpoint: str, method: str = 'GET', **kwargs) -> Dict:
->>>>>>> develop
         """Request wrapper to handle adding common headers and logging.
 
         Args:
@@ -348,33 +339,18 @@ class GraphKBConnection:
         """
         Query GraphKB
         """
-<<<<<<< HEAD
         headers = {}
         if ignore_cache or force_refresh:
-            headers = {"Cache-Control": "no-cache"}
-=======
-        result: List[Record] = []
-        hash_code = ''
-
-        if not ignore_cache and paginate:
-            hash_code = cache_key(request_body)
-            if hash_code in self.cache and not force_refresh:
-                return self.cache[hash_code]
->>>>>>> develop
+            headers = {'Cache-Control': 'no-cache'}
 
         result: List[Record] = []
         while True:
-<<<<<<< HEAD
             content = self.post(
-                "query",
-                data={**request_body, "limit": limit, "skip": len(result)},
+                'query',
+                data={**request_body, 'limit': limit, 'skip': len(result)},
                 headers=headers,
             )
-            records = content["result"]
-=======
-            content = self.post('query', data={**request_body, 'limit': limit, 'skip': len(result)})
             records = content['result']
->>>>>>> develop
             result.extend(records)
             if len(records) < limit or not paginate:
                 break
