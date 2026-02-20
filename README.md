@@ -46,11 +46,9 @@ pip install -e .[dev]
 
 Run the tests:
 
-Export usernames, passwords, and set test options.
+Export usernames, passwords, and test options.
 
-Note that IPR tests will try to use the BCGSC production GraphKB API by default.
-If you want to test interaction with a different instance, you will need to
-set the GraphKB variables.
+IPR_URL and GRAPHKB_URL values must also be set.
 
 Set EXCLUDE vars to 1 if you don't want to run these tests.
 ONCOKB and BCGSC tests are enabled by default.
@@ -67,11 +65,12 @@ export EXCLUDE_ONCOKB_TESTS=1
 ```
 
 If you want to run tests that upload reports to a live IPR instance,
-specify the url of the IPR API you want to use and set the test var to 1.
+specify the url of the IPR API you want to use and set the test var
+INCLUDE_UPLOAD_TESTS to 1.
 These tests are disabled by default.
 
 The created reports are deleted by default. If you want to keep them,
-set DELETE_UPLOAD_TEST_REPORTS to 0 in the env.
+set DELETE_UPLOAD_TEST_REPORTS to 0.
 
 ```bash
 export IPR_TEST_URL='http://localhost:8081/api'
@@ -84,14 +83,16 @@ pytest tests
 ```
 
 ### JSON Validate and Upload to IPR
+An IPR_URL must be provided either as an environment variable or an arg.
+
 If you only want to validate the json content, use
 ```bash
-ipr --password $IPR_PASS -c 'path/to/content.json' --validate_json
+ipr --password $IPR_PASS -c 'path/to/content.json' --validate_json --ipr_url $IPR_URL
 ```
 
 If you only want to upload the json directly to ipr and skip all the preprocessing, use
 ```bash
-ipr --password $IPR_PASS -c 'path/to/content.json' --upload_json
+ipr --password $IPR_PASS -c 'path/to/content.json' --upload_json --ipr_url $IPR_URL
 ```
 
 ## Documentation
