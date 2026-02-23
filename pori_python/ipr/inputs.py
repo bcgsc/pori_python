@@ -59,6 +59,7 @@ COPY_OPTIONAL = [
     'comments',
     'library',
     'germline',
+    'flags'
 ]
 
 SMALL_MUT_REQ = ['gene', 'proteinChange']
@@ -97,6 +98,7 @@ SMALL_MUT_OPTIONAL = [
     'tumourRefCount',
     'tumourRefCopies',
     'zygosity',
+    'flags'
 ]
 
 EXP_REQ = ['gene', 'kbCategory']
@@ -129,6 +131,7 @@ EXP_OPTIONAL = [
     'rnaReads',
     'rpkm',
     'tpm',
+    'flags'
 ]
 
 SV_REQ = [
@@ -161,12 +164,13 @@ SV_OPTIONAL = [
     'tumourDepth',
     'germline',
     'mavis_product_id',
+    'flags'
 ]
 
 SIGV_REQ = ['signatureName', 'variantTypeName']
 SIGV_COSMIC = ['signature']  # 1st element used as signatureName key
 SIGV_HLA = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2']
-SIGV_OPTIONAL = ['displayName']
+SIGV_OPTIONAL = ['displayName', 'flags']
 SIGV_KEY = SIGV_REQ[:]
 
 
@@ -277,6 +281,7 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprSmallMutationVar
         return tuple(['small mutation'] + key_vals)
 
     result = validate_variant_rows(rows, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
+
     if not result:
         return []
 
@@ -330,11 +335,11 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprExprVariant]
     Validate the input rows contain the minimum required fields and
     generate any default values where possible
     """
-
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
     variants = validate_variant_rows(rows, EXP_REQ, EXP_OPTIONAL, row_key)
+
     result = [cast(IprExprVariant, var) for var in variants]
     float_columns = [
         col
