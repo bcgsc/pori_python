@@ -668,7 +668,6 @@ def get_kb_disease_matches(
     verbose: bool = True,
     useSubgraphsRoute: bool = True,
 ) -> list[Dict]:
-
     disease_matches = []
 
     if not kb_disease_match:
@@ -736,9 +735,9 @@ def get_variant_flags(variant_sources):
             return [val]
         if isinstance(val, list):
             if not all(isinstance(item, str) for item in val):
-                raise TypeError("All items in flags must be strings")
+                raise TypeError('All items in flags must be strings')
             return val
-        raise TypeError(f"Unexpected type in flags field: {type(val).__name__}")
+        raise TypeError(f'Unexpected type in flags field: {type(val).__name__}')
 
     flags = []
 
@@ -748,19 +747,19 @@ def get_variant_flags(variant_sources):
         if not raw_flags:  # skips None and ''
             continue
 
-        flags.append({
-            'variant': item['key'],
-            'variantType': item['variantType'],
-            'flags': [f for f in ensure_str_list(raw_flags) if f]
-        })
+        flags.append(
+            {
+                'variant': item['key'],
+                'variantType': item['variantType'],
+                'flags': [f for f in ensure_str_list(raw_flags) if f],
+            }
+        )
         item.pop('flags', None)  # remove after extraction
 
         return flags
 
     observed_vars_section = [
-        flag
-        for variants in variant_sources
-        for flag in extract_flags(variants)
+        flag for variants in variant_sources for flag in extract_flags(variants)
     ]
 
     return observed_vars_section

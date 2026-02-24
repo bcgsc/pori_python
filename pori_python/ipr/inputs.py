@@ -59,7 +59,7 @@ COPY_OPTIONAL = [
     'comments',
     'library',
     'germline',
-    'flags'
+    'flags',
 ]
 
 SMALL_MUT_REQ = ['gene', 'proteinChange']
@@ -98,7 +98,7 @@ SMALL_MUT_OPTIONAL = [
     'tumourRefCount',
     'tumourRefCopies',
     'zygosity',
-    'flags'
+    'flags',
 ]
 
 EXP_REQ = ['gene', 'kbCategory']
@@ -131,7 +131,7 @@ EXP_OPTIONAL = [
     'rnaReads',
     'rpkm',
     'tpm',
-    'flags'
+    'flags',
 ]
 
 SV_REQ = [
@@ -164,7 +164,7 @@ SV_OPTIONAL = [
     'tumourDepth',
     'germline',
     'mavis_product_id',
-    'flags'
+    'flags',
 ]
 
 SIGV_REQ = ['signatureName', 'variantTypeName']
@@ -335,6 +335,7 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprExprVariant]
     Validate the input rows contain the minimum required fields and
     generate any default values where possible
     """
+
     def row_key(row: Dict) -> Tuple[str, ...]:
         return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
@@ -375,7 +376,6 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprExprVariant]
 
     if errors:
         raise ValueError(f'{len(errors)} Invalid expression variants in file')
-
     return result
 
 

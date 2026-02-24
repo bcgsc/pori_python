@@ -46,7 +46,7 @@ from .ipr import (
     get_kb_disease_matches,
     get_kb_matches_sections,
     select_expression_plots,
-    get_variant_flags
+    get_variant_flags,
 )
 from .summary import auto_analyst_comments, get_ipr_analyst_comments
 from .therapeutic_options import create_therapeutic_options
@@ -528,7 +528,7 @@ def ipr_report(
         gkb_matches, all_variants, kb_matched_sections['kbMatches']
     )
 
-    if True:
+    if False:
 
         def extract_flags(variant_list):
             # convert item to list of str, if it's just a str
@@ -541,12 +541,14 @@ def ipr_report(
 
             # extract only the relevant fields for creating an observed variant annotation record
             flags = [
-                {'variant': item['key'],
-                'variantType': item['variantType'],
-                'flags': ensure_list(item['flags'])
+                {
+                    'variant': item['key'],
+                    'variantType': item['variantType'],
+                    'flags': ensure_list(item['flags']),
                 }
-                for item in variant_list if item['flags'] is not None and item['flags'] != ''
-                ]
+                for item in variant_list
+                if item['flags'] is not None and item['flags'] != ''
+            ]
             _ = [item.pop('flags', '') for item in variant_list]
 
             return flags
@@ -556,11 +558,13 @@ def ipr_report(
             flags = extract_flags([item for item in varlist if item['gene'] in genes_with_variants])
             observed_vars_section.extend(flags)
         observed_vars_section.extend(extract_flags(signature_variants))
-        observed_vars_section.extend(extract_flags(filter_structural_variants(
-                        structural_variants, gkb_matches, gene_information
-                    )))
+        observed_vars_section.extend(
+            extract_flags(
+                filter_structural_variants(structural_variants, gkb_matches, gene_information)
+            )
+        )
 
-    if False:
+    if True:
         variant_sources = [
             v
             for source in [
@@ -606,7 +610,7 @@ def ipr_report(
             'variantCounts': variant_counts,
             'analystComments': comments,
             'therapeuticTarget': targets,
-            'observedVariantAnnotations': observed_vars_section
+            'observedVariantAnnotations': observed_vars_section,
         }
     )
 
