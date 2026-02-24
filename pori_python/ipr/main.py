@@ -46,6 +46,7 @@ from .ipr import (
     get_kb_disease_matches,
     get_kb_matches_sections,
     select_expression_plots,
+    get_variant_flags
 )
 from .summary import auto_analyst_comments, get_ipr_analyst_comments
 from .therapeutic_options import create_therapeutic_options
@@ -234,7 +235,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         for key, count in removed_keys.items():
             logger.warning(f"IPR unsupported property '{key}' removed from {count} genes.")
 
-    drop_columns = ['variant', 'variantType', 'histogramImage']
+    drop_columns = ['variant', 'variantType', 'histogramImage', 'flags']
     # DEVSU-2034 - use a 'displayName'
     VARIANT_LIST_KEYS = [
         'expressionVariants',
@@ -281,7 +282,6 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
 
     # Removing cosmicSignatures. Temporary
     upload_content.pop('cosmicSignatures', None)
-
     return upload_content
 
 
@@ -410,6 +410,7 @@ def ipr_report(
     expression_variants: List[IprExprVariant] = preprocess_expression_variants(
         content.get('expressionVariants', [])
     )
+
     # Additional checks
     if expression_variants:
         check_comparators(content, expression_variants)
@@ -527,10 +528,58 @@ def ipr_report(
         gkb_matches, all_variants, kb_matched_sections['kbMatches']
     )
 
+    if True:
+
+        def extract_flags(variant_list):
+            # convert item to list of str, if it's just a str
+            def ensure_list(val):
+                if isinstance(val, str):
+                    return [val]
+                if not isinstance(val, list):
+                    raise ValueError('Unexpected type in flags field', val, {type(val).__name__})
+                return val
+
+            # extract only the relevant fields for creating an observed variant annotation record
+            flags = [
+                {'variant': item['key'],
+                'variantType': item['variantType'],
+                'flags': ensure_list(item['flags'])
+                }
+                for item in variant_list if item['flags'] is not None and item['flags'] != ''
+                ]
+            _ = [item.pop('flags', '') for item in variant_list]
+
+            return flags
+
+        observed_vars_section = []
+        for varlist in [small_mutations, copy_variants, expression_variants]:
+            flags = extract_flags([item for item in varlist if item['gene'] in genes_with_variants])
+            observed_vars_section.extend(flags)
+        observed_vars_section.extend(extract_flags(signature_variants))
+        observed_vars_section.extend(extract_flags(filter_structural_variants(
+                        structural_variants, gkb_matches, gene_information
+                    )))
+
+    if False:
+        variant_sources = [
+            v
+            for source in [
+                [v for v in small_mutations if v['gene'] in genes_with_variants],
+                [v for v in copy_variants if v['gene'] in genes_with_variants],
+                [v for v in expression_variants if v['gene'] in genes_with_variants],
+                signature_variants,
+                filter_structural_variants(structural_variants, gkb_matches, gene_information),
+            ]
+            for v in source
+        ]
+
+        observed_vars_section = get_variant_flags(variant_sources)
+
     # OUTPUT CONTENT
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
     output.update(kb_matched_sections)
+
     output.update(
         {
             'copyVariants': [
@@ -550,15 +599,20 @@ def ipr_report(
                 for s in filter_structural_variants(
                     structural_variants, gkb_matches, gene_information
                 )
-            ],
+            ],  # TODO NB are we omitting non-matched sv's?
             'signatureVariants': [trim_empty_values(s) for s in signature_variants],
             'genes': gene_information,
             'genomicAlterationsIdentified': key_alterations,
             'variantCounts': variant_counts,
             'analystComments': comments,
             'therapeuticTarget': targets,
+            'observedVariantAnnotations': observed_vars_section
         }
     )
+
+    # TODO there are 13 outliers in the test data; if even only three are matched, why are only those three
+    # shown in the expression section? shouldn't we be seeing the non-kbmatched vars there as well?
+
     output.setdefault('images', []).extend(select_expression_plots(gkb_matches, all_variants))
 
     # if input includes hrdScore field, that is ok to pass to db
@@ -577,6 +631,7 @@ def ipr_report(
         if not ipr_conn:
             raise ValueError('ipr_url required to upload report')
         ipr_spec = ipr_conn.get_spec()
+
         output = clean_unsupported_content(output, ipr_spec)
         try:
             logger.info(f'Uploading to IPR {ipr_conn.url}')
