@@ -729,37 +729,44 @@ def get_kb_disease_matches(
     return disease_matches
 
 
+def ensure_str_list(val):
+    if isinstance(val, str):
+        return [val]
+    if isinstance(val, list):
+        if not all(isinstance(item, str) for item in val):
+            raise TypeError('All items in flags must be strings')
+        return val
+    raise TypeError(f'Unexpected type in flags field: {type(val).__name__}')
+
+
+def add_transcript_flags(variant_sources, transcript_flags_df):
+    lookup = dict(zip(transcript_flags_df['transcript'], transcript_flags_df['flags']))
+
+    for record in variant_sources:
+        new_flag = lookup.get(record.get('transcript'))
+        if not new_flag:
+            continue
+        flags = ensure_str_list(record.setdefault('flags', []))
+        if new_flag not in flags:
+            flags.append(new_flag)
+            record['flags'] = flags
+
+    return variant_sources
+
+
 def get_variant_flags(variant_sources):
-    def ensure_str_list(val):
-        if isinstance(val, str):
-            return [val]
-        if isinstance(val, list):
-            if not all(isinstance(item, str) for item in val):
-                raise TypeError('All items in flags must be strings')
-            return val
-        raise TypeError(f'Unexpected type in flags field: {type(val).__name__}')
-
     flags = []
-
     for item in variant_sources:
         raw_flags = item.get('flags')
-
         if not raw_flags:  # skips None and ''
             continue
-
+        # create record, removing dupes from flags list
         flags.append(
             {
                 'variant': item['key'],
                 'variantType': item['variantType'],
-                'flags': [f for f in ensure_str_list(raw_flags) if f],
+                'flags': list(set([f for f in ensure_str_list(raw_flags) if f])),
             }
         )
         item.pop('flags', None)  # remove after extraction
-
-        return flags
-
-    observed_vars_section = [
-        flag for variants in variant_sources for flag in extract_flags(variants)
-    ]
-
-    return observed_vars_section
+    return flags

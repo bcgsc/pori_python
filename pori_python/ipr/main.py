@@ -6,6 +6,7 @@ import json
 import jsonschema.exceptions
 import logging
 import os
+import pandas as pd
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from typing import Callable, Dict, List, Optional, Sequence, Set
 
@@ -47,6 +48,7 @@ from .ipr import (
     get_kb_matches_sections,
     select_expression_plots,
     get_variant_flags,
+    add_transcript_flags
 )
 from .summary import auto_analyst_comments, get_ipr_analyst_comments
 from .therapeutic_options import create_therapeutic_options
@@ -158,6 +160,12 @@ def command_interface() -> None:
         action='store_true',
         help='True if ignore extra fields in json',
     )
+    parser.add_argument(
+        '--transcript_flags',
+        required=False,
+        type=file_path,
+        help='TSV without header, with columns: gene, transcript, comma-separated list of flags'
+    )
     args = parser.parse_args()
 
     with open(args.content, 'r') as fh:
@@ -182,6 +190,7 @@ def command_interface() -> None:
         upload_json=args.upload_json,
         validate_json=args.validate_json,
         ignore_extra_fields=args.ignore_extra_fields,
+        transcript_flags=args.transcript_flags,
     )
 
 
@@ -318,6 +327,7 @@ def ipr_report(
     validate_json: bool = False,
     ignore_extra_fields: bool = False,
     tmb_high: float = TMB_SIGNATURE_HIGH_THRESHOLD,
+    transcript_flags: str = '',
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
 
@@ -385,6 +395,10 @@ def ipr_report(
     except jsonschema.exceptions.ValidationError as err:
         logger.error('Failed schema check - report variants may be corrupted or unmatched.')
         logger.error(f'Failed schema check: {err}')
+
+    transcript_flags_df = None
+    if transcript_flags:
+        transcript_flags_df = pd.read_csv(transcript_flags, sep='\t', names=['gene', 'transcript', 'flags'])
 
     # INPUT VARIANTS VALIDATION & PREPROCESSING (OBSERVED BIOMARKERS)
     signature_variants: List[IprSignatureVariant] = preprocess_signature_variants(
@@ -460,6 +474,10 @@ def ipr_report(
         *structural_variants,
     ]  # type: ignore
 
+    # ANNOTATING VARIANTS WITH TRANSCRIPT FLAGS
+    if transcript_flags_df is not None and not transcript_flags_df.empty:
+        all_variants = add_transcript_flags(all_variants, transcript_flags_df)
+
     # GKB_MATCHES FILTERING
     if match_germline:
         # verify germline kb statements matched germline observed variants, not somatic variants
@@ -528,56 +546,18 @@ def ipr_report(
         gkb_matches, all_variants, kb_matched_sections['kbMatches']
     )
 
-    if False:
-
-        def extract_flags(variant_list):
-            # convert item to list of str, if it's just a str
-            def ensure_list(val):
-                if isinstance(val, str):
-                    return [val]
-                if not isinstance(val, list):
-                    raise ValueError('Unexpected type in flags field', val, {type(val).__name__})
-                return val
-
-            # extract only the relevant fields for creating an observed variant annotation record
-            flags = [
-                {
-                    'variant': item['key'],
-                    'variantType': item['variantType'],
-                    'flags': ensure_list(item['flags']),
-                }
-                for item in variant_list
-                if item['flags'] is not None and item['flags'] != ''
-            ]
-            _ = [item.pop('flags', '') for item in variant_list]
-
-            return flags
-
-        observed_vars_section = []
-        for varlist in [small_mutations, copy_variants, expression_variants]:
-            flags = extract_flags([item for item in varlist if item['gene'] in genes_with_variants])
-            observed_vars_section.extend(flags)
-        observed_vars_section.extend(extract_flags(signature_variants))
-        observed_vars_section.extend(
-            extract_flags(
-                filter_structural_variants(structural_variants, gkb_matches, gene_information)
-            )
-        )
-
-    if True:
-        variant_sources = [
-            v
-            for source in [
-                [v for v in small_mutations if v['gene'] in genes_with_variants],
-                [v for v in copy_variants if v['gene'] in genes_with_variants],
-                [v for v in expression_variants if v['gene'] in genes_with_variants],
-                signature_variants,
-                filter_structural_variants(structural_variants, gkb_matches, gene_information),
-            ]
-            for v in source
+    variant_sources = [
+        v
+        for source in [
+            [v for v in small_mutations if v['gene'] in genes_with_variants],
+            [v for v in copy_variants if v['gene'] in genes_with_variants],
+            [v for v in expression_variants if v['gene'] in genes_with_variants],
+            signature_variants,
+            filter_structural_variants(structural_variants, gkb_matches, gene_information),
         ]
-
-        observed_vars_section = get_variant_flags(variant_sources)
+        for v in source
+    ]
+    observed_vars_section = get_variant_flags(variant_sources)
 
     # OUTPUT CONTENT
     # thread safe deep-copy the original content
