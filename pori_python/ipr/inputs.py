@@ -27,6 +27,7 @@ from .constants import (
     HLA_SIGNATURE_VARIANT_TYPE,
     MSI_MAPPING,
     HRD_MAPPING,
+    HRD_SIGNATURE_OVER_CUTOFF,
     TMB_SIGNATURE,
     TMB_SIGNATURE_VARIANT_TYPE,
 )
@@ -560,7 +561,19 @@ def preprocess_hrd(hrd: Any) -> Iterable[Dict]:
     HRD gets mapped to corresponding GraphKB Signature CategoryVariants.
     """
     if hrd:
+        hrd_cutoff = hrd.get('cutoff', None)
         hrd_cat = hrd.get('kbCategory', '')
+
+        if hrd_cutoff and hrd_cat:
+            raise ValueError('In the HRD section, only one of cutoff and kbcategory should be provided.')
+
+        if hrd_cutoff:
+            hrd_score = hrd.get('score', None)
+            if not hrd_score:
+                raise ValueError('In the HRD section, if cutoff is provided a score must also be provided.')
+
+            if hrd_score >= hrd_cutoff:
+                hrd_variant = HRD_SIGNATURE_OVER_CUTOFF
 
         hrd_variant = HRD_MAPPING.get(hrd_cat, None)
 
