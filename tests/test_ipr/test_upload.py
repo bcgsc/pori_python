@@ -74,7 +74,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
         ],
         'hrd': {
             'score': 9999.0,
-            'kbCategory': 'homologous recombination deficiency strong signature',
+            'cutoff': 5,
         },
         'expressionVariants': json.loads(
             pd.read_csv(get_test_file('expression.short.tab'), sep='\t').to_json(orient='records')
