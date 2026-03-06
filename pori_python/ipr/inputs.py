@@ -563,19 +563,24 @@ def preprocess_hrd(hrd: Any) -> Iterable[Dict]:
     if hrd:
         hrd_cutoff = hrd.get('cutoff', None)
         hrd_cat = hrd.get('kbCategory', '')
+        hrd_score = hrd.get('score', None)
 
         if hrd_cutoff and hrd_cat:
             raise ValueError('In the HRD section, only one of cutoff and kbcategory should be provided.')
 
+        if not (hrd_cutoff or hrd_cat):
+            logger.warning('No hrd category or cutoff provided; score will be loaded with no variant matching.')
+
         if hrd_cutoff:
-            hrd_score = hrd.get('score', None)
             if not hrd_score:
                 raise ValueError('In the HRD section, if cutoff is provided a score must also be provided.')
 
             if hrd_score >= hrd_cutoff:
                 hrd_variant = HRD_SIGNATURE_OVER_CUTOFF
-
-        hrd_variant = HRD_MAPPING.get(hrd_cat, None)
+            else:
+                return []
+        elif hrd_cat:
+            hrd_variant = HRD_MAPPING.get(hrd_cat, None)
 
         # Signature CategoryVariant created either for msi or mss
         if hrd_variant:
