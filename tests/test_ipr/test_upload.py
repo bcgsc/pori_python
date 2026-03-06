@@ -106,6 +106,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
                 'caption': 'Test adding a caption to an image',
             }
         ],
+        'config': 'test config',
     }
 
     json_file.write_text(
@@ -254,15 +255,30 @@ class TestCreateReport:
         async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
         assert async_equals_sync
 
-    # # Uncomment when signatureVariants are supported in pori_ipr_api
-    # def test_signature_variants_loaded(self, loaded_reports) -> None:
-    #     section = get_section(loaded_reports["sync"], "signature-variants")
-    #     kbmatched = [item for item in section if item["kbMatches"]]
-    #     assert ("SBS2", "high signature") in [
-    #         (item["signatureName"], item["variantTypeName"]) for item in kbmatched
-    #     ]
-    #     async_section = get_section(loaded_reports["async"], "signature-variants")
-    #     assert compare_sections(section, async_section)
+    def test_signature_variants_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports["sync"], "signature-variants")
+        kbmatched = [item for item in section if item["kbMatches"]]
+        # Check for COSMIC signatures
+        assert ("SBS2", "high signature") in [
+            (item["signatureName"], item["variantTypeName"]) for item in kbmatched
+        ]
+        # Check for HRD signature (score 9999 > cutoff 5, so strong signature)
+        assert ("homologous recombination deficiency", "strong signature") in [
+            (item["signatureName"], item["variantTypeName"]) for item in kbmatched
+        ]
+        # Check for MSI signature
+        assert ("microsatellite instability", "high signature") in [
+            (item["signatureName"], item["variantTypeName"]) for item in kbmatched
+        ]
+        async_section = get_section(loaded_reports["async"], "signature-variants")
+        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        assert async_equals_sync
+
+    def test_hrd_score_in_report(self, loaded_reports) -> None:
+        """Test that HRD score is present in the loaded report."""
+        report = loaded_reports['sync'][1]['reports'][0]
+        assert 'hrdScore' in report
+        assert report['hrdScore'] == 9999.0
 
     def test_kb_matches_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports['sync'], 'kb-matches')
