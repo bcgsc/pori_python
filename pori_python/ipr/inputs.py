@@ -566,14 +566,20 @@ def preprocess_hrd(hrd: Any) -> Iterable[Dict]:
         hrd_score = hrd.get('score', None)
 
         if hrd_cutoff and hrd_cat:
-            raise ValueError('In the HRD section, only one of cutoff and kbcategory should be provided.')
+            raise ValueError(
+                'In the HRD section, only one of cutoff and kbcategory should be provided.'
+            )
 
         if not (hrd_cutoff or hrd_cat):
-            logger.warning('No hrd category or cutoff provided; score will be loaded with no variant matching.')
+            logger.warning(
+                'No hrd category or cutoff provided; score will be loaded with no variant matching.'
+            )
 
         if hrd_cutoff:
             if not hrd_score:
-                raise ValueError('In the HRD section, if cutoff is provided a score must also be provided.')
+                raise ValueError(
+                    'In the HRD section, if cutoff is provided a score must also be provided.'
+                )
 
             if hrd_score >= hrd_cutoff:
                 hrd_variant = HRD_SIGNATURE_OVER_CUTOFF

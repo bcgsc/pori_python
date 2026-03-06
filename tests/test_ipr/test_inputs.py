@@ -294,28 +294,34 @@ class TestPreProcessSignatureVariants:
 
     def test_preprocess_hrd_cutoff_above(self) -> None:
         """Test HRD with cutoff where score >= cutoff returns strong signature."""
-        hrd = preprocess_hrd({
-            'score': 75,
-            'cutoff': 50,
-        })
+        hrd = preprocess_hrd(
+            {
+                'score': 75,
+                'cutoff': 50,
+            }
+        )
         assert len(hrd) == 1
         assert hrd[0]['signatureName'] == 'homologous recombination deficiency'
         assert hrd[0]['variantTypeName'] == 'strong signature'
 
     def test_preprocess_hrd_cutoff_below(self) -> None:
         """Test HRD with cutoff where score < cutoff returns moderate signature."""
-        hrd = preprocess_hrd({
-            'score': 25,
-            'cutoff': 50,
-        })
+        hrd = preprocess_hrd(
+            {
+                'score': 25,
+                'cutoff': 50,
+            }
+        )
         assert len(hrd) == 0
 
     def test_preprocess_hrd_cutoff_equal(self) -> None:
         """Test HRD with cutoff where score == cutoff returns strong signature."""
-        hrd = preprocess_hrd({
-            'score': 50,
-            'cutoff': 50,
-        })
+        hrd = preprocess_hrd(
+            {
+                'score': 50,
+                'cutoff': 50,
+            }
+        )
         assert len(hrd) == 1
         assert hrd[0]['signatureName'] == 'homologous recombination deficiency'
         assert hrd[0]['variantTypeName'] == 'strong signature'
@@ -323,24 +329,32 @@ class TestPreProcessSignatureVariants:
     def test_preprocess_hrd_cutoff_missing_score(self) -> None:
         """Test HRD with cutoff but missing score raises ValueError."""
         with pytest.raises(ValueError, match='if cutoff is provided a score must also be provided'):
-            preprocess_hrd({
-                'cutoff': 50,
-            })
+            preprocess_hrd(
+                {
+                    'cutoff': 50,
+                }
+            )
 
     def test_preprocess_hrd_cutoff_and_kbcategory(self) -> None:
         """Test HRD with both cutoff and kbCategory raises ValueError."""
-        with pytest.raises(ValueError, match='only one of cutoff and kbcategory should be provided'):
-            preprocess_hrd({
-                'score': 75,
-                'cutoff': 50,
-                'kbCategory': 'homologous recombination deficiency strong signature',
-            })
+        with pytest.raises(
+            ValueError, match='only one of cutoff and kbcategory should be provided'
+        ):
+            preprocess_hrd(
+                {
+                    'score': 75,
+                    'cutoff': 50,
+                    'kbCategory': 'homologous recombination deficiency strong signature',
+                }
+            )
 
     def test_preprocess_hrd_kbcategory_moderate(self) -> None:
         """Test HRD with kbCategory moderate signature."""
-        hrd = preprocess_hrd({
-            'kbCategory': 'homologous recombination deficiency moderate signature',
-        })
+        hrd = preprocess_hrd(
+            {
+                'kbCategory': 'homologous recombination deficiency moderate signature',
+            }
+        )
         assert len(hrd) == 1
         assert hrd[0]['signatureName'] == 'homologous recombination deficiency'
         assert hrd[0]['variantTypeName'] == 'moderate signature'

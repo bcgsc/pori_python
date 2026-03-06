@@ -256,21 +256,21 @@ class TestCreateReport:
         assert async_equals_sync
 
     def test_signature_variants_loaded(self, loaded_reports) -> None:
-        section = get_section(loaded_reports["sync"], "signature-variants")
-        kbmatched = [item for item in section if item["kbMatches"]]
+        section = get_section(loaded_reports['sync'], 'signature-variants')
+        kbmatched = [item for item in section if item['kbMatches']]
         # Check for COSMIC signatures
-        assert ("SBS2", "high signature") in [
-            (item["signatureName"], item["variantTypeName"]) for item in kbmatched
+        assert ('SBS2', 'high signature') in [
+            (item['signatureName'], item['variantTypeName']) for item in kbmatched
         ]
         # Check for HRD signature (score 9999 > cutoff 5, so strong signature)
-        assert ("homologous recombination deficiency", "strong signature") in [
-            (item["signatureName"], item["variantTypeName"]) for item in kbmatched
+        assert ('homologous recombination deficiency', 'strong signature') in [
+            (item['signatureName'], item['variantTypeName']) for item in kbmatched
         ]
         # Check for MSI signature
-        assert ("microsatellite instability", "high signature") in [
-            (item["signatureName"], item["variantTypeName"]) for item in kbmatched
+        assert ('microsatellite instability', 'high signature') in [
+            (item['signatureName'], item['variantTypeName']) for item in kbmatched
         ]
-        async_section = get_section(loaded_reports["async"], "signature-variants")
+        async_section = get_section(loaded_reports['async'], 'signature-variants')
         async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
         assert async_equals_sync
 

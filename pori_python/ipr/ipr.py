@@ -668,7 +668,6 @@ def get_kb_disease_matches(
     verbose: bool = True,
     useSubgraphsRoute: bool = True,
 ) -> list[Dict]:
-
     disease_matches = []
 
     if not kb_disease_match:
