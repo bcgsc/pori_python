@@ -305,7 +305,7 @@ class TestPreProcessSignatureVariants:
         assert hrd[0]['variantTypeName'] == 'strong signature'
 
     def test_preprocess_hrd_cutoff_below(self) -> None:
-        """Test HRD with cutoff where score < cutoff returns moderate signature."""
+        """Test HRD with cutoff where score < cutoff does not return variant."""
         hrd = preprocess_hrd(
             {
                 'score': 25,
