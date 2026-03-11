@@ -160,7 +160,6 @@ def convert_statements_to_alterations(
             )
             if query_result:
                 recruitment_statuses[rid] = query_result[0]['recruitmentStatus']  # type: ignore
-
     for statement in statements:
         variants = [
             cast(Variant, c) for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES
@@ -229,6 +228,7 @@ def convert_statements_to_alterations(
                     row['kbContextId'], 'not found'
                 )
             rows.append(row)
+
     return rows
 
 
@@ -731,7 +731,7 @@ def get_kb_disease_matches(
 
 def ensure_str_list(val):
     if isinstance(val, str):
-        return [val]
+        return [f.strip() for f in val.split(',') if f.strip()]
     if isinstance(val, list):
         if not all(isinstance(item, str) for item in val):
             raise TypeError('All items in flags must be strings')
@@ -743,13 +743,16 @@ def add_transcript_flags(variant_sources, transcript_flags_df):
     lookup = dict(zip(transcript_flags_df['transcript'], transcript_flags_df['flags']))
 
     for record in variant_sources:
-        new_flag = lookup.get(record.get('transcript'))
-        if not new_flag:
+        flags_str = lookup.get(record.get('transcript'))
+        if not flags_str:
             continue
+        # Split on commas and strip whitespace
+        new_flags = ensure_str_list(str(flags_str))
         flags = ensure_str_list(record.setdefault('flags', []))
-        if new_flag not in flags:
-            flags.append(new_flag)
-            record['flags'] = flags
+        for new_flag in new_flags:
+            if new_flag not in flags:
+                flags.append(new_flag)
+        record['flags'] = flags
 
     return variant_sources
 
