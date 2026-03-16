@@ -460,6 +460,29 @@ class TestFlagUtilities:
         # T4 should have two flags with whitespace stripped
         assert set(result[3]['flags']) == {'flag_c', 'flag_d'}
 
+    def test_add_transcript_flags_fusions(self):
+        from pori_python.ipr.ipr import add_transcript_flags
+
+        # Fusion records can have separate nterm/cterm transcripts
+        variant_sources = [
+            {
+                'key': 'f1',
+                'variantType': 'fusion',
+                'ctermTranscript': 'CT1',
+                'ntermTranscript': 'NT1',
+            }
+        ]
+        df = pd.DataFrame(
+            {
+                'transcript': ['CT1', 'NT1'],
+                'flags': ['cterm_flag', 'nterm_flag'],
+            }
+        )
+        result = add_transcript_flags(variant_sources, df)
+        flags = result[0]['flags']
+        assert 'cterm_flag (cterm)' in flags
+        assert 'nterm_flag (nterm)' in flags
+
     def test_get_variant_flags_behaviour(self):
         from pori_python.ipr.ipr import get_variant_flags
 
