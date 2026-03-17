@@ -48,7 +48,7 @@ from .ipr import (
     get_kb_matches_sections,
     select_expression_plots,
     get_variant_flags,
-    add_transcript_flags
+    add_transcript_flags,
 )
 from .summary import auto_analyst_comments, get_ipr_analyst_comments
 from .therapeutic_options import create_therapeutic_options
@@ -164,7 +164,7 @@ def command_interface() -> None:
         '--transcript_flags',
         required=False,
         type=file_path,
-        help='TSV without header, with columns: gene, transcript, comma-separated list of flags'
+        help='TSV without header, with columns: gene, transcript, comma-separated list of flags',
     )
     args = parser.parse_args()
 
@@ -398,7 +398,9 @@ def ipr_report(
 
     transcript_flags_df = None
     if transcript_flags:
-        transcript_flags_df = pd.read_csv(transcript_flags, sep='\t', names=['gene', 'transcript', 'flags'])
+        transcript_flags_df = pd.read_csv(
+            transcript_flags, sep='\t', names=['gene', 'transcript', 'flags']
+        )
 
     # INPUT VARIANTS VALIDATION & PREPROCESSING (OBSERVED BIOMARKERS)
     signature_variants: List[IprSignatureVariant] = preprocess_signature_variants(

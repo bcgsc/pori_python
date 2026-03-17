@@ -755,10 +755,7 @@ def add_transcript_flags(variant_sources, transcript_flags_df):
         record['flags'] = flags
 
     # fusions: check both transcripts for flags and add to the same record
-    label_map = {
-        'ctermTranscript': 'cterm',
-        'ntermTranscript': 'nterm'
-    }
+    label_map = {'ctermTranscript': 'cterm', 'ntermTranscript': 'nterm'}
 
     for record in variant_sources:
         flags = ensure_str_list(record.setdefault('flags', []))
@@ -770,7 +767,7 @@ def add_transcript_flags(variant_sources, transcript_flags_df):
                 continue
 
             for flag in ensure_str_list(str(flags_str)):
-                new_flag = f"{flag} ({label})"
+                new_flag = f'{flag} ({label})'
                 if new_flag not in flags:
                     flags.append(new_flag)
                 record['flags'] = flags

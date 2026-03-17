@@ -32,7 +32,7 @@ def get_test_file(name: str) -> str:
 
 
 def get_test_transcript_flags(json_contents) -> pd.DataFrame:
-    """ creates a dataframe of transcript flags for test purposes, based on the input json contents """
+    """creates a dataframe of transcript flags for test purposes, based on the input json contents"""
     transcript_flags = []
     for item in json_contents['structuralVariants']:
         transcript_flags.append((item['gene1'], item['ntermTranscript'], 'TRANSCRIPT FLAG'))
@@ -45,7 +45,7 @@ def get_test_transcript_flags(json_contents) -> pd.DataFrame:
 
 
 def add_test_variant_flags_to_input_data(json_contents) -> dict:
-    """ adds flags to the input variants for test purposes """
+    """adds flags to the input variants for test purposes"""
     for vtype in ['structuralVariants', 'smallMutations', 'copyVariants', 'expressionVariants']:
         for item in json_contents[vtype]:
             item['flags'] = ['TEST FLAG']

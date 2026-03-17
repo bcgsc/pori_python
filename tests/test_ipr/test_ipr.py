@@ -13,7 +13,11 @@ from pori_python.ipr.ipr import (
     get_kb_variants,
     get_kb_matches_sections,
     create_key_alterations,
+    ensure_str_list,
+    add_transcript_flags,
+    get_variant_flags,
 )
+
 from pori_python.types import Statement
 
 DISEASE_RIDS = ['#138:12', '#138:13']
@@ -418,52 +422,53 @@ class TestConvertStatementsToAlterations:
 
 class TestFlagUtilities:
     def test_ensure_str_list_accepts_string(self):
-        from pori_python.ipr.ipr import ensure_str_list
-
         assert ensure_str_list('abc') == ['abc']
 
     def test_ensure_str_list_splits_comma_separated_string(self):
-        from pori_python.ipr.ipr import ensure_str_list
-
         assert ensure_str_list('a, b , c') == ['a', 'b', 'c']
 
     def test_ensure_str_list_accepts_list_of_strings(self):
-        from pori_python.ipr.ipr import ensure_str_list
-
         assert ensure_str_list(['a', 'b']) == ['a', 'b']
 
     def test_ensure_str_list_rejects_bad_types(self):
-        from pori_python.ipr.ipr import ensure_str_list
-
         with pytest.raises(TypeError):
             ensure_str_list([1, 'a'])
         with pytest.raises(TypeError):
             ensure_str_list(123)
 
-    def test_add_transcript_flags_basic(self):
-        from pori_python.ipr.ipr import add_transcript_flags
-
+    def test_add_transcript_flags_basic_adds_flags_from_comma_separated_string(self):
         variant_sources = [
             {'transcript': 'T1', 'key': 'k1', 'variantType': 'mut'},
+        ]
+        df = pd.DataFrame({'transcript': ['T1'], 'flags': ['flag_a,flag_b']})
+        result = add_transcript_flags(variant_sources, df)
+        assert set(result[0]['flags']) == {'flag_a', 'flag_b'}
+
+    def test_add_transcript_flags_basic_converts_string_flag_to_list_avoiding_duplicates(self):
+        variant_sources = [
             {'transcript': 'T2', 'flags': 'existing', 'key': 'k2', 'variantType': 'mut'},
+        ]
+        df = pd.DataFrame({'transcript': ['T2'], 'flags': ['existing']})
+        result = add_transcript_flags(variant_sources, df)
+        assert result[0]['flags'] == ['existing']
+
+    def test_add_transcript_flags_basic_leaves_unmatched_transcripts_unaffected(self):
+        variant_sources = [
             {'transcript': 'T3', 'flags': ['present'], 'key': 'k3', 'variantType': 'mut'},
+        ]
+        df = pd.DataFrame({'transcript': ['T1', 'T2'], 'flags': ['flag_a,flag_b', 'existing']})
+        result = add_transcript_flags(variant_sources, df)
+        assert result[0]['flags'] == ['present']
+
+    def test_add_transcript_flags_basic_strips_whitespace_from_comma_separated_flags(self):
+        variant_sources = [
             {'transcript': 'T4', 'key': 'k4', 'variantType': 'mut'},
         ]
-        df = pd.DataFrame({'transcript': ['T1', 'T2', 'T4'], 'flags': ['flag_a,flag_b', 'existing', 'flag_c, flag_d']})
+        df = pd.DataFrame({'transcript': ['T4'], 'flags': ['flag_c, flag_d']})
         result = add_transcript_flags(variant_sources, df)
-        # T1 should have two flags from comma-separated list
-        assert set(result[0]['flags']) == {'flag_a', 'flag_b'}
-        # T2 had a string flag that gets converted to list and duplicate is avoided
-        assert result[1]['flags'] == ['existing']
-        # T3 unaffected (no matching transcript in df)
-        assert result[2]['flags'] == ['present']
-        # T4 should have two flags with whitespace stripped
-        assert set(result[3]['flags']) == {'flag_c', 'flag_d'}
+        assert set(result[0]['flags']) == {'flag_c', 'flag_d'}
 
-    def test_add_transcript_flags_fusions(self):
-        from pori_python.ipr.ipr import add_transcript_flags
-
-        # Fusion records can have separate nterm/cterm transcripts
+    def test_add_transcript_flags_fusions_tags_cterm_flags(self):
         variant_sources = [
             {
                 'key': 'f1',
@@ -474,35 +479,72 @@ class TestFlagUtilities:
         ]
         df = pd.DataFrame(
             {
-                'transcript': ['CT1', 'NT1'],
-                'flags': ['cterm_flag', 'nterm_flag'],
+                'transcript': ['CT1'],
+                'flags': ['cterm_flag'],
             }
         )
         result = add_transcript_flags(variant_sources, df)
         flags = result[0]['flags']
         assert 'cterm_flag (cterm)' in flags
+
+    def test_add_transcript_flags_fusions_tags_nterm_flags(self):
+        variant_sources = [
+            {
+                'key': 'f1',
+                'variantType': 'fusion',
+                'ctermTranscript': 'CT1',
+                'ntermTranscript': 'NT1',
+            }
+        ]
+        df = pd.DataFrame(
+            {
+                'transcript': ['NT1'],
+                'flags': ['nterm_flag'],
+            }
+        )
+        result = add_transcript_flags(variant_sources, df)
+        flags = result[0]['flags']
         assert 'nterm_flag (nterm)' in flags
 
-    def test_get_variant_flags_behaviour(self):
-        from pori_python.ipr.ipr import get_variant_flags
-
+    def test_get_variant_flags_converts_string_flags_to_records(self):
         variants = [
             {'key': 'k1', 'variantType': 'mut', 'flags': 'foo'},
+        ]
+        out = get_variant_flags(variants)
+        assert any(item['variant'] == 'k1' and item['flags'] == ['foo'] for item in out)
+        assert len(out) == 1
+
+    def test_get_variant_flags_deduplicates_and_removes_empty_strings(self):
+        variants = [
             {'key': 'k2', 'variantType': 'mut', 'flags': ['bar', 'bar', '']},
+        ]
+        out = get_variant_flags(variants)
+        assert any(item['variant'] == 'k2' and set(item['flags']) == {'bar'} for item in out)
+
+    def test_get_variant_flags_skips_null_flags(self):
+        variants = [
             {'key': 'k3', 'variantType': 'mut', 'flags': None},
+        ]
+        out = get_variant_flags(variants)
+        assert not any(item['variant'] == 'k3' for item in out)
+        assert len(out) == 0
+
+    def test_get_variant_flags_skips_empty_list_flags(self):
+        variants = [
             {'key': 'k4', 'variantType': 'mut', 'flags': []},
         ]
         out = get_variant_flags(variants)
-        # k1 and k2 should be converted to flag records, k3/k4 skipped
-        assert any(item['variant'] == 'k1' and item['flags'] == ['foo'] for item in out)
-        assert any(item['variant'] == 'k2' and set(item['flags']) == {'bar'} for item in out)
-        assert len(out) == 2
-        # processed records should have their flags removed
+        assert not any(item['variant'] == 'k4' for item in out)
+        assert len(out) == 0
+
+    def test_get_variant_flags_removes_flags_key_from_processed_records(self):
+        variants = [
+            {'key': 'k1', 'variantType': 'mut', 'flags': 'foo'},
+            {'key': 'k2', 'variantType': 'mut', 'flags': ['bar', 'bar', '']},
+        ]
+        get_variant_flags(variants)
         assert 'flags' not in variants[0]
         assert 'flags' not in variants[1]
-        # skipped records retain original flags key
-        assert 'flags' in variants[2]
-        assert 'flags' in variants[3]
 
 
 class TestKbmatchFilters:
