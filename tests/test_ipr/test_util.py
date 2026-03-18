@@ -27,3 +27,20 @@ def test_create_variant_name_tuple(variant, result):
     gene, name = create_variant_name_tuple(variant)
     assert name == result
     assert gene == 'GENE'
+
+
+def test_create_signature_variant_name_tuple():
+    v1 = {
+        'variantType': 'sigv',
+        'displayName': 'test signature signature present',
+        'signatureName': 'test signature',
+        'variantTypeName': 'signature present',
+    }
+    gene, name = create_variant_name_tuple(v1)
+    assert name == 'signature present'
+    assert gene == 'test signature'
+
+    v2 = {'variantType': 'sigv', 'displayName': 'test signature signature present'}
+    gene, name = create_variant_name_tuple(v2)
+    assert name == ''
+    assert gene == 'test signature signature present'
