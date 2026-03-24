@@ -548,12 +548,37 @@
                 },
                 "score": {
                     "type": "number"
+                },
+                "cutoff": {
+                    "type": "number"
                 }
             },
+            "type": "object",
             "required": [
                 "score"
             ],
-            "type": "object"
+            "oneOf": [
+                {
+                    "required": [
+                        "kbCategory"
+                    ],
+                    "not": {
+                        "required": [
+                            "cutoff"
+                        ]
+                    }
+                },
+                {
+                    "required": [
+                        "cutoff"
+                    ],
+                    "not": {
+                        "required": [
+                            "kbCategory"
+                        ]
+                    }
+                }
+            ]
         },
         "images": {
             "items": {
