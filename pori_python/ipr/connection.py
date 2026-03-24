@@ -105,13 +105,10 @@ class IprConnection:
             # or 'report'. jobStatus is no longer available once the report is successfully
             # uploaded.
 
-            projects = self.get("project")
-            project_names = [item["name"] for item in projects]
+            projects = self.get('project')
+            project_names = [item['name'] for item in projects]
             project_users = {
-                item["name"]: [
-                    user["username"] 
-                    for user in item.get("users", [])
-                ]
+                item['name']: [user['username'] for user in item.get('users', [])]
                 for item in projects
             }
 
@@ -125,9 +122,9 @@ class IprConnection:
                 except Exception as err:
                     raise Exception(f'Project creation failed due to {err}')
 
-            if self.username not in project_users[content["project"]]:
+            if self.username not in project_users[content['project']]:
                 raise Exception(
-                    f"User have no permission to create report in project {content['project']}"
+                    f'User have no permission to create report in project {content["project"]}'
                 )
 
             if ignore_extra_fields:
