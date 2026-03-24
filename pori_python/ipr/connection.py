@@ -108,7 +108,10 @@ class IprConnection:
             projects = self.get("project")
             project_names = [item["name"] for item in projects]
             project_users = {
-                item["name"]: [user["username"] for user in item.get("users", [])]
+                item["name"]: [
+                    user["username"] 
+                    for user in item.get("users", [])
+                ]
                 for item in projects
             }
 
