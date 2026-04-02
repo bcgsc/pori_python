@@ -1191,7 +1191,8 @@
                         "description": "the type of underlying structural variant",
                         "example": "deletion",
                         "type": "string"
-                    },                    "exon1": {
+                    },
+                    "exon1": {
                         "description": "the 5' (n-terminal) exon",
                         "example": 1,
                         "type": [
