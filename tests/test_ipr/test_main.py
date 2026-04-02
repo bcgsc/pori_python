@@ -7,7 +7,7 @@ from typing import Dict
 from unittest.mock import MagicMock, patch
 
 from pori_python.ipr.connection import IprConnection
-from pori_python.ipr.main import command_interface
+from pori_python.ipr.main import command_interface, load_transcript_flags
 from pori_python.types import IprGene
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
@@ -26,6 +26,32 @@ def get_test_spec():
 
 def get_test_file(name: str) -> str:
     return os.path.join(os.path.dirname(__file__), 'test_data', name)
+
+
+class TestLoadTranscriptFlags:
+    def test_accepts_file_without_header(self, tmp_path) -> None:
+        transcript_flags_file = tmp_path / 'transcript_flags.tsv'
+        transcript_flags_file.write_text('ENSG1\tENST1\tflag_a\nENSG2\tENST2\tflag_b, flag_c\n')
+
+        result = load_transcript_flags(str(transcript_flags_file))
+
+        assert result.to_dict(orient='records') == [
+            {'gene': 'ENSG1', 'transcript': 'ENST1', 'flags': 'flag_a'},
+            {'gene': 'ENSG2', 'transcript': 'ENST2', 'flags': 'flag_b, flag_c'},
+        ]
+
+    def test_accepts_file_with_header(self, tmp_path) -> None:
+        transcript_flags_file = tmp_path / 'transcript_flags.tsv'
+        transcript_flags_file.write_text(
+            'gene\ttranscript\tflags\nENSG1\tENST1\tflag_a\nENSG2\tENST2\tflag_b\n'
+        )
+
+        result = load_transcript_flags(str(transcript_flags_file))
+
+        assert result.to_dict(orient='records') == [
+            {'gene': 'ENSG1', 'transcript': 'ENST1', 'flags': 'flag_a'},
+            {'gene': 'ENSG2', 'transcript': 'ENST2', 'flags': 'flag_b'},
+        ]
 
 
 @pytest.fixture(scope='module')

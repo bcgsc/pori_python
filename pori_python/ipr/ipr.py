@@ -740,16 +740,21 @@ def ensure_str_list(val):
 
 
 def add_transcript_flags(variant_sources, transcript_flags_df):
-    lookup = dict(zip(transcript_flags_df['transcript'], transcript_flags_df['flags']))
+    lookup = {}
+    for _, row in transcript_flags_df[['transcript', 'flags']].dropna(subset=['transcript']).iterrows():
+        transcript = row['transcript']
+        transcript_flags = lookup.setdefault(transcript, [])
+        for flag in ensure_str_list(str(row['flags'])):
+            if flag not in transcript_flags:
+                transcript_flags.append(flag)
+    import pdb; pdb.set_trace()
 
     for record in variant_sources:
-        flags_str = lookup.get(record.get('transcript'))
-        if not flags_str:
+        transcript_flags = lookup.get(record.get('transcript'))
+        if not transcript_flags:
             continue
-        # Split on commas and strip whitespace
-        new_flags = ensure_str_list(str(flags_str))
         flags = ensure_str_list(record.setdefault('flags', []))
-        for new_flag in new_flags:
+        for new_flag in transcript_flags:
             if new_flag not in flags:
                 flags.append(new_flag)
         record['flags'] = flags
@@ -762,11 +767,11 @@ def add_transcript_flags(variant_sources, transcript_flags_df):
 
         for key, label in label_map.items():
             transcript = record.get(key)
-            flags_str = lookup.get(transcript)
-            if not flags_str:
+            transcript_flags = lookup.get(transcript)
+            if not transcript_flags:
                 continue
 
-            for flag in ensure_str_list(str(flags_str)):
+            for flag in transcript_flags:
                 new_flag = f'{flag} ({label})'
                 if new_flag not in flags:
                     flags.append(new_flag)
@@ -780,12 +785,13 @@ def get_variant_flags(variant_sources):
         raw_flags = item.get('flags')
         if not raw_flags:  # skips None and ''
             continue
+        unique_flags = list(dict.fromkeys(f for f in ensure_str_list(raw_flags) if f))
         # create record, removing dupes from flags list
         flags.append(
             {
                 'variant': item['key'],
                 'variantType': item['variantType'],
-                'flags': list(set([f for f in ensure_str_list(raw_flags) if f])),
+                'flags': unique_flags,
             }
         )
         item.pop('flags', None)  # remove after extraction

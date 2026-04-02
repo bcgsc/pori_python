@@ -468,6 +468,20 @@ class TestFlagUtilities:
         result = add_transcript_flags(variant_sources, df)
         assert set(result[0]['flags']) == {'flag_c', 'flag_d'}
 
+    def test_add_transcript_flags_basic_accumulates_duplicate_transcript_rows(self):
+        variant_sources = [
+            {'transcript': 'T5', 'key': 'k5', 'variantType': 'mut'},
+        ]
+        df = pd.DataFrame(
+            {
+                'gene': ['ENSG1', 'ENSG2'],
+                'transcript': ['T5', 'T5'],
+                'flags': ['flag_a', 'flag_b, flag_c'],
+            }
+        )
+        result = add_transcript_flags(variant_sources, df)
+        assert result[0]['flags'] == ['flag_a', 'flag_b', 'flag_c']
+
     def test_add_transcript_flags_fusions_tags_cterm_flags(self):
         variant_sources = [
             {
@@ -506,6 +520,25 @@ class TestFlagUtilities:
         flags = result[0]['flags']
         assert 'nterm_flag (nterm)' in flags
 
+    def test_add_transcript_flags_fusions_accumulates_duplicate_transcript_rows(self):
+        variant_sources = [
+            {
+                'key': 'f2',
+                'variantType': 'fusion',
+                'ctermTranscript': 'CT2',
+                'ntermTranscript': 'NT2',
+            }
+        ]
+        df = pd.DataFrame(
+            {
+                'gene': ['ENSG3', 'ENSG4'],
+                'transcript': ['CT2', 'CT2'],
+                'flags': ['cterm_flag_a', 'cterm_flag_b'],
+            }
+        )
+        result = add_transcript_flags(variant_sources, df)
+        assert result[0]['flags'] == ['cterm_flag_a (cterm)', 'cterm_flag_b (cterm)']
+
     def test_get_variant_flags_converts_string_flags_to_records(self):
         variants = [
             {'key': 'k1', 'variantType': 'mut', 'flags': 'foo'},
@@ -520,6 +553,19 @@ class TestFlagUtilities:
         ]
         out = get_variant_flags(variants)
         assert any(item['variant'] == 'k2' and set(item['flags']) == {'bar'} for item in out)
+
+    def test_get_variant_flags_preserves_input_flag_order_when_deduplicating(self):
+        variants = [
+            {'key': 'k5', 'variantType': 'mut', 'flags': ['flag_b', 'flag_a', 'flag_b', 'flag_c']},
+        ]
+        out = get_variant_flags(variants)
+        assert out == [
+            {
+                'variant': 'k5',
+                'variantType': 'mut',
+                'flags': ['flag_b', 'flag_a', 'flag_c'],
+            }
+        ]
 
     def test_get_variant_flags_skips_null_flags(self):
         variants = [

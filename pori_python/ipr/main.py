@@ -72,6 +72,27 @@ def timestamp() -> str:
     return datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 
 
+def load_transcript_flags(path: str) -> pd.DataFrame:
+    transcript_flags_df = pd.read_csv(
+        path,
+        sep='\t',
+        names=['gene', 'transcript', 'flags'],
+        dtype=str,
+        keep_default_na=False,
+    )
+    if transcript_flags_df.empty:
+        return transcript_flags_df
+
+    first_row = transcript_flags_df.iloc[0]
+    if [str(first_row[col]).strip().lower() for col in ['gene', 'transcript', 'flags']] == [
+        'gene',
+        'transcript',
+        'flags',
+    ]:
+        transcript_flags_df = transcript_flags_df.iloc[1:].reset_index(drop=True)
+    return transcript_flags_df
+
+
 def command_interface() -> None:
     """Parse the ipr command from user input based on usage pattern.
     Parsed arguments are used to call the ipr_report() function.
@@ -398,9 +419,7 @@ def ipr_report(
 
     transcript_flags_df = None
     if transcript_flags:
-        transcript_flags_df = pd.read_csv(
-            transcript_flags, sep='\t', names=['gene', 'transcript', 'flags']
-        )
+        transcript_flags_df = load_transcript_flags(transcript_flags)
 
     # INPUT VARIANTS VALIDATION & PREPROCESSING (OBSERVED BIOMARKERS)
     signature_variants: List[IprSignatureVariant] = preprocess_signature_variants(
