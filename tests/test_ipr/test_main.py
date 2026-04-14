@@ -31,26 +31,26 @@ def get_test_file(name: str) -> str:
 class TestLoadTranscriptFlags:
     def test_accepts_file_without_header(self, tmp_path) -> None:
         transcript_flags_file = tmp_path / 'transcript_flags.tsv'
-        transcript_flags_file.write_text('ENSG1\tENST1\tflag_a\nENSG2\tENST2\tflag_b, flag_c\n')
+        transcript_flags_file.write_text('ENST1\tflag_a\nENST2\tflag_b, flag_c\n')
 
         result = load_transcript_flags(str(transcript_flags_file))
 
         assert result.to_dict(orient='records') == [
-            {'gene': 'ENSG1', 'transcript': 'ENST1', 'flags': 'flag_a'},
-            {'gene': 'ENSG2', 'transcript': 'ENST2', 'flags': 'flag_b, flag_c'},
+            {'transcript': 'ENST1', 'flags': 'flag_a'},
+            {'transcript': 'ENST2', 'flags': 'flag_b, flag_c'},
         ]
 
     def test_accepts_file_with_header(self, tmp_path) -> None:
         transcript_flags_file = tmp_path / 'transcript_flags.tsv'
         transcript_flags_file.write_text(
-            'gene\ttranscript\tflags\nENSG1\tENST1\tflag_a\nENSG2\tENST2\tflag_b\n'
+            'transcript\tflags\nENST1\tflag_a\nENST2\tflag_b\n'
         )
 
         result = load_transcript_flags(str(transcript_flags_file))
 
         assert result.to_dict(orient='records') == [
-            {'gene': 'ENSG1', 'transcript': 'ENST1', 'flags': 'flag_a'},
-            {'gene': 'ENSG2', 'transcript': 'ENST2', 'flags': 'flag_b'},
+            {'transcript': 'ENST1', 'flags': 'flag_a'},
+            {'transcript': 'ENST2', 'flags': 'flag_b'},
         ]
 
 
