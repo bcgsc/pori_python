@@ -741,41 +741,42 @@ def ensure_str_list(val):
 
 def add_transcript_flags(variant_sources, transcript_flags_df):
     lookup = {}
+
+    # create transcript:flags dict from input df
     for _, row in transcript_flags_df[['transcript', 'flags']].dropna(subset=['transcript']).iterrows():
         transcript = row['transcript']
-        transcript_flags = lookup.setdefault(transcript, [])
+        flags = lookup.setdefault(transcript, [])
         for flag in ensure_str_list(str(row['flags'])):
-            if flag not in transcript_flags:
-                transcript_flags.append(flag)
-    import pdb; pdb.set_trace()
+            if flag not in flags:
+                flags.append(flag)
 
-    for record in variant_sources:
-        transcript_flags = lookup.get(record.get('transcript'))
-        if not transcript_flags:
-            continue
-        flags = ensure_str_list(record.setdefault('flags', []))
-        for new_flag in transcript_flags:
-            if new_flag not in flags:
-                flags.append(new_flag)
-        record['flags'] = flags
-
-    # fusions: check both transcripts for flags and add to the same record
+    # for fusions: check both transcripts for flags and add to the same record
     label_map = {'ctermTranscript': 'cterm', 'ntermTranscript': 'nterm'}
 
+    # single pass: add plain transcript flags and labeled fusion transcript flags
     for record in variant_sources:
         flags = ensure_str_list(record.setdefault('flags', []))
 
-        for key, label in label_map.items():
-            transcript = record.get(key)
-            transcript_flags = lookup.get(transcript)
-            if not transcript_flags:
-                continue
+        if record.get('transcript'):
+            # non-fusion: plain transcript only, no cterm/nterm
+            transcript_flags = lookup.get(record['transcript'])
+            if transcript_flags:
+                for new_flag in transcript_flags:
+                    if new_flag not in flags:
+                        flags.append(new_flag)
+        else:
+            # fusion: check cterm/nterm transcripts with labels
+            for key, label in label_map.items():
+                transcript = record.get(key)
+                transcript_flags = lookup.get(transcript)
+                if not transcript_flags:
+                    continue
+                for flag in transcript_flags:
+                    new_flag = f'{flag} ({label})'
+                    if new_flag not in flags:
+                        flags.append(new_flag)
 
-            for flag in transcript_flags:
-                new_flag = f'{flag} ({label})'
-                if new_flag not in flags:
-                    flags.append(new_flag)
-                record['flags'] = flags
+        record['flags'] = flags
     return variant_sources
 
 
