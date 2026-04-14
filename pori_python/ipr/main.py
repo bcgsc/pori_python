@@ -377,6 +377,7 @@ def ipr_report(
         include_nonspecific_template: if include_ipr_variant_text is True, if no template match is found use template-nonspecific variant comment
         allow_partial_matches: allow matches to statements where not all conditions are satisfied
         tmb_high: mutation burden threshold/cutoff to qualify as 'high'
+        transcript_flags: path to a tsv file with two columns (no header) of transcript identifiers and flags to be added to any observed variants with matching transcript in the report upload. If header is included, it will be skipped. Flags will be added to any observed variants with matching transcript in the report upload; so, the same transcript identifiers should be used in this csv as are used in the input variants.
     Returns:
         ipr_conn.upload_report return dictionary
     """
