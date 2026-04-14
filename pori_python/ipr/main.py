@@ -567,19 +567,6 @@ def ipr_report(
         gkb_matches, all_variants, kb_matched_sections['kbMatches']
     )
 
-    variant_sources = [
-        v
-        for source in [
-            [v for v in small_mutations if v['gene'] in genes_with_variants],
-            [v for v in copy_variants if v['gene'] in genes_with_variants],
-            [v for v in expression_variants if v['gene'] in genes_with_variants],
-            signature_variants,
-            filter_structural_variants(structural_variants, gkb_matches, gene_information),
-        ]
-        for v in source
-    ]
-    observed_vars_section = get_variant_flags(variant_sources)
-
     # OUTPUT CONTENT
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
@@ -611,9 +598,26 @@ def ipr_report(
             'variantCounts': variant_counts,
             'analystComments': comments,
             'therapeuticTarget': targets,
-            'observedVariantAnnotations': observed_vars_section,
         }
     )
+
+    # ADD OBSERVED VARIANT ANNOTATIONS SECTION
+    annotatable_variant_sources = [
+        v
+        for source in [
+            output[section]
+            for section in [
+                'smallMutations',
+                'copyVariants',
+                'expressionVariants',
+                'structuralVariants',
+            ]
+            if section in output
+        ]
+        for v in source
+    ]
+
+    output['observedVariantAnnotations'] = get_variant_flags(annotatable_variant_sources)
 
     output.setdefault('images', []).extend(select_expression_plots(gkb_matches, all_variants))
 

@@ -743,7 +743,9 @@ def add_transcript_flags(variant_sources, transcript_flags_df):
     lookup = {}
 
     # create transcript:flags dict from input df
-    for _, row in transcript_flags_df[['transcript', 'flags']].dropna(subset=['transcript']).iterrows():
+    for _, row in (
+        transcript_flags_df[['transcript', 'flags']].dropna(subset=['transcript']).iterrows()
+    ):
         transcript = row['transcript']
         flags = lookup.setdefault(transcript, [])
         for flag in ensure_str_list(str(row['flags'])):
