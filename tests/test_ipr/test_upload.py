@@ -35,11 +35,11 @@ def get_test_transcript_flags(json_contents) -> pd.DataFrame:
     """creates a dataframe of transcript flags for test purposes, based on the input json contents"""
     transcript_flags = []
     for item in json_contents['structuralVariants']:
-        transcript_flags.append((item['gene1'], item['ntermTranscript'], 'TRANSCRIPT FLAG'))
-        transcript_flags.append((item['gene2'], item['ctermTranscript'], 'TRANSCRIPT FLAG'))
+        transcript_flags.append((item['ntermTranscript'], 'TRANSCRIPT FLAG'))
+        transcript_flags.append((item['ctermTranscript'], 'TRANSCRIPT FLAG'))
     for item in json_contents['smallMutations']:
-        transcript_flags.append((item['gene'], item['transcript'], 'TRANSCRIPT FLAG'))
-    df = pd.DataFrame(transcript_flags, columns=['gene', 'transcript', 'flags'])
+        transcript_flags.append((item['transcript'], 'TRANSCRIPT FLAG'))
+    df = pd.DataFrame(transcript_flags, columns=['transcript', 'flags'])
     df = df.drop_duplicates()
     return df
 

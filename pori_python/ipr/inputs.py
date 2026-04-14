@@ -171,7 +171,7 @@ SV_OPTIONAL = [
 SIGV_REQ = ['signatureName', 'variantTypeName']
 SIGV_COSMIC = ['signature']  # 1st element used as signatureName key
 SIGV_HLA = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2']
-SIGV_OPTIONAL = ['displayName', 'flags']
+SIGV_OPTIONAL = ['displayName']
 SIGV_KEY = SIGV_REQ[:]
 
 

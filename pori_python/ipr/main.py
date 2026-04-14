@@ -76,7 +76,7 @@ def load_transcript_flags(path: str) -> pd.DataFrame:
     transcript_flags_df = pd.read_csv(
         path,
         sep='\t',
-        names=['gene', 'transcript', 'flags'],
+        names=['transcript', 'flags'],
         dtype=str,
         keep_default_na=False,
     )
@@ -84,8 +84,7 @@ def load_transcript_flags(path: str) -> pd.DataFrame:
         return transcript_flags_df
 
     first_row = transcript_flags_df.iloc[0]
-    if [str(first_row[col]).strip().lower() for col in ['gene', 'transcript', 'flags']] == [
-        'gene',
+    if [str(first_row[col]).strip().lower() for col in ['transcript', 'flags']] == [
         'transcript',
         'flags',
     ]:
@@ -185,7 +184,7 @@ def command_interface() -> None:
         '--transcript_flags',
         required=False,
         type=file_path,
-        help='TSV without header, with columns: gene, transcript, comma-separated list of flags',
+        help='TSV without header, with two columns: transcripts and flags (comma-separated list of flags eg "MANE"). If header is included, it will be skipped. Flags will be added to any observed variants with matching transcript in the report upload; so, the same transcript identifiers should be used in this csv as are used in the input variants.',
     )
     args = parser.parse_args()
 
@@ -604,7 +603,7 @@ def ipr_report(
                 for s in filter_structural_variants(
                     structural_variants, gkb_matches, gene_information
                 )
-            ],  # TODO NB are we omitting non-matched sv's?
+            ],
             'signatureVariants': [trim_empty_values(s) for s in signature_variants],
             'genes': gene_information,
             'genomicAlterationsIdentified': key_alterations,
@@ -614,9 +613,6 @@ def ipr_report(
             'observedVariantAnnotations': observed_vars_section,
         }
     )
-
-    # TODO there are 13 outliers in the test data; if even only three are matched, why are only those three
-    # shown in the expression section? shouldn't we be seeing the non-kbmatched vars there as well?
 
     output.setdefault('images', []).extend(select_expression_plots(gkb_matches, all_variants))
 
