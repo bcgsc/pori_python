@@ -746,7 +746,7 @@ def add_transcript_flags(variant_sources, transcript_flags_df):
      - For non-fusion records with a 'transcript' field, add flags directly based on that field.
      - For fusion records without a 'transcript' field but with 'ctermTranscript' and
         'ntermTranscript' fields, add flags based on both transcripts with appropriate labeling
-     """
+    """
     lookup = {}
 
     # create transcript:flags dict from input df

@@ -42,9 +42,7 @@ class TestLoadTranscriptFlags:
 
     def test_accepts_file_with_header(self, tmp_path) -> None:
         transcript_flags_file = tmp_path / 'transcript_flags.tsv'
-        transcript_flags_file.write_text(
-            'transcript\tflags\nENST1\tflag_a\nENST2\tflag_b\n'
-        )
+        transcript_flags_file.write_text('transcript\tflags\nENST1\tflag_a\nENST2\tflag_b\n')
 
         result = load_transcript_flags(str(transcript_flags_file))
 

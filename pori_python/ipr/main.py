@@ -184,7 +184,7 @@ def command_interface() -> None:
         '--transcript_flags',
         required=False,
         type=file_path,
-        help='TSV without header, with two columns: transcripts and flags (comma-separated list of flags eg "MANE"). If header is included, it will be skipped. Flags will be added to any observed variants with matching transcript in the report upload; so, the same transcript identifiers should be used in this csv as are used in the input variants.',
+        help='TSV without header, with two columns: transcripts and flags (comma-separated list of flags eg "MANE"). If header is included, it will be skipped. Matching uses direct string comparison, so transcript identifiers must match exactly, including version numbers (e.g., if input variants use ENST00000390477.1, this file must also use ENST00000390477.1, not ENST00000390477).',
     )
     args = parser.parse_args()
 
@@ -377,7 +377,7 @@ def ipr_report(
         include_nonspecific_template: if include_ipr_variant_text is True, if no template match is found use template-nonspecific variant comment
         allow_partial_matches: allow matches to statements where not all conditions are satisfied
         tmb_high: mutation burden threshold/cutoff to qualify as 'high'
-        transcript_flags: path to a tsv file with two columns (no header) of transcript identifiers and flags to be added to any observed variants with matching transcript in the report upload. If header is included, it will be skipped. Flags will be added to any observed variants with matching transcript in the report upload; so, the same transcript identifiers should be used in this csv as are used in the input variants.
+        transcript_flags: path to a tsv file with two columns (no header) of transcript identifiers and flags to be added to any observed variants with matching transcript in the report upload. If header is included, it will be skipped. Matching uses direct string comparison, so transcript identifiers must match exactly, including version numbers (e.g., if input variants use ENST00000390477.1, this file must also use ENST00000390477.1, not ENST00000390477).
     Returns:
         ipr_conn.upload_report return dictionary
     """
