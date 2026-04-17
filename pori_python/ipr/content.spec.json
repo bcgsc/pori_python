@@ -892,6 +892,102 @@
             "example": "POG",
             "type": "string"
         },
+        "seqQC": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "reads": {
+                        "description": "Number of reads",
+                        "example": "2534M",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "bioQC": {
+                        "description": "Biological QC status",
+                        "example": "passed",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "labQC": {
+                        "description": "Lab QC status",
+                        "example": "passed",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sample": {
+                        "description": "Sample identifier, e.g. Tumour DNA, Constitutional DNA",
+                        "example": "Tumour DNA",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "library": {
+                        "description": "Library identifier",
+                        "example": "LIB0001",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "coverage": {
+                        "description": "Sequencing coverage",
+                        "example": "80x",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "inputNg": {
+                        "description": "Input amount in nanograms",
+                        "example": "500",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "inputUg": {
+                        "description": "Input amount in micrograms",
+                        "example": "0.5",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "protocol": {
+                        "description": "Sequencing protocol",
+                        "example": "WGS",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "sampleName": {
+                        "description": "Full sample name",
+                        "example": "SAMPLE1-FF-1",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "duplicateReadsPerc": {
+                        "description": "Percentage of duplicate reads",
+                        "example": "12.3",
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                }
+            }
+        },
         "smallMutations": {
             "default": [],
             "items": {
