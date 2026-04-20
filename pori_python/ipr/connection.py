@@ -133,7 +133,6 @@ class IprConnection:
         if not has_project_access:
             raise Exception(f'User has no permission to create report in project {project_name}')
 
-
     def upload_report(
         self,
         content: Dict,
