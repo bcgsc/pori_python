@@ -152,7 +152,7 @@ def command_interface() -> None:
     )
     parser.add_argument(
         '--mins_to_wait',
-        default=5,
+        default=10,
         action='store',
         help='is using reports-async, number of minutes to wait before throwing error',
     )
@@ -337,7 +337,7 @@ def ipr_report(
     match_germline: bool = False,
     custom_kb_match_filter: Optional[Callable] = None,
     async_upload: bool = False,
-    mins_to_wait: int = 5,
+    mins_to_wait: int = 10,
     include_ipr_variant_text: bool = True,
     include_nonspecific_disease: bool = False,
     include_nonspecific_project: bool = False,
@@ -395,6 +395,10 @@ def ipr_report(
         ipr_conn = IprConnection(username, password, ipr_url)
     else:
         logger.warning('No ipr_url given')
+
+    # Verify upload permission before doing any expensive processing
+    if ipr_upload and ipr_conn:
+        ipr_conn.check_upload_permission(content['project'])
 
     if validate_json:
         if not ipr_conn:
