@@ -796,6 +796,46 @@ def extend_with_default(validator_class):
 DefaultValidatingDraft7Validator = extend_with_default(jsonschema.Draft7Validator)
 
 
+def normalize_seqqc(content: Dict) -> Dict:
+    """
+    Normalize seqQC field names from production report format to schema format.
+    
+    Maps inconsistent casing and underscores in field names to match content.spec.json requirements.
+    For example: 'Reads' -> 'reads', 'Sample_Name' -> 'sampleName', etc.
+    
+    Args:
+        content: Report content dictionary that may contain seqQC array
+        
+    Returns:
+        The content dictionary with seqQC fields normalized in-place
+    """
+    # Field name mapping from production/legacy format to schema format
+    field_mapping = {
+        'Reads': 'reads',
+        'Sample': 'sample',
+        'Library': 'library',
+        'Coverage': 'coverage',
+        'Input_ng': 'inputNg',
+        'Input_ug': 'inputUg',
+        'Protocol': 'protocol',
+        'Sample Name': 'sampleName',
+        'Duplicate_Reads_Perc': 'duplicateReadsPerc',
+    }
+    
+    if 'seqQC' in content and isinstance(content['seqQC'], list):
+        for item in content['seqQC']:
+            # Create a new dict with normalized keys
+            normalized_item = {}
+            for old_key, value in item.items():
+                # Use mapped key if it exists, otherwise keep original
+                new_key = field_mapping.get(old_key, old_key)
+                normalized_item[new_key] = value
+            # Replace the item with normalized version
+            content['seqQC'][content['seqQC'].index(item)] = normalized_item
+    
+    return content
+
+
 def validate_report_content(content: Dict, schema_file: str = SPECIFICATION) -> None:
     """
     Validate a report content input JSON object against the schema specification

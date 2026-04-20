@@ -17,6 +17,7 @@ from pori_python.ipr.inputs import (
     check_comparators,
     check_variant_links,
     create_graphkb_sv_notation,
+    normalize_seqqc,
     preprocess_copy_variants,
     preprocess_cosmic,
     preprocess_expression_variants,
@@ -558,3 +559,117 @@ def test_valid_json_inputs(example_name: str):
     with open(os.path.join(DATA_DIR, 'json_examples', f'{example_name}.json'), 'r') as fh:
         content = json.load(fh)
     validate_report_content(content)
+
+
+class TestNormalizeSeqQC:
+    """Test seqQC field name normalization from production format to schema format."""
+
+    def test_normalize_seqqc_production_format(self):
+        """Test normalization of production report field names."""
+        content = {
+            'seqQC': [
+                {
+                    'Reads': '2407M',
+                    'Sample': 'Tumour DNA',
+                    'Library': 'LIB0001',
+                    'Coverage': '96X',
+                    'Input_ng': 400,
+                    'Input_ug': '',
+                    'Protocol': 'Genome Shotgun FFPE 4.2',
+                    'Sample Name': 'SAMPLE-T-01',
+                    'bioQC': 'Passed',
+                    'labQC': 'Approved',
+                    'Duplicate_Reads_Perc': 18,
+                }
+            ]
+        }
+
+        result = normalize_seqqc(content)
+
+        assert result['seqQC'][0]['reads'] == '2407M'
+        assert result['seqQC'][0]['sample'] == 'Tumour DNA'
+        assert result['seqQC'][0]['library'] == 'LIB0001'
+        assert result['seqQC'][0]['coverage'] == '96X'
+        assert result['seqQC'][0]['inputNg'] == 400
+        assert result['seqQC'][0]['inputUg'] == ''
+        assert result['seqQC'][0]['protocol'] == 'Genome Shotgun FFPE 4.2'
+        assert result['seqQC'][0]['sampleName'] == 'SAMPLE-T-01'
+        assert result['seqQC'][0]['bioQC'] == 'Passed'
+        assert result['seqQC'][0]['labQC'] == 'Approved'
+        assert result['seqQC'][0]['duplicateReadsPerc'] == 18
+        # Old keys should be gone
+        assert 'Reads' not in result['seqQC'][0]
+        assert 'Sample' not in result['seqQC'][0]
+
+    def test_normalize_seqqc_already_normalized(self):
+        """Test that already-normalized field names are preserved."""
+        content = {
+            'seqQC': [
+                {
+                    'reads': '1200M',
+                    'sample': 'Constitutional DNA',
+                    'library': 'LIB0002',
+                    'coverage': '40x',
+                    'inputNg': '300',
+                    'protocol': 'WGS',
+                    'sampleName': 'SAMPLE-N-01',
+                    'bioQC': 'passed',
+                    'labQC': 'passed',
+                    'duplicateReadsPerc': '8.1',
+                }
+            ]
+        }
+
+        result = normalize_seqqc(content)
+
+        # All normalized keys should still exist with same values
+        assert result['seqQC'][0]['reads'] == '1200M'
+        assert result['seqQC'][0]['sample'] == 'Constitutional DNA'
+        assert result['seqQC'][0]['inputNg'] == '300'
+
+    def test_normalize_seqqc_no_seqqc_field(self):
+        """Test that content without seqQC is unchanged."""
+        content = {
+            'patientId': 'TEST001',
+            'project': 'TEST',
+        }
+
+        result = normalize_seqqc(content)
+
+        assert result == content
+        assert 'seqQC' not in result
+
+    def test_normalize_seqqc_empty_seqqc(self):
+        """Test that empty seqQC array is handled."""
+        content = {'seqQC': []}
+
+        result = normalize_seqqc(content)
+
+        assert result['seqQC'] == []
+
+    def test_normalize_seqqc_multiple_items(self):
+        """Test normalization of multiple seqQC items."""
+        content = {
+            'seqQC': [
+                {
+                    'Reads': '2534M',
+                    'Sample': 'Tumour DNA',
+                    'Duplicate_Reads_Perc': 12.3,
+                },
+                {
+                    'Reads': '1200M',
+                    'Sample': 'Constitutional DNA',
+                    'Duplicate_Reads_Perc': 8.1,
+                },
+            ]
+        }
+
+        result = normalize_seqqc(content)
+
+        assert len(result['seqQC']) == 2
+        assert result['seqQC'][0]['reads'] == '2534M'
+        assert result['seqQC'][0]['sample'] == 'Tumour DNA'
+        assert result['seqQC'][0]['duplicateReadsPerc'] == 12.3
+        assert result['seqQC'][1]['reads'] == '1200M'
+        assert result['seqQC'][1]['sample'] == 'Constitutional DNA'
+        assert result['seqQC'][1]['duplicateReadsPerc'] == 8.1

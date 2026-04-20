@@ -27,6 +27,7 @@ from .constants import TMB_SIGNATURE_HIGH_THRESHOLD
 from .inputs import (
     check_comparators,
     check_variant_links,
+    normalize_seqqc,
     preprocess_copy_variants,
     preprocess_cosmic,
     preprocess_expression_variants,
@@ -380,6 +381,7 @@ def ipr_report(
         return ipr_result
 
     # validate the JSON content follows the specification
+    normalize_seqqc(content)
     try:
         validate_report_content(content)
     except jsonschema.exceptions.ValidationError as err:
