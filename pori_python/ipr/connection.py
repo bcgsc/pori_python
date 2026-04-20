@@ -98,8 +98,7 @@ class IprConnection:
 
         Fetches all projects and the current user info (including groups and
         projects) up front. Checks for admin, manager, create report access,
-        all projects access, and project membership. Creates the project if
-        it does not yet exist.
+        all projects access, and project membership.
         """
         projects = self.get('project')
         project_exists = any(p['name'] == project_name for p in projects)
@@ -134,8 +133,6 @@ class IprConnection:
         if not has_project_access:
             raise Exception(f'User has no permission to create report in project {project_name}')
 
-        if not project_exists and can_create_report and has_project_access:
-            self.post('project', {'name': project_name})
 
     def upload_report(
         self,

@@ -175,20 +175,6 @@ class TestCheckUploadPermission:
 
         conn.post.assert_not_called()
 
-    def test_admin_creates_missing_project(self):
-        conn = IprConnection('user', 'pass')
-        conn.get = mock.MagicMock(
-            side_effect=[
-                [{'name': 'OTHER'}],
-                self._user_response(groups=['admin'], projects=[]),
-            ]
-        )
-        conn.post = mock.MagicMock()
-
-        conn.check_upload_permission('TEST')
-
-        conn.post.assert_called_once_with('project', {'name': 'TEST'})
-
     def test_all_projects_access_without_project_membership(self):
         conn = IprConnection('user', 'pass')
         conn.get = mock.MagicMock(
@@ -204,19 +190,3 @@ class TestCheckUploadPermission:
         conn.check_upload_permission('TEST')
 
         conn.post.assert_not_called()
-
-    def test_creates_missing_project_for_all_projects_access_user(self):
-        conn = IprConnection('user', 'pass')
-        conn.get = mock.MagicMock(
-            side_effect=[
-                [{'name': 'OTHER'}],
-                self._user_response(
-                    groups=['create report access', 'all projects access'], projects=[]
-                ),
-            ]
-        )
-        conn.post = mock.MagicMock()
-
-        conn.check_upload_permission('TEST')
-
-        conn.post.assert_called_once_with('project', {'name': 'TEST'})
