@@ -129,14 +129,10 @@ class IprConnection:
         )
 
         if not can_create_report:
-            raise Exception(
-                f'User does not have report creation permission'
-            )
+            raise Exception(f'User does not have report creation permission')
 
         if not has_project_access:
-            raise Exception(
-                f'User has no permission to create report in project {project_name}'
-            )
+            raise Exception(f'User has no permission to create report in project {project_name}')
 
     def upload_report(
         self,

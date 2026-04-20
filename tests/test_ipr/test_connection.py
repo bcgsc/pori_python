@@ -126,7 +126,9 @@ class TestCheckUploadPermission:
         )
         conn.post = mock.MagicMock()
 
-        with pytest.raises(Exception, match='User has no permission to create report in project TEST'):
+        with pytest.raises(
+            Exception, match='User has no permission to create report in project TEST'
+        ):
             conn.check_upload_permission('TEST')
 
         conn.post.assert_not_called()
