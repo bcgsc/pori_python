@@ -60,6 +60,7 @@ COPY_OPTIONAL = [
     'comments',
     'library',
     'germline',
+    'flags',
 ]
 
 SMALL_MUT_REQ = ['gene', 'proteinChange']
@@ -98,6 +99,7 @@ SMALL_MUT_OPTIONAL = [
     'tumourRefCount',
     'tumourRefCopies',
     'zygosity',
+    'flags',
 ]
 
 EXP_REQ = ['gene', 'kbCategory']
@@ -130,6 +132,7 @@ EXP_OPTIONAL = [
     'rnaReads',
     'rpkm',
     'tpm',
+    'flags',
 ]
 
 SV_REQ = [
@@ -162,6 +165,7 @@ SV_OPTIONAL = [
     'tumourDepth',
     'germline',
     'mavis_product_id',
+    'flags',
 ]
 
 SIGV_REQ = ['signatureName', 'variantTypeName']
@@ -278,6 +282,7 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprSmallMutationVar
         return tuple(['small mutation'] + key_vals)
 
     result = validate_variant_rows(rows, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
+
     if not result:
         return []
 
@@ -336,6 +341,7 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprExprVariant]
         return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
     variants = validate_variant_rows(rows, EXP_REQ, EXP_OPTIONAL, row_key)
+
     result = [cast(IprExprVariant, var) for var in variants]
     float_columns = [
         col
@@ -371,7 +377,6 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprExprVariant]
 
     if errors:
         raise ValueError(f'{len(errors)} Invalid expression variants in file')
-
     return result
 
 
