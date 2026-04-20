@@ -124,7 +124,7 @@ class IprConnection:
 
             if self.username not in project_users[content['project']]:
                 raise Exception(
-                    f'User have no permission to create report in project {content["project"]}'
+                    f'User has no permission to create report in project {content["project"]}'
                 )
 
             if ignore_extra_fields:
