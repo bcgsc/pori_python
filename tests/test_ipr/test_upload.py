@@ -368,6 +368,18 @@ class TestCreateReport:
         assert async_section["comments"]
         assert sync_section["comments"] == async_section["comments"]
 
+    def test_seqqc_loaded(self, loaded_reports) -> None:
+        """Test that seqQC data is present in the loaded report."""
+        sync_report = loaded_reports["sync"][1]["reports"][0]
+        assert "seqQC" in sync_report
+        assert len(sync_report["seqQC"]) == 2
+        samples = [item["sample"] for item in sync_report["seqQC"]]
+        assert "Tumour DNA" in samples
+        assert "Constitutional DNA" in samples
+        async_report = loaded_reports["async"][1]["reports"][0]
+        assert "seqQC" in async_report
+        assert len(async_report["seqQC"]) == 2
+
     def test_sample_info_loaded(self, loaded_reports) -> None:
         sync_section = get_section(loaded_reports["sync"], "sample-info")
         async_section = get_section(loaded_reports["async"], "sample-info")

@@ -893,6 +893,7 @@
             "type": "string"
         },
         "seqQC": {
+            "default": [],
             "type": "array",
             "items": {
                 "type": "object",
