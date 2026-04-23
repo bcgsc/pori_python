@@ -654,7 +654,7 @@ def ipr_report(
     if always_write_output_json:
         logger.info(f'Writing IPR upload json to: {output_json_path}')
         with open(output_json_path, 'w') as fh:
-            fh.write(json.dumps(output))
+            json.dump(output, fh, indent=4)
 
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
