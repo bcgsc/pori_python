@@ -142,12 +142,13 @@ def test_tumour_supressors(conn):
 def test_cancer_genes(conn):
     result = get_cancer_genes(conn)
     names = {row['name'] for row in result}
+    # cancer_genes includes oncogenes, tumour suppressors, and cancer gene list genes, so all should be present
     for gene in CANONICAL_CG:
         assert gene in names
     for gene in CANONICAL_TS:
-        assert gene not in names
+        assert gene in names
     for gene in CANONICAL_ONCOGENES:
-        assert gene not in names
+        assert gene in names
 
 
 @pytest.mark.skipif(
