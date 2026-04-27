@@ -88,11 +88,24 @@ def get_cancer_genes(conn: GraphKBConnection) -> List[Ontology]:
         conn: the graphkb connection object
 
     Returns:
-        gene (Feature) records
+        List of gene (Feature) records
     """
-    return _get_tumourigenesis_genes_list(
-        conn, CANCER_GENE, [ONCOKB_SOURCE_NAME, TSO500_SOURCE_NAME]
+
+    def unique_genes(genes: List[Ontology]) -> List[Ontology]:
+        """Use @rid to get unique genes from a list of gene records."""
+        unique = {}
+        for gene in genes:
+            if gene['@rid'] not in unique:
+                unique[gene['@rid']] = gene
+        return list(unique.values())
+
+    gkb_cancer_genes = (
+        _get_tumourigenesis_genes_list(conn, CANCER_GENE, [ONCOKB_SOURCE_NAME, TSO500_SOURCE_NAME])
+        + get_oncokb_tumour_supressors(conn)
+        + get_oncokb_oncogenes(conn)
     )
+
+    return sorted(unique_genes(gkb_cancer_genes), key=lambda g: g['displayName'])
 
 
 def get_therapeutic_associated_genes(graphkb_conn: GraphKBConnection) -> List[Ontology]:
