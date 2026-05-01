@@ -8,7 +8,13 @@ import os
 import re
 import time
 from datetime import datetime
-from pyrate_limiter import Duration, Limiter, Rate
+from pyrate_limiter import Duration, Limiter
+
+try:
+    from pyrate_limiter import Rate
+except ImportError:
+    from pyrate_limiter import RequestRate as Rate
+
 from requests_cache import CacheMixin
 from requests_ratelimiter import LimiterMixin
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
