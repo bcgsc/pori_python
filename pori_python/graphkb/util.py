@@ -22,7 +22,7 @@ from .constants import DEFAULT_LIMIT, TYPES_TO_NOTATION, AA_3to1_MAPPING
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
 
-logger = logging.getLogger("graphkb")
+logger = logging.getLogger('graphkb')
 LIMITER = Limiter(Rate(3, Duration.SECOND))
 
 
@@ -68,7 +68,7 @@ def convert_aa_3to1(three_letter_notation: str) -> str:
         last_match_end = match.end()
 
     result.append(three_letter_notation[last_match_end:])
-    return "".join(result)
+    return ''.join(result)
 
 
 def join_url(base_url: str, *parts) -> str:
@@ -101,11 +101,11 @@ class CachedLimiterSession(LimiterMixin, CachedSession):
 class GraphKBConnection:
     def __init__(
         self,
-        url: str = os.environ.get("GRAPHKB_URL"),
-        username: str = "",
-        password: str = "",
+        url: str = os.environ.get('GRAPHKB_URL'),
+        username: str = '',
+        password: str = '',
         use_global_cache: bool = True,
-        cache_name: str = "",
+        cache_name: str = '',
         only_if_cached: bool = False,
         session: Optional[requests.Session] = None,
         limiter: Limiter = LIMITER,
@@ -121,38 +121,34 @@ class GraphKBConnection:
         """
         session_cls = requests.Session
         if limiter and not use_global_cache:
-            raise NotImplementedError(
-                f"currently rate limiting by default also implements caching"
-            )
+            raise NotImplementedError(f'currently rate limiting by default also implements caching')
         if session is not None:
             if limiter is not None:
-                raise NotImplementedError("cannot add limiter to an existing session")
+                raise NotImplementedError('cannot add limiter to an existing session')
             if use_global_cache:
                 raise NotImplementedError(
-                    "the use_global_cache parameter should not be used with a custom session"
+                    'the use_global_cache parameter should not be used with a custom session'
                 )
             if cache_name:
                 raise NotImplementedError(
-                    "cache_name should not be used with a custom input session"
+                    'cache_name should not be used with a custom input session'
                 )
         if not use_global_cache and cache_name:
-            raise NotImplementedError(
-                "cache_name only applies when use_global_cache is True"
-            )
+            raise NotImplementedError('cache_name only applies when use_global_cache is True')
 
         if use_global_cache:
             if not cache_name:
-                session_kwargs["backend"] = "memory"
+                session_kwargs['backend'] = 'memory'
             else:
-                session_kwargs["cache_name"] = cache_name
-            session_kwargs["allowable_methods"] = ["GET", "POST"]
-            session_kwargs["ignored_parameters"] = ["Authorization"]
-            session_kwargs["cache_control"] = True
+                session_kwargs['cache_name'] = cache_name
+            session_kwargs['allowable_methods'] = ['GET', 'POST']
+            session_kwargs['ignored_parameters'] = ['Authorization']
+            session_kwargs['cache_control'] = True
             session_cls = CachedSession
 
-        if "PYTEST_CURRENT_TEST" not in os.environ:
+        if 'PYTEST_CURRENT_TEST' not in os.environ:
             if limiter:
-                session_kwargs["limiter"] = limiter
+                session_kwargs['limiter'] = limiter
                 session_cls = CachedLimiterSession
 
         if not session:
@@ -167,15 +163,15 @@ class GraphKBConnection:
             status_forcelist=[429, 500, 502, 503, 504],
         )
         self.only_if_cached = only_if_cached
-        self.http.mount("https://", HTTPAdapter(max_retries=retries))
-        self.token = ""
-        self.token_kc = ""
+        self.http.mount('https://', HTTPAdapter(max_retries=retries))
+        self.token = ''
+        self.token_kc = ''
         self.url = url
         self.username = username
         self.password = password
         self.headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
         }
         self.request_count = 0
         self.first_request: Optional[datetime] = None
@@ -198,7 +194,7 @@ class GraphKBConnection:
     def request(
         self,
         endpoint: str,
-        method: str = "GET",
+        method: str = 'GET',
         headers: Optional[dict[str, str]] = None,
         ignore_cache=False,
         force_refresh=False,
@@ -218,9 +214,9 @@ class GraphKBConnection:
             headers = {}
 
         if ignore_cache or force_refresh:
-            headers["Cache-Control"] = "no-cache"
+            headers['Cache-Control'] = 'no-cache'
         elif only_if_cached or self.only_if_cached:
-            headers["Cache-Control"] = "only-if-cached"
+            headers['Cache-Control'] = 'only-if-cached'
         url = join_url(self.url, endpoint)
         self.request_count += 1
         connect_timeout = 7
@@ -386,8 +382,8 @@ class GraphKBConnection:
         result: List[Record] = []
         while True:
             content = self.post(
-                "query",
-                data={**request_body, "limit": limit, "skip": len(result)},
+                'query',
+                data={**request_body, 'limit': limit, 'skip': len(result)},
                 **kwargs,
             )
             records = content['result']
@@ -501,7 +497,9 @@ def stripDisplayName(displayName: str, withRef: bool = True, withRefSeq: bool = 
 
 
 def stringifyVariant(
-    variant: Union[PositionalVariant, ParsedVariant], withRef: bool = True, withRefSeq: bool = True
+    variant: Union[PositionalVariant, ParsedVariant],
+    withRef: bool = True,
+    withRefSeq: bool = True,
 ) -> str:
     """
     Convert variant record to a string representation (displayName/hgvs)
