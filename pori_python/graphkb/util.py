@@ -8,7 +8,9 @@ import os
 import re
 import time
 from datetime import datetime
+from pyrate_limiter import Duration, Limiter, Rate
 from requests_cache import CacheMixin
+from requests_ratelimiter import LimiterMixin
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
 from urllib3.util.retry import Retry
 from urllib.parse import urlsplit
@@ -20,7 +22,8 @@ from .constants import DEFAULT_LIMIT, TYPES_TO_NOTATION, AA_3to1_MAPPING
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
 
-logger = logging.getLogger('graphkb')
+logger = logging.getLogger("graphkb")
+LIMITER = Limiter(Rate(3, Duration.SECOND))
 
 
 def convert_to_rid_list(records: Iterable[Record]) -> List[str]:
@@ -65,7 +68,7 @@ def convert_aa_3to1(three_letter_notation: str) -> str:
         last_match_end = match.end()
 
     result.append(three_letter_notation[last_match_end:])
-    return ''.join(result)
+    return "".join(result)
 
 
 def join_url(base_url: str, *parts) -> str:
@@ -87,18 +90,25 @@ def millis_interval(start: datetime, end: datetime) -> int:
     return millis
 
 
-class CustomSession(CacheMixin, requests.Session):
+class CachedSession(CacheMixin, requests.Session):
+    pass
+
+
+class CachedLimiterSession(LimiterMixin, CachedSession):
     pass
 
 
 class GraphKBConnection:
     def __init__(
         self,
-        url: str = os.environ.get('GRAPHKB_URL'),
-        username: str = '',
-        password: str = '',
+        url: str = os.environ.get("GRAPHKB_URL"),
+        username: str = "",
+        password: str = "",
         use_global_cache: bool = True,
-        cache_name: str = '',
+        cache_name: str = "",
+        only_if_cached: bool = False,
+        session: Optional[requests.Session] = None,
+        limiter: Limiter = LIMITER,
         **session_kwargs,
     ):
         """
@@ -107,26 +117,48 @@ class GraphKBConnection:
         Args:
         - use_global_cache: cache requests across all requests to GKB
         - cache_name: Path or connection URL to the database which stors the requests cache. see https://requests-cache.readthedocs.io/en/v0.6.4/user_guide.html#cache-name
+        - only_if_cached: this will set the cache-control header for all requests to only-if-cached which will raise 504 errors if a request does not exist in the cache already rather than making a new network request
         """
+        session_cls = requests.Session
+        if limiter and not use_global_cache:
+            raise NotImplementedError(
+                f"currently rate limiting by default also implements caching"
+            )
+        if session is not None:
+            if limiter is not None:
+                raise NotImplementedError("cannot add limiter to an existing session")
+            if use_global_cache:
+                raise NotImplementedError(
+                    "the use_global_cache parameter should not be used with a custom session"
+                )
+            if cache_name:
+                raise NotImplementedError(
+                    "cache_name should not be used with a custom input session"
+                )
+        if not use_global_cache and cache_name:
+            raise NotImplementedError(
+                "cache_name only applies when use_global_cache is True"
+            )
+
         if use_global_cache:
             if not cache_name:
-                self.http = CustomSession(
-                    backend='memory',
-                    cache_control=True,
-                    allowable_methods=['GET', 'POST'],
-                    ignored_parameters=['Authorization'],
-                    **session_kwargs,
-                )
+                session_kwargs["backend"] = "memory"
             else:
-                self.http = CustomSession(
-                    cache_name,
-                    cache_control=True,
-                    allowable_methods=['GET', 'POST'],
-                    ignored_parameters=['Authorization'],
-                    **session_kwargs,
-                )
+                session_kwargs["cache_name"] = cache_name
+            session_kwargs["allowable_methods"] = ["GET", "POST"]
+            session_kwargs["ignored_parameters"] = ["Authorization"]
+            session_kwargs["cache_control"] = True
+            session_cls = CachedSession
+
+        if "PYTEST_CURRENT_TEST" not in os.environ:
+            if limiter:
+                session_kwargs["limiter"] = limiter
+                session_cls = CachedLimiterSession
+
+        if not session:
+            self.http = session_cls(**session_kwargs)
         else:
-            self.http = requests.Session(**session_kwargs)
+            self.http = session
         retries = Retry(
             total=100,
             connect=5,
@@ -134,15 +166,16 @@ class GraphKBConnection:
             backoff_factor=5,
             status_forcelist=[429, 500, 502, 503, 504],
         )
-        self.http.mount('https://', HTTPAdapter(max_retries=retries))
-        self.token = ''
-        self.token_kc = ''
+        self.only_if_cached = only_if_cached
+        self.http.mount("https://", HTTPAdapter(max_retries=retries))
+        self.token = ""
+        self.token_kc = ""
         self.url = url
         self.username = username
         self.password = password
         self.headers = {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
+            "Accept": "application/json",
+            "Content-Type": "application/json",
         }
         self.request_count = 0
         self.first_request: Optional[datetime] = None
@@ -165,8 +198,11 @@ class GraphKBConnection:
     def request(
         self,
         endpoint: str,
-        method: str = 'GET',
+        method: str = "GET",
         headers: Optional[dict[str, str]] = None,
+        ignore_cache=False,
+        force_refresh=False,
+        only_if_cached=False,
         **kwargs,
     ) -> Dict:
         """Request wrapper to handle adding common headers and logging.
@@ -178,6 +214,13 @@ class GraphKBConnection:
         Returns:
             dict: the json response as a python dict
         """
+        if headers is None:
+            headers = {}
+
+        if ignore_cache or force_refresh:
+            headers["Cache-Control"] = "no-cache"
+        elif only_if_cached or self.only_if_cached:
+            headers["Cache-Control"] = "only-if-cached"
         url = join_url(self.url, endpoint)
         self.request_count += 1
         connect_timeout = 7
@@ -333,23 +376,19 @@ class GraphKBConnection:
         self,
         request_body: Dict = {},
         paginate: bool = True,
-        ignore_cache: bool = False,
-        force_refresh: bool = False,
         limit: int = DEFAULT_LIMIT,
+        **kwargs,
     ) -> List[Record]:
         """
         Query GraphKB
         """
-        headers = {}
-        if ignore_cache or force_refresh:
-            headers = {'Cache-Control': 'no-cache'}
 
         result: List[Record] = []
         while True:
             content = self.post(
-                'query',
-                data={**request_body, 'limit': limit, 'skip': len(result)},
-                headers=headers,
+                "query",
+                data={**request_body, "limit": limit, "skip": len(result)},
+                **kwargs,
             )
             records = content['result']
             result.extend(records)
