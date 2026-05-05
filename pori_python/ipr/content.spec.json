@@ -202,6 +202,16 @@
                             "number",
                             "null"
                         ]
+                    },
+                    "flags": {
+                        "description": "variant flags",
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
@@ -474,6 +484,16 @@
                             "number",
                             "null",
                             "string"
+                        ]
+                    },
+                    "flags": {
+                        "description": "variant flags",
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": [
+                            "array",
+                            "null"
                         ]
                     }
                 },
@@ -1203,6 +1223,16 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "flags": {
+                        "description": "variant flags",
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
@@ -1385,6 +1415,16 @@
                         "example": 2,
                         "type": [
                             "integer",
+                            "null"
+                        ]
+                    },
+                    "flags": {
+                        "description": "variant flags",
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": [
+                            "array",
                             "null"
                         ]
                     }
