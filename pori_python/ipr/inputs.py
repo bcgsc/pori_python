@@ -804,13 +804,13 @@ DefaultValidatingDraft7Validator = extend_with_default(jsonschema.Draft7Validato
 def normalize_seqqc(content: Dict) -> Dict:
     """
     Normalize seqQC field names from production report format to schema format.
-    
+
     Maps inconsistent casing and underscores in field names to match content.spec.json requirements.
     For example: 'Reads' -> 'reads', 'Sample_Name' -> 'sampleName', etc.
-    
+
     Args:
         content: Report content dictionary that may contain seqQC array
-        
+
     Returns:
         The content dictionary with seqQC fields normalized in-place
     """
@@ -826,7 +826,7 @@ def normalize_seqqc(content: Dict) -> Dict:
         'Sample Name': 'sampleName',
         'Duplicate_Reads_Perc': 'duplicateReadsPerc',
     }
-    
+
     if 'seqQC' in content and isinstance(content['seqQC'], list):
         for item in content['seqQC']:
             # Create a new dict with normalized keys
@@ -837,7 +837,7 @@ def normalize_seqqc(content: Dict) -> Dict:
                 normalized_item[new_key] = value
             # Replace the item with normalized version
             content['seqQC'][content['seqQC'].index(item)] = normalized_item
-    
+
     return content
 
 
