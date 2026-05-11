@@ -971,6 +971,8 @@
                         "example": "500",
                         "type": [
                             "string",
+                            "number",
+                            "integer",
                             "null"
                         ]
                     },
@@ -979,6 +981,8 @@
                         "example": "0.5",
                         "type": [
                             "string",
+                            "number",
+                            "integer",
                             "null"
                         ]
                     },
@@ -1003,6 +1007,8 @@
                         "example": "12.3",
                         "type": [
                             "string",
+                            "number",
+                            "integer",
                             "null"
                         ]
                     }

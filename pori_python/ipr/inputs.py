@@ -806,7 +806,7 @@ def normalize_seqqc(content: Dict) -> Dict:
     Normalize seqQC field names from production report format to schema format.
 
     Maps inconsistent casing and underscores in field names to match content.spec.json requirements.
-    For example: 'Reads' -> 'reads', 'Sample_Name' -> 'sampleName', etc.
+    For example: 'Reads' -> 'reads', 'Sample Name' -> 'sampleName', etc.
 
     Args:
         content: Report content dictionary that may contain seqQC array
@@ -828,7 +828,9 @@ def normalize_seqqc(content: Dict) -> Dict:
     }
 
     if 'seqQC' in content and isinstance(content['seqQC'], list):
-        for item in content['seqQC']:
+        for i, item in enumerate(content['seqQC']):
+            if not isinstance(item, dict):
+                continue
             # Create a new dict with normalized keys
             normalized_item = {}
             for old_key, value in item.items():
@@ -836,7 +838,7 @@ def normalize_seqqc(content: Dict) -> Dict:
                 new_key = field_mapping.get(old_key, old_key)
                 normalized_item[new_key] = value
             # Replace the item with normalized version
-            content['seqQC'][content['seqQC'].index(item)] = normalized_item
+            content['seqQC'][i] = normalized_item
 
     return content
 

@@ -673,3 +673,48 @@ class TestNormalizeSeqQC:
         assert result['seqQC'][1]['reads'] == '1200M'
         assert result['seqQC'][1]['sample'] == 'Constitutional DNA'
         assert result['seqQC'][1]['duplicateReadsPerc'] == 8.1
+
+    def test_normalize_seqqc_numeric_fields_pass_validation(self):
+        """Test that integer/float values for inputNg, inputUg, duplicateReadsPerc pass schema validation."""
+        content = {
+            'patientId': 'PATIENT001',
+            'kbDiseaseMatch': 'colorectal cancer',
+            'project': 'TEST',
+            'template': 'genomic',
+            'seqQC': [
+                {
+                    'reads': '2407M',
+                    'sample': 'Tumour DNA',
+                    'library': 'LIB0001',
+                    'inputNg': 400,
+                    'inputUg': 0.4,
+                    'duplicateReadsPerc': 18,
+                }
+            ],
+        }
+        # Should not raise
+        validate_report_content(content)
+
+    def test_normalize_seqqc_numeric_float_duplicateReadsPerc_passes_validation(self):
+        """Test that a float duplicateReadsPerc value passes schema validation after normalization."""
+        content = {
+            'patientId': 'PATIENT001',
+            'kbDiseaseMatch': 'colorectal cancer',
+            'project': 'TEST',
+            'template': 'genomic',
+            'seqQC': [
+                {
+                    'Reads': '2534M',
+                    'Sample': 'Tumour DNA',
+                    'Duplicate_Reads_Perc': 12.3,
+                    'Input_ng': 500,
+                    'Input_ug': 0.5,
+                }
+            ],
+        }
+        result = normalize_seqqc(content)
+        assert result['seqQC'][0]['duplicateReadsPerc'] == 12.3
+        assert result['seqQC'][0]['inputNg'] == 500
+        assert result['seqQC'][0]['inputUg'] == 0.5
+        # Should not raise after normalization
+        validate_report_content(result)
