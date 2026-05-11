@@ -826,17 +826,25 @@ def normalize_seqqc(content: Dict) -> Dict:
         'Sample Name': 'sampleName',
         'Duplicate_Reads_Perc': 'duplicateReadsPerc',
     }
+    normalized_keys = set(field_mapping.values())
 
     if 'seqQC' in content and isinstance(content['seqQC'], list):
         for i, item in enumerate(content['seqQC']):
             if not isinstance(item, dict):
                 continue
-            # Create a new dict with normalized keys
+            # Preserve already-normalized keys (and unrelated keys) first so
+            # legacy aliases cannot overwrite them based on insertion order.
             normalized_item = {}
-            for old_key, value in item.items():
-                # Use mapped key if it exists, otherwise keep original
-                new_key = field_mapping.get(old_key, old_key)
-                normalized_item[new_key] = value
+            for key, value in item.items():
+                if key in normalized_keys or key not in field_mapping:
+                    normalized_item[key] = value
+
+            # Add legacy aliases only when the normalized key is not already
+            # present. This makes collision handling explicit and stable.
+            for old_key, new_key in field_mapping.items():
+                if old_key in item and new_key not in normalized_item:
+                    normalized_item[new_key] = item[old_key]
+
             # Replace the item with normalized version
             content['seqQC'][i] = normalized_item
 
