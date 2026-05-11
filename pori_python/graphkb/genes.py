@@ -28,7 +28,10 @@ from .vocab import convert_to_rid_list, get_terms_set, query_by_name
 
 
 def _get_tumourigenesis_genes_list(
-    conn: GraphKBConnection, relevance: str | List[str], sources: str | List[str], ignore_cache: bool = False
+    conn: GraphKBConnection,
+    relevance: str | List[str],
+    sources: str | List[str],
+    ignore_cache: bool = False,
 ) -> List[Ontology]:
     statements = cast(
         List[Statement],
@@ -92,11 +95,7 @@ def get_cancer_genes(conn: GraphKBConnection) -> List[Ontology]:
     Returns:
         gene (Feature) records
     """
-    cancer_gene_rid = convert_to_rid_list(
-        conn.query(
-            query_by_name('Vocabulary', CANCER_GENE)
-        )
-    )
+    cancer_gene_rid = convert_to_rid_list(conn.query(query_by_name('Vocabulary', CANCER_GENE)))
     associated_terms = conn.post(
         '/subgraphs/Vocabulary',
         {

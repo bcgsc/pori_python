@@ -300,11 +300,7 @@ def test_get_gene_information(conn):
             f'Missed kbStatementRelated {gene}'
         )
 
-    for gene in (
-        CANONICAL_ONCOGENES
-        + CANONICAL_TS
-        + CANONICAL_OTHER_CG
-    ):
+    for gene in CANONICAL_ONCOGENES + CANONICAL_TS + CANONICAL_OTHER_CG:
         assert gene in [g['name'] for g in gene_info if g.get('cancerGeneListMatch')], (
             f'Missed cancerGeneListMatch {gene}'
         )
