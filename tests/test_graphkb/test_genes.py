@@ -27,7 +27,7 @@ EXCLUDE_ONCOKB_TESTS = os.environ.get('EXCLUDE_ONCOKB_TESTS') == '1'
 
 CANONICAL_ONCOGENES = ['kras', 'nras', 'alk']
 CANONICAL_TS = ['cdkn2a', 'tp53']
-CANONICAL_CG = ['alb']
+CANONICAL_OTHER_CG = ['alb']
 CANONICAL_FUSION_GENES = ['alk', 'ewsr1', 'fli1']
 CANONICAL_STRUCTURAL_VARIANT_GENES = ['brca1', 'dpyd', 'pten']
 CANNONICAL_THERAPY_GENES = ['erbb2', 'brca2', 'egfr']
@@ -119,7 +119,7 @@ def test_oncogene(conn):
         assert gene in names
     for gene in CANONICAL_TS:
         assert gene not in names
-    for gene in CANONICAL_CG:
+    for gene in CANONICAL_OTHER_CG:
         assert gene not in names
 
 
@@ -131,7 +131,7 @@ def test_tumour_supressors(conn):
         assert gene in names
     for gene in CANONICAL_ONCOGENES:
         assert gene not in names
-    for gene in CANONICAL_CG:
+    for gene in CANONICAL_OTHER_CG:
         assert gene not in names
 
 
@@ -142,12 +142,12 @@ def test_tumour_supressors(conn):
 def test_cancer_genes(conn):
     result = get_cancer_genes(conn)
     names = {row['name'] for row in result}
-    for gene in CANONICAL_CG:
+    for gene in CANONICAL_OTHER_CG:
         assert gene in names
     for gene in CANONICAL_TS:
-        assert gene not in names
+        assert gene in names
     for gene in CANONICAL_ONCOGENES:
-        assert gene not in names
+        assert gene in names
 
 
 @pytest.mark.skipif(
@@ -254,7 +254,7 @@ def test_get_gene_information(conn):
         conn,
         CANONICAL_ONCOGENES
         + CANONICAL_TS
-        + CANONICAL_CG
+        + CANONICAL_OTHER_CG
         + CANONICAL_FUSION_GENES
         + CANONICAL_STRUCTURAL_VARIANT_GENES
         + CANNONICAL_THERAPY_GENES
@@ -300,7 +300,11 @@ def test_get_gene_information(conn):
             f'Missed kbStatementRelated {gene}'
         )
 
-    for gene in CANONICAL_CG:
+    for gene in (
+        CANONICAL_ONCOGENES
+        + CANONICAL_TS
+        + CANONICAL_OTHER_CG
+    ):
         assert gene in [g['name'] for g in gene_info if g.get('cancerGeneListMatch')], (
             f'Missed cancerGeneListMatch {gene}'
         )
