@@ -403,6 +403,10 @@ def ipr_report(
         ipr_result = ipr_conn.validate_json(content)
         return ipr_result
 
+    # seqqc normalization is a bridging measure only;
+    # validate_json should be called on non-normalized json
+    normalize_seqqc(content)
+
     if upload_json:
         if not ipr_conn:
             raise ValueError('ipr_url required to upload json')
@@ -412,7 +416,6 @@ def ipr_report(
         return ipr_result
 
     # validate the JSON content follows the specification
-    normalize_seqqc(content)
     try:
         validate_report_content(content)
     except jsonschema.exceptions.ValidationError as err:
