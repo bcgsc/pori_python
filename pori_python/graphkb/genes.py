@@ -95,12 +95,14 @@ def get_cancer_genes(conn: GraphKBConnection) -> List[Ontology]:
     Returns:
         gene (Feature) records
     """
-    cancer_gene_rid = convert_to_rid_list(conn.query(query_by_name('Vocabulary', CANCER_GENE)))
+    cancer_gene_rids = convert_to_rid_list(
+        conn.query(query_by_name('Vocabulary', CANCER_GENE)),
+    )
     associated_terms = conn.post(
         '/subgraphs/Vocabulary',
         {
             'subgraphType': 'children',
-            'base': cancer_gene_rid,
+            'base': cancer_gene_rids,
         },
     )
     associated_term_names = list(

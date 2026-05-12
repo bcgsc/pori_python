@@ -59,7 +59,10 @@ ONCOKB_SOURCE_NAME = 'oncokb'
 TSO500_SOURCE_NAME = 'tso500'
 ONCOGENE = 'oncogenic'
 TUMOUR_SUPPRESSIVE = 'tumour suppressive'
-CANCER_GENE = 'cancer gene'
+CANCER_GENE = [
+    'cancer gene',
+    'tumourigenesis',
+]  # KBDEV-1532. tumourigenesis for backward compatibility
 FUSION_NAMES = ['structural variant', 'fusion']
 
 GSC_PHARMACOGENOMIC_SOURCE_EXCLUDE_LIST = ['cancer genome interpreter', 'civic']

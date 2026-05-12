@@ -6,7 +6,7 @@ from . import GraphKBConnection
 from .util import convert_to_rid_list
 
 
-def query_by_name(ontology_class: str, base_term_name: str) -> Dict:
+def query_by_name(ontology_class: str, base_term_name: str | list[str]) -> Dict:
     return {'target': ontology_class, 'filters': {'name': base_term_name}}
 
 
