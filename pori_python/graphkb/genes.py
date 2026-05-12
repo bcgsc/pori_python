@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence, Set, Tuple, cast
+from typing import Any, Dict, List, Sequence, Set, Tuple, cast, Union
 from typing_extensions import deprecated
 
 from pori_python.types import IprGene, Ontology, Record, Statement, Variant
@@ -29,8 +29,8 @@ from .vocab import convert_to_rid_list, get_terms_set, query_by_name
 
 def _get_tumourigenesis_genes_list(
     conn: GraphKBConnection,
-    relevance: str | List[str],
-    sources: str | List[str],
+    relevance: Union[str, list[str]],
+    sources: Union[str, list[str]],
     ignore_cache: bool = False,
 ) -> List[Ontology]:
     statements = cast(
