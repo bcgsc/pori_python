@@ -147,7 +147,34 @@ class TestCheckUploadPermission:
 
         conn.post.assert_not_called()
 
-    def test_manager_has_implicit_create_report_access(self):
+    def test_project_not_found_raises(self):
+        conn = IprConnection('user', 'pass')
+        conn.get = mock.MagicMock(side_effect=[[{'name': 'OTHER'}]])
+        conn.post = mock.MagicMock()
+
+        with pytest.raises(Exception, match='Project TEST does not exist'):
+            conn.check_upload_permission('TEST')
+
+        conn.post.assert_not_called()
+
+    def test_manager_without_project_membership_raises(self):
+        conn = IprConnection('user', 'pass')
+        conn.get = mock.MagicMock(
+            side_effect=[
+                [{'name': 'TEST'}],
+                self._user_response(groups=['manager'], projects=[]),
+            ]
+        )
+        conn.post = mock.MagicMock()
+
+        with pytest.raises(
+            Exception, match='User has no permission to create report in project TEST'
+        ):
+            conn.check_upload_permission('TEST')
+
+        conn.post.assert_not_called()
+
+    def test_manager_with_project_membership_allowed(self):
         conn = IprConnection('user', 'pass')
         conn.get = mock.MagicMock(
             side_effect=[

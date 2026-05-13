@@ -102,6 +102,10 @@ class IprConnection:
         """
         projects = self.get('project')
         project_exists = any(p['name'] == project_name for p in projects)
+        if not project_exists:
+            raise Exception(
+                f'Project {project_name} does not exist or user does not have permission to view it'
+            )
 
         user = self.get('user/me')
         user_groups = user.get('groups', []) if isinstance(user, dict) else []
@@ -128,7 +132,7 @@ class IprConnection:
         )
 
         if not can_create_report:
-            raise Exception(f'User does not have report creation permission')
+            raise Exception('User does not have report creation permission')
 
         if not has_project_access:
             raise Exception(f'User has no permission to create report in project {project_name}')
