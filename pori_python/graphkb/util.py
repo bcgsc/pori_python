@@ -149,7 +149,7 @@ class GraphKBConnection:
                 session_kwargs['cache_name'] = cache_name
             session_kwargs['allowable_methods'] = ['GET', 'POST']
             session_kwargs['ignored_parameters'] = ['Authorization']
-            session_kwargs['cache_control'] = True  # GKB/IPR send no Cache-Control headers; cache unconditionally
+            session_kwargs['cache_control'] = False  # GKB/IPR send no Cache-Control headers; cache unconditionally
             session_cls = CachedSession
 
         if 'PYTEST_CURRENT_TEST' not in os.environ:
