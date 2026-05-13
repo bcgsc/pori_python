@@ -425,6 +425,18 @@ class GraphKBConnection:
             raise AssertionError(f'Unable to unqiuely identify source with name {name}')
         return source[0]
 
+    @property
+    def version(self) -> Dict[str, str]:
+        """
+        Retrieve GraphKB components version
+
+        Returns:
+            Dict[str, str]: component keys with version values
+
+            e.g. > {"api":"3.17.3","db":"production","parser":"2.1.0","schema":"4.1.1"}
+        """
+        return self.request('version')
+
 
 def get_rid(conn: GraphKBConnection, target: str, name: str) -> str:
     """

@@ -202,6 +202,16 @@
                             "number",
                             "null"
                         ]
+                    },
+                    "flags": {
+                        "description": "variant flags",
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
@@ -475,6 +485,16 @@
                             "null",
                             "string"
                         ]
+                    },
+                    "flags": {
+                        "description": "variant flags",
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
@@ -548,12 +568,37 @@
                 },
                 "score": {
                     "type": "number"
+                },
+                "cutoff": {
+                    "type": "number"
                 }
             },
+            "type": "object",
             "required": [
                 "score"
             ],
-            "type": "object"
+            "oneOf": [
+                {
+                    "required": [
+                        "kbCategory"
+                    ],
+                    "not": {
+                        "required": [
+                            "cutoff"
+                        ]
+                    }
+                },
+                {
+                    "required": [
+                        "cutoff"
+                    ],
+                    "not": {
+                        "required": [
+                            "kbCategory"
+                        ]
+                    }
+                }
+            ]
         },
         "images": {
             "items": {
@@ -1081,6 +1126,16 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "flags": {
+                        "description": "variant flags",
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": [
+                            "array",
+                            "null"
+                        ]
                     }
                 },
                 "required": [
@@ -1263,6 +1318,16 @@
                         "example": 2,
                         "type": [
                             "integer",
+                            "null"
+                        ]
+                    },
+                    "flags": {
+                        "description": "variant flags",
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": [
+                            "array",
                             "null"
                         ]
                     }

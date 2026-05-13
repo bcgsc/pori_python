@@ -19,7 +19,7 @@ INCLUDE_UPLOAD_TESTS = os.environ.get('INCLUDE_UPLOAD_TESTS', '0') == '1'
 DELETE_UPLOAD_TEST_REPORTS = os.environ.get('DELETE_UPLOAD_TEST_REPORTS', '1') == '1'
 
 
-def get_test_spec():
+def get_test_spec() -> dict:
     ipr_spec = {'components': {'schemas': {'genesCreate': {'properties': {}}}}}
     ipr_gene_keys = IprGene.__required_keys__ | IprGene.__optional_keys__
     for key in ipr_gene_keys:
@@ -31,12 +31,35 @@ def get_test_file(name: str) -> str:
     return os.path.join(os.path.dirname(__file__), 'test_data', name)
 
 
+def get_test_transcript_flags(json_contents) -> pd.DataFrame:
+    """creates a dataframe of transcript flags for test purposes, based on the input json contents"""
+    transcript_flags = []
+    for item in json_contents['structuralVariants']:
+        transcript_flags.append((item['ntermTranscript'], 'TRANSCRIPT FLAG'))
+        transcript_flags.append((item['ctermTranscript'], 'TRANSCRIPT FLAG'))
+    for item in json_contents['smallMutations']:
+        transcript_flags.append((item['transcript'], 'TRANSCRIPT FLAG'))
+    df = pd.DataFrame(transcript_flags, columns=['transcript', 'flags'])
+    df = df.drop_duplicates()
+    return df
+
+
+def add_test_variant_flags_to_input_data(json_contents) -> dict:
+    """adds flags to the input variants for test purposes"""
+    for vtype in ['structuralVariants', 'smallMutations', 'copyVariants', 'expressionVariants']:
+        for item in json_contents[vtype]:
+            item['flags'] = ['TEST FLAG']
+    return json_contents
+
+
 @pytest.fixture(scope='module')
 def loaded_reports(tmp_path_factory) -> Generator:
     json_file = tmp_path_factory.mktemp('inputs') / 'content.json'
     async_json_file = tmp_path_factory.mktemp('inputs') / 'async_content.json'
+    transcript_flags_file = tmp_path_factory.mktemp('inputs') / 'transcript_flags.tsv'
     patient_id = f'TEST_{str(uuid.uuid4())}'
     async_patient_id = f'TEST_ASYNC_{str(uuid.uuid4())}'
+
     json_contents = {
         'comparators': [
             {'analysisRole': 'expression (disease)', 'name': '1'},
@@ -74,7 +97,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
         ],
         'hrd': {
             'score': 9999.0,
-            'kbCategory': 'homologous recombination deficiency strong signature',
+            'cutoff': 5,
         },
         'expressionVariants': json.loads(
             pd.read_csv(get_test_file('expression.short.tab'), sep='\t').to_json(orient='records')
@@ -106,7 +129,13 @@ def loaded_reports(tmp_path_factory) -> Generator:
                 'caption': 'Test adding a caption to an image',
             }
         ],
+        'config': 'test config',
     }
+
+    json_contents = add_test_variant_flags_to_input_data(json_contents)
+
+    transcript_flags_df = get_test_transcript_flags(json_contents)
+    transcript_flags_df.to_csv(transcript_flags_file, sep='\t', index=False)
 
     json_file.write_text(
         json.dumps(
@@ -139,6 +168,8 @@ def loaded_reports(tmp_path_factory) -> Generator:
         os.environ.get('GRAPHKB_URL', False),
         '--therapeutics',
         '--allow_partial_matches',
+        '--transcript_flags',
+        str(transcript_flags_file),
     ]
 
     sync_argslist = argslist.copy()
@@ -191,7 +222,7 @@ def stringify_sorted(obj):
         obj.sort()
         return str(obj)
     elif isinstance(obj, dict):
-        for key in ('ident', 'updatedAt', 'createdAt', 'deletedAt'):
+        for key in ('ident', 'updatedAt', 'createdAt', 'deletedAt', 'variantId', 'id', 'reportId'):
             obj.pop(key, None)
         keys = obj.keys()
         for key in keys:
@@ -254,15 +285,30 @@ class TestCreateReport:
         async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
         assert async_equals_sync
 
-    # # Uncomment when signatureVariants are supported in pori_ipr_api
-    # def test_signature_variants_loaded(self, loaded_reports) -> None:
-    #     section = get_section(loaded_reports["sync"], "signature-variants")
-    #     kbmatched = [item for item in section if item["kbMatches"]]
-    #     assert ("SBS2", "high signature") in [
-    #         (item["signatureName"], item["variantTypeName"]) for item in kbmatched
-    #     ]
-    #     async_section = get_section(loaded_reports["async"], "signature-variants")
-    #     assert compare_sections(section, async_section)
+    def test_signature_variants_loaded(self, loaded_reports) -> None:
+        section = get_section(loaded_reports['sync'], 'signature-variants')
+        kbmatched = [item for item in section if item['kbMatches']]
+        # Check for COSMIC signatures
+        assert ('SBS2', 'high signature') in [
+            (item['signatureName'], item['variantTypeName']) for item in kbmatched
+        ]
+        # Check for HRD signature (score 9999 > cutoff 5, so strong signature)
+        assert ('homologous recombination deficiency', 'strong signature') in [
+            (item['signatureName'], item['variantTypeName']) for item in kbmatched
+        ]
+        # Check for MSI signature
+        assert ('microsatellite instability', 'high signature') in [
+            (item['signatureName'], item['variantTypeName']) for item in kbmatched
+        ]
+        async_section = get_section(loaded_reports['async'], 'signature-variants')
+        async_equals_sync = stringify_sorted(section) == stringify_sorted(async_section)
+        assert async_equals_sync
+
+    def test_hrd_score_in_report(self, loaded_reports) -> None:
+        """Test that HRD score is present in the loaded report."""
+        report = loaded_reports['sync'][1]['reports'][0]
+        assert 'hrdScore' in report
+        assert report['hrdScore'] == 9999.0
 
     def test_kb_matches_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports['sync'], 'kb-matches')

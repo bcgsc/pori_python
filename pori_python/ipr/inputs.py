@@ -27,6 +27,7 @@ from .constants import (
     HLA_SIGNATURE_VARIANT_TYPE,
     MSI_MAPPING,
     HRD_MAPPING,
+    HRD_SIGNATURE_OVER_CUTOFF,
     TMB_SIGNATURE,
     TMB_SIGNATURE_VARIANT_TYPE,
 )
@@ -59,6 +60,7 @@ COPY_OPTIONAL = [
     'comments',
     'library',
     'germline',
+    'flags',
 ]
 
 SMALL_MUT_REQ = ['gene', 'proteinChange']
@@ -97,6 +99,7 @@ SMALL_MUT_OPTIONAL = [
     'tumourRefCount',
     'tumourRefCopies',
     'zygosity',
+    'flags',
 ]
 
 EXP_REQ = ['gene', 'kbCategory']
@@ -129,6 +132,7 @@ EXP_OPTIONAL = [
     'rnaReads',
     'rpkm',
     'tpm',
+    'flags',
 ]
 
 SV_REQ = [
@@ -161,6 +165,7 @@ SV_OPTIONAL = [
     'tumourDepth',
     'germline',
     'mavis_product_id',
+    'flags',
 ]
 
 SIGV_REQ = ['signatureName', 'variantTypeName']
@@ -277,6 +282,7 @@ def preprocess_small_mutations(rows: Iterable[Dict]) -> List[IprSmallMutationVar
         return tuple(['small mutation'] + key_vals)
 
     result = validate_variant_rows(rows, SMALL_MUT_REQ, SMALL_MUT_OPTIONAL, row_key)
+
     if not result:
         return []
 
@@ -335,6 +341,7 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprExprVariant]
         return tuple(['expression'] + [row[key] for key in EXP_KEY])
 
     variants = validate_variant_rows(rows, EXP_REQ, EXP_OPTIONAL, row_key)
+
     result = [cast(IprExprVariant, var) for var in variants]
     float_columns = [
         col
@@ -370,7 +377,6 @@ def preprocess_expression_variants(rows: Iterable[Dict]) -> List[IprExprVariant]
 
     if errors:
         raise ValueError(f'{len(errors)} Invalid expression variants in file')
-
     return result
 
 
@@ -558,13 +564,42 @@ def preprocess_hrd(hrd: Any) -> Iterable[Dict]:
     """
     Process hrd input into preformatted signature input.
     HRD gets mapped to corresponding GraphKB Signature CategoryVariants.
+
+    Either a cutoff or a kbcategory is expected.
+    If a cutoff is provided, the score is compared to the cutoff
+    to determine whether to create the signature variant.
+    If a kbCategory is provided, the signature variant is created based on the category.
+    If neither are provided, a warning is logged and no signature variant is created.
     """
     if hrd:
+        hrd_cutoff = hrd.get('cutoff', None)
         hrd_cat = hrd.get('kbCategory', '')
+        hrd_score = hrd.get('score', None)
 
-        hrd_variant = HRD_MAPPING.get(hrd_cat, None)
+        if hrd_cutoff and hrd_cat:
+            raise ValueError(
+                'In the HRD section, only one of cutoff and kbcategory should be provided.'
+            )
 
-        # Signature CategoryVariant created either for msi or mss
+        if not (hrd_cutoff or hrd_cat):
+            logger.warning(
+                'No hrd category or cutoff provided; score will be loaded with no variant matching.'
+            )
+
+        if hrd_cutoff:
+            if not hrd_score:
+                raise ValueError(
+                    'In the HRD section, if cutoff is provided a score must also be provided.'
+                )
+
+            if hrd_score >= hrd_cutoff:
+                hrd_variant = HRD_SIGNATURE_OVER_CUTOFF
+            else:
+                return []
+        elif hrd_cat:
+            hrd_variant = HRD_MAPPING.get(hrd_cat, None)
+
+        # Signature CategoryVariant created for hrd
         if hrd_variant:
             return [hrd_variant]
 

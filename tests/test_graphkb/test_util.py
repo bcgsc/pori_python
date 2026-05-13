@@ -1,5 +1,6 @@
 import os
 import pytest
+import re
 
 from pori_python.graphkb import GraphKBConnection, util
 
@@ -149,3 +150,17 @@ class TestStringifyVariant:
         variant = conn.get_record_by_id(rid)
         if variant and variant.get('createdAt', None) == createdAt:
             assert util.stringifyVariant(variant=variant, **opt) == stringifiedVariant
+
+
+class TestVersion:
+    def test_version(self, conn):
+        version = conn.version
+        assert version['db'] in [
+            'production',
+            'production-sync-dev',
+            'production-sync-staging',
+        ]
+        SEMANTIC_VERSIONING_REGEX = re.compile(r'^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$')
+        assert SEMANTIC_VERSIONING_REGEX.match(version['api'])
+        assert SEMANTIC_VERSIONING_REGEX.match(version['parser'])
+        assert SEMANTIC_VERSIONING_REGEX.match(version['schema'])

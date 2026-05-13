@@ -1,4 +1,5 @@
 import pytest
+import pandas as pd
 from unittest.mock import Mock, patch
 
 from pori_python.graphkb import statement as gkb_statement
@@ -12,7 +13,11 @@ from pori_python.ipr.ipr import (
     get_kb_variants,
     get_kb_matches_sections,
     create_key_alterations,
+    ensure_str_list,
+    add_transcript_flags,
+    get_variant_flags,
 )
+
 from pori_python.types import Statement
 
 DISEASE_RIDS = ['#138:12', '#138:13']
@@ -413,6 +418,179 @@ class TestConvertStatementsToAlterations:
         assert len(result) == 1
         row = result[0]
         assert row['category'] == 'therapeutic'
+
+
+class TestFlagUtilities:
+    def test_ensure_str_list_accepts_string(self):
+        assert ensure_str_list('abc') == ['abc']
+
+    def test_ensure_str_list_splits_comma_separated_string(self):
+        assert ensure_str_list('a, b , c') == ['a', 'b', 'c']
+
+    def test_ensure_str_list_accepts_list_of_strings(self):
+        assert ensure_str_list(['a', 'b']) == ['a', 'b']
+
+    def test_ensure_str_list_rejects_bad_types(self):
+        with pytest.raises(TypeError):
+            ensure_str_list([1, 'a'])
+        with pytest.raises(TypeError):
+            ensure_str_list(123)
+
+    def test_add_transcript_flags_basic_adds_flags_from_comma_separated_string(self):
+        variant_sources = [
+            {'transcript': 'T1', 'key': 'k1', 'variantType': 'mut'},
+        ]
+        df = pd.DataFrame({'transcript': ['T1'], 'flags': ['flag_a,flag_b']})
+        result = add_transcript_flags(variant_sources, df)
+        assert set(result[0]['flags']) == {'flag_a', 'flag_b'}
+
+    def test_add_transcript_flags_basic_converts_string_flag_to_list_avoiding_duplicates(self):
+        variant_sources = [
+            {'transcript': 'T2', 'flags': 'existing', 'key': 'k2', 'variantType': 'mut'},
+        ]
+        df = pd.DataFrame({'transcript': ['T2'], 'flags': ['existing']})
+        result = add_transcript_flags(variant_sources, df)
+        assert result[0]['flags'] == ['existing']
+
+    def test_add_transcript_flags_basic_leaves_unmatched_transcripts_unaffected(self):
+        variant_sources = [
+            {'transcript': 'T3', 'flags': ['present'], 'key': 'k3', 'variantType': 'mut'},
+        ]
+        df = pd.DataFrame({'transcript': ['T1', 'T2'], 'flags': ['flag_a,flag_b', 'existing']})
+        result = add_transcript_flags(variant_sources, df)
+        assert result[0]['flags'] == ['present']
+
+    def test_add_transcript_flags_basic_strips_whitespace_from_comma_separated_flags(self):
+        variant_sources = [
+            {'transcript': 'T4', 'key': 'k4', 'variantType': 'mut'},
+        ]
+        df = pd.DataFrame({'transcript': ['T4'], 'flags': ['flag_c, flag_d']})
+        result = add_transcript_flags(variant_sources, df)
+        assert set(result[0]['flags']) == {'flag_c', 'flag_d'}
+
+    def test_add_transcript_flags_basic_accumulates_duplicate_transcript_rows(self):
+        variant_sources = [
+            {'transcript': 'T5', 'key': 'k5', 'variantType': 'mut'},
+        ]
+        df = pd.DataFrame(
+            {
+                'gene': ['ENSG1', 'ENSG2'],
+                'transcript': ['T5', 'T5'],
+                'flags': ['flag_a', 'flag_b, flag_c'],
+            }
+        )
+        result = add_transcript_flags(variant_sources, df)
+        assert result[0]['flags'] == ['flag_a', 'flag_b', 'flag_c']
+
+    def test_add_transcript_flags_fusions_tags_cterm_flags(self):
+        variant_sources = [
+            {
+                'key': 'f1',
+                'variantType': 'fusion',
+                'ctermTranscript': 'CT1',
+                'ntermTranscript': 'NT1',
+            }
+        ]
+        df = pd.DataFrame(
+            {
+                'transcript': ['CT1'],
+                'flags': ['cterm_flag'],
+            }
+        )
+        result = add_transcript_flags(variant_sources, df)
+        flags = result[0]['flags']
+        assert 'cterm_flag (cterm)' in flags
+
+    def test_add_transcript_flags_fusions_tags_nterm_flags(self):
+        variant_sources = [
+            {
+                'key': 'f1',
+                'variantType': 'fusion',
+                'ctermTranscript': 'CT1',
+                'ntermTranscript': 'NT1',
+            }
+        ]
+        df = pd.DataFrame(
+            {
+                'transcript': ['NT1'],
+                'flags': ['nterm_flag'],
+            }
+        )
+        result = add_transcript_flags(variant_sources, df)
+        flags = result[0]['flags']
+        assert 'nterm_flag (nterm)' in flags
+
+    def test_add_transcript_flags_fusions_accumulates_duplicate_transcript_rows(self):
+        variant_sources = [
+            {
+                'key': 'f2',
+                'variantType': 'fusion',
+                'ctermTranscript': 'CT2',
+                'ntermTranscript': 'NT2',
+            }
+        ]
+        df = pd.DataFrame(
+            {
+                'gene': ['ENSG3', 'ENSG4'],
+                'transcript': ['CT2', 'CT2'],
+                'flags': ['cterm_flag_a', 'cterm_flag_b'],
+            }
+        )
+        result = add_transcript_flags(variant_sources, df)
+        assert result[0]['flags'] == ['cterm_flag_a (cterm)', 'cterm_flag_b (cterm)']
+
+    def test_get_variant_flags_converts_string_flags_to_records(self):
+        variants = [
+            {'key': 'k1', 'variantType': 'mut', 'flags': 'foo'},
+        ]
+        out = get_variant_flags(variants)
+        assert any(item['variant'] == 'k1' and item['flags'] == ['foo'] for item in out)
+        assert len(out) == 1
+
+    def test_get_variant_flags_deduplicates_and_removes_empty_strings(self):
+        variants = [
+            {'key': 'k2', 'variantType': 'mut', 'flags': ['bar', 'bar', '']},
+        ]
+        out = get_variant_flags(variants)
+        assert any(item['variant'] == 'k2' and set(item['flags']) == {'bar'} for item in out)
+
+    def test_get_variant_flags_preserves_input_flag_order_when_deduplicating(self):
+        variants = [
+            {'key': 'k5', 'variantType': 'mut', 'flags': ['flag_b', 'flag_a', 'flag_b', 'flag_c']},
+        ]
+        out = get_variant_flags(variants)
+        assert out == [
+            {
+                'variant': 'k5',
+                'variantType': 'mut',
+                'flags': ['flag_b', 'flag_a', 'flag_c'],
+            }
+        ]
+
+    def test_get_variant_flags_skips_null_flags(self):
+        variants = [
+            {'key': 'k3', 'variantType': 'mut', 'flags': None},
+        ]
+        out = get_variant_flags(variants)
+        assert not any(item['variant'] == 'k3' for item in out)
+        assert len(out) == 0
+
+    def test_get_variant_flags_skips_empty_list_flags(self):
+        variants = [
+            {'key': 'k4', 'variantType': 'mut', 'flags': []},
+        ]
+        out = get_variant_flags(variants)
+        assert not any(item['variant'] == 'k4' for item in out)
+        assert len(out) == 0
+
+    def test_get_variant_flags_removes_flags_key_from_processed_records(self):
+        variants = [
+            {'key': 'k1', 'variantType': 'mut', 'flags': 'foo'},
+            {'key': 'k2', 'variantType': 'mut', 'flags': ['bar', 'bar', '']},
+        ]
+        get_variant_flags(variants)
+        assert 'flags' not in variants[0]
+        assert 'flags' not in variants[1]
 
 
 class TestKbmatchFilters:
