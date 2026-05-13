@@ -25,6 +25,112 @@ from .constants import (
 from .match import get_equivalent_features
 from .util import get_rid, logger, looks_like_rid
 from .vocab import get_terms_set
+
+
+def get_cancer_gene_flags(
+    conn: GraphKBConnection,
+    flags: bool = False,
+    ignore_cache: bool = False,
+) -> Union[List, Dict]:
+    """
+    Return all cancer genes, optionally sorted by flags.
+
+    Flag definitions:
+        oncogenic: relevance 'oncogenic' from OncoKB
+        tumourSuppressive: relevance 'tumour suppressive' from OncoKB
+        cancerGene: relevance 'cancer gene' AND child terms ('oncogenic', 'tumour suppressive', 'other cancer gene'), from OncoKB AND TSO500
+
+    Args:
+        conn: the graphkb connection object
+        namesOnly: if only the gene names should be returned
+
+    Returns (if flags=False; default): list of unique gene records
+        [ <record>, <record>, ... ]
+
+    Returns (if flags=True): dict of flags as keys, and list of gene records as value
+        {
+            'oncogenic': [ <record>, <record>, ... ],
+            'tumourSuppressive' = [ <record>, <record>, ... ],
+            'cancerGene' = [ <record>, <record>, ... ],
+        }
+    """
+    # all cancer gene statements
+    CANCER_GENES = conn.get_related_terms(
+        terms=CANCER_GENE,
+        subgraphType='children',
+    )
+    statements = cast(
+        List[Statement],
+        conn.query(
+            {
+                'target': 'Statement',
+                'filters': {
+                    'relevance': {'target': 'Vocabulary', 'filters': {'name': CANCER_GENES}}
+                },
+                'returnProperties': [
+                    'source.name',
+                    'relevance.name',
+                    *[f'subject.{prop}' for prop in GENE_RETURN_PROPERTIES],
+                ],
+            },
+            ignore_cache=ignore_cache,
+        ),
+    )
+
+    # post-query filtering (faster)
+    cancerGeneStms = list(
+        filter(
+            lambda r: (
+                r['subject']['@class'] == 'Feature'
+                and r['subject']['biotype'] == 'gene'
+                and r['source']['name'] in [ONCOKB_SOURCE_NAME, TSO500_SOURCE_NAME]
+            ),
+            statements,
+        )
+    )
+    oncogenicStms = list(
+        filter(
+            lambda r: (
+                r['relevance']['name'] == ONCOGENE and r['source']['name'] == ONCOKB_SOURCE_NAME
+            ),
+            cancerGeneStms,
+        )
+    )
+    tumourSuppressiveStms = list(
+        filter(
+            lambda r: (
+                r['relevance']['name'] == TUMOUR_SUPPRESSIVE
+                and r['source']['name'] == ONCOKB_SOURCE_NAME
+            ),
+            cancerGeneStms,
+        )
+    )
+
+    # Returning a sorted list of unique gene records, based on iProbe requirements
+    # Unique by name, sorted by displayName
+    names = set()  # for unique gene names tracking
+    if not flags:
+        return cast(
+            List[Record],
+            sorted(
+                [
+                    r['subject']
+                    for r in cancerGeneStms
+                    if r['subject']['name'] not in names and not names.add(r['subject']['name'])
+                ],
+                key=lambda gene: gene['displayName'],
+            ),
+        )
+
+    # Returning a Dict of flags, with list of associated gene records
+    # Duplicates are ok
+    return {
+        'cancerGene': [r['subject'] for r in cancerGeneStms],
+        'oncogenic': [r['subject'] for r in oncogenicStms],
+        'tumourSuppressive': [r['subject'] for r in tumourSuppressiveStms],
+    }
+
+
 def _get_tumourigenesis_genes_list(
     conn: GraphKBConnection,
     relevance: Union[str, list[str]],

@@ -8,6 +8,7 @@ import pytest
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import (
     get_cancer_genes,
+    get_cancer_gene_flags,
     get_cancer_predisposition_info,
     get_gene_information,
     get_gene_linked_cancer_predisposition_info,
@@ -109,6 +110,27 @@ def conn():
     conn = GraphKBConnection()
     conn.login(os.environ['GRAPHKB_USER'], os.environ['GRAPHKB_PASS'])
     return conn
+
+
+@pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason='excluding tests that depend on oncokb data')
+def test_cancer_gene_flags(conn):
+    # wo/ flags
+    result = get_cancer_gene_flags(conn)
+    for gene in [*CANONICAL_OTHER_CG, *CANONICAL_TS, *CANONICAL_ONCOGENES]:
+        assert gene in {row['name'] for row in result}
+    # w/ flags
+    result = get_cancer_gene_flags(conn, flags=True)
+    for gene in [*CANONICAL_OTHER_CG, *CANONICAL_TS, *CANONICAL_ONCOGENES]:
+        assert gene in {row['name'] for row in result['cancerGene']}
+    for gene in CANONICAL_TS:
+        assert gene in {row['name'] for row in result['tumourSuppressive']}
+        assert gene not in {row['name'] for row in result['oncogenic']}
+    for gene in CANONICAL_ONCOGENES:
+        assert gene in {row['name'] for row in result['oncogenic']}
+        assert gene not in {row['name'] for row in result['tumourSuppressive']}
+    for gene in [*CANONICAL_OTHER_CG]:
+        assert gene not in {row['name'] for row in result['oncogenic']}
+        assert gene not in {row['name'] for row in result['tumourSuppressive']}
 
 
 @pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason='excluding tests that depend on oncokb data')
