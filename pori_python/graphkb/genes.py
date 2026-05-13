@@ -131,6 +131,7 @@ def get_cancer_gene_flags(
     }
 
 
+@deprecated('fuctionality replaced by get_cancer_gene_flags')
 def _get_tumourigenesis_genes_list(
     conn: GraphKBConnection,
     relevance: Union[str, list[str]],
@@ -164,6 +165,7 @@ def _get_tumourigenesis_genes_list(
     return [gene for gene in genes.values()]
 
 
+@deprecated('fuctionality replaced by get_cancer_gene_flags')
 def get_oncokb_oncogenes(conn: GraphKBConnection) -> List[Ontology]:
     """Get the list of oncogenes stored in GraphKB derived from OncoKB.
 
@@ -176,6 +178,7 @@ def get_oncokb_oncogenes(conn: GraphKBConnection) -> List[Ontology]:
     return _get_tumourigenesis_genes_list(conn, ONCOGENE, ONCOKB_SOURCE_NAME)
 
 
+@deprecated('fuctionality replaced by get_cancer_gene_flags')
 def get_oncokb_tumour_supressors(conn: GraphKBConnection) -> List[Ontology]:
     """Get the list of tumour supressor genes stored in GraphKB derived from OncoKB.
 
@@ -188,6 +191,7 @@ def get_oncokb_tumour_supressors(conn: GraphKBConnection) -> List[Ontology]:
     return _get_tumourigenesis_genes_list(conn, TUMOUR_SUPPRESSIVE, ONCOKB_SOURCE_NAME)
 
 
+@deprecated('fuctionality replaced by get_cancer_gene_flags')
 def get_cancer_genes(conn: GraphKBConnection) -> List[Ontology]:
     """
     Get the list of cancer genes stored in GraphKB derived from OncoKB & TSO500.
