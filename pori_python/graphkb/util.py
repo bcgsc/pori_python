@@ -366,6 +366,64 @@ class GraphKBConnection:
         """
         return self.request('version')
 
+    def get_related_records(
+        self,
+        base: Union[str, list[str]],
+        ontology: str,
+        subgraphType: str,
+        returnProperties=[],
+    ):
+        """
+        Given some base node RIDs, an ontology class and a subgraph type,
+        leverage the subgraphs route to return the list of related nodes.
+
+        Args:
+            base: the base node RIDs to start the graph traversal from
+            ontology: the ontology class to traverse
+            subgraphType: the type of traversal. See options in API specs
+            returnProperties: additional record properties to return
+
+        Returns:
+            list of related node record(s) traversed
+        """
+        related = self.post(
+            uri=f'/subgraphs/{ontology}',
+            data={
+                'base': base if isinstance(base, list) else [base],
+                'subgraphType': subgraphType,
+                'returnProperties': returnProperties,
+            },
+        )
+        return related['result']['g']['nodes']
+
+    def get_related_terms(
+        self,
+        terms: Union[str, list[str]],
+        ontology: str = 'Vocabulary',
+        subgraphType: str = 'similar',
+    ) -> list[str]:
+        """
+        Given some base term name(s), an ontology class and a subgraph type,
+        leverage the subgraphs route to return the list of related term name(s)
+
+        Args:
+            terms: the base term name(s) to start the graph traversal from
+            ontology: the ontology class to traverse
+            subgraphType: the type of traversal
+
+        Returns:
+            list of related term name(s)
+        """
+        rids = convert_to_rid_list(self.query({'target': ontology, 'filters': {'name': terms}}))
+        nodes = self.get_related_records(
+            base=rids,
+            ontology=ontology,
+            subgraphType=subgraphType,
+        )
+        return list(
+            map(lambda x: x['name'], nodes.values()),
+        )
+
 
 def get_rid(conn: GraphKBConnection, target: str, name: str) -> str:
     """
