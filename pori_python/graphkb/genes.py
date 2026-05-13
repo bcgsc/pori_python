@@ -630,12 +630,12 @@ def get_gene_information(
                     # PositionalVariant without a reference2 implies a smallMutation type
                     gene_flags['knownSmallMutation'].add(condition['reference1'])  # type: ignore
 
-    logger.info('fetching oncogenes list')
-    gene_flags['oncogene'] = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
-    logger.info('fetching tumour supressors list')
-    gene_flags['tumourSuppressor'] = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
-    logger.info('fetching cancerGeneListMatch list')
-    gene_flags['cancerGeneListMatch'] = convert_to_rid_set(get_cancer_genes(graphkb_conn))
+    # cancer gene flags
+    logger.info('fetching cancer genes')
+    cancer_gene_flags = get_cancer_gene_flags(graphkb_conn, flags=True)
+    gene_flags['oncogene'] = convert_to_rid_set(cancer_gene_flags['oncogenic'])
+    gene_flags['tumourSuppressor'] = convert_to_rid_set(cancer_gene_flags['tumourSuppressive'])
+    gene_flags['cancerGeneListMatch'] = convert_to_rid_set(cancer_gene_flags['cancerGene'])
 
     logger.info('fetching therapeutic associated genes lists')
     gene_flags['therapeuticAssociated'] = convert_to_rid_set(
