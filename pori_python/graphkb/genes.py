@@ -24,9 +24,7 @@ from .constants import (
 )
 from .match import get_equivalent_features
 from .util import get_rid, logger, looks_like_rid
-from .vocab import convert_to_rid_list, get_terms_set, query_by_name
-
-
+from .vocab import get_terms_set
 def _get_tumourigenesis_genes_list(
     conn: GraphKBConnection,
     relevance: Union[str, list[str]],
@@ -85,8 +83,8 @@ def get_oncokb_tumour_supressors(conn: GraphKBConnection) -> List[Ontology]:
 
 
 def get_cancer_genes(conn: GraphKBConnection) -> List[Ontology]:
-    """Get the list of cancer genes stored in GraphKB derived from OncoKB & TSO500.
-
+    """
+    Get the list of cancer genes stored in GraphKB derived from OncoKB & TSO500.
     Cancer genes include oncogenes, tumour supressor genes and other cancer genes.
 
     Args:
@@ -95,25 +93,12 @@ def get_cancer_genes(conn: GraphKBConnection) -> List[Ontology]:
     Returns:
         gene (Feature) records
     """
-    cancer_gene_rids = convert_to_rid_list(
-        conn.query(query_by_name('Vocabulary', CANCER_GENE)),
+    cancer_gene_terms = conn.get_related_terms(
+        terms=CANCER_GENE,
+        subgraphType='children',
     )
-    associated_terms = conn.post(
-        '/subgraphs/Vocabulary',
-        {
-            'subgraphType': 'children',
-            'base': cancer_gene_rids,
-        },
-    )
-    associated_term_names = list(
-        map(
-            lambda x: x['name'],
-            associated_terms['result']['g']['nodes'].values(),
-        ),
-    )
-
     return _get_tumourigenesis_genes_list(
-        conn, associated_term_names, [ONCOKB_SOURCE_NAME, TSO500_SOURCE_NAME]
+        conn, cancer_gene_terms, [ONCOKB_SOURCE_NAME, TSO500_SOURCE_NAME]
     )
 
 
