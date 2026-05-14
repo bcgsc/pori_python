@@ -108,8 +108,8 @@ def get_cancer_gene_flags(
 
     # Returning a sorted list of unique gene records, based on iProbe requirements
     # Unique by name, sorted by displayName
-    names = set()  # for unique gene names tracking
     if not flags:
+        names = set()  # for unique gene names tracking
         return cast(
             List[Record],
             sorted(

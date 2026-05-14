@@ -116,6 +116,9 @@ def conn():
 def test_cancer_gene_flags(conn):
     # wo/ flags
     result = get_cancer_gene_flags(conn)
+    assert [r['displayName'] for r in result] == sorted(
+        list({r['displayName'] for r in result}),  # makes displayName unique and sorted
+    )
     for gene in [*CANONICAL_OTHER_CG, *CANONICAL_TS, *CANONICAL_ONCOGENES]:
         assert gene in {row['name'] for row in result}
     # w/ flags
