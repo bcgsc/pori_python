@@ -644,14 +644,8 @@ def get_gene_information(
 
     logger.info(f'Setting gene_info flags on {len(gene_names)} genes')
     result: List[IprGene] = []
-    EQUIVALENT_CACHE = {}
     for gene_name in gene_names:
-        if gene_name not in EQUIVALENT_CACHE:
-            EQUIVALENT_CACHE[gene_name] = convert_to_rid_set(
-                get_equivalent_features(graphkb_conn, gene_name)
-            )
-        equivalent = EQUIVALENT_CACHE[gene_name]
-
+        equivalent = convert_to_rid_set(get_equivalent_features(graphkb_conn, gene_name))
         row: Dict[str, str | bool] = {'name': gene_name}
         flagged = False
         for flag in gene_flags:
