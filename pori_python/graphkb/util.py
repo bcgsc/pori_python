@@ -368,11 +368,11 @@ class GraphKBConnection:
 
     def get_related_records(
         self,
-        base: Union[str, list[str]],
+        base: Union[str, List[str]],
         ontology: str,
         subgraphType: str,
-        returnProperties=[],
-    ):
+        returnProperties: Optional[List[str]] = None,
+    ) -> List[Record]:
         """
         Given some base node RIDs, an ontology class and a subgraph type,
         leverage the subgraphs route to return the list of related nodes.
@@ -391,17 +391,17 @@ class GraphKBConnection:
             data={
                 'base': base if isinstance(base, list) else [base],
                 'subgraphType': subgraphType,
-                'returnProperties': returnProperties,
+                'returnProperties': returnProperties or [],
             },
         )
         return related['result']['g']['nodes']
 
     def get_related_terms(
         self,
-        terms: Union[str, list[str]],
+        terms: Union[str, List[str]],
         ontology: str = 'Vocabulary',
         subgraphType: str = 'similar',
-    ) -> list[str]:
+    ) -> List[str]:
         """
         Given some base term name(s), an ontology class and a subgraph type,
         leverage the subgraphs route to return the list of related term name(s)
