@@ -110,17 +110,17 @@ def get_cancer_gene_flags(
     # Returning a sorted list of unique gene records, based on iProbe requirements
     # Unique by name, sorted by displayName
     if not flags:
-        names = set()  # for unique gene names tracking
+        seen: set = set()
+        unique_genes: List[Record] = []
+        for r in cancerGeneStms:
+            name = r['subject']['name']
+            if name not in seen:
+                seen.add(name)
+                unique_genes.append(r['subject'])
+
         return cast(
             List[Record],
-            sorted(
-                [
-                    r['subject']
-                    for r in cancerGeneStms
-                    if r['subject']['name'] not in names and not names.add(r['subject']['name'])
-                ],
-                key=lambda gene: gene['displayName'],
-            ),
+            sorted(unique_genes, key=lambda gene: gene['displayName']),
         )
 
     # Returning a Dict of flags, with list of associated gene records
