@@ -135,8 +135,8 @@ def get_cancer_gene_flags(
 @deprecated('functionality replaced by get_cancer_gene_flags')
 def _get_tumourigenesis_genes_list(
     conn: GraphKBConnection,
-    relevance: Union[str, list[str]],
-    sources: Union[str, list[str]],
+    relevance: Union[str, List[str]],
+    sources: Union[str, List[str]],
     ignore_cache: bool = False,
 ) -> List[Ontology]:
     statements = cast(
