@@ -31,7 +31,7 @@ def get_cancer_gene_flags(
     conn: GraphKBConnection,
     flags: bool = False,
     ignore_cache: bool = False,
-) -> Union[List, Dict]:
+) -> Union[List[Record], Dict[str, List[Record]]]:
     """
     Return all cancer genes, optionally sorted by flags.
 
@@ -42,7 +42,8 @@ def get_cancer_gene_flags(
 
     Args:
         conn: the graphkb connection object
-        namesOnly: if only the gene names should be returned
+        flags: if the results should be sorted by flags
+        ignore_cache: if cache should be ignored when querying GraphKB API
 
     Returns (if flags=False; default): list of unique gene records
         [ <record>, <record>, ... ]
@@ -50,12 +51,12 @@ def get_cancer_gene_flags(
     Returns (if flags=True): dict of flags as keys, and list of gene records as value
         {
             'oncogenic': [ <record>, <record>, ... ],
-            'tumourSuppressive' = [ <record>, <record>, ... ],
-            'cancerGene' = [ <record>, <record>, ... ],
+            'tumourSuppressive': [ <record>, <record>, ... ],
+            'cancerGene': [ <record>, <record>, ... ],
         }
     """
     # all cancer gene statements
-    CANCER_GENES = conn.get_related_terms(
+    cancer_genes = conn.get_related_terms(
         terms=CANCER_GENE,
         subgraphType='children',
     )
@@ -65,7 +66,7 @@ def get_cancer_gene_flags(
             {
                 'target': 'Statement',
                 'filters': {
-                    'relevance': {'target': 'Vocabulary', 'filters': {'name': CANCER_GENES}}
+                    'relevance': {'target': 'Vocabulary', 'filters': {'name': cancer_genes}}
                 },
                 'returnProperties': [
                     'source.name',
