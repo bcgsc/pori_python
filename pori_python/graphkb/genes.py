@@ -131,7 +131,7 @@ def get_cancer_gene_flags(
     }
 
 
-@deprecated('fuctionality replaced by get_cancer_gene_flags')
+@deprecated('functionality replaced by get_cancer_gene_flags')
 def _get_tumourigenesis_genes_list(
     conn: GraphKBConnection,
     relevance: Union[str, list[str]],
