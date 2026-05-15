@@ -420,9 +420,7 @@ class GraphKBConnection:
             ontology=ontology,
             subgraphType=subgraphType,
         )
-        return list(
-            map(lambda x: x['name'], nodes.values()),
-        )
+        return [x['name'] for x in nodes.values()]
 
 
 def get_rid(conn: GraphKBConnection, target: str, name: str) -> str:
