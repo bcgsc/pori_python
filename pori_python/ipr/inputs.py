@@ -812,8 +812,9 @@ def normalize_seqqc(content: Dict) -> Dict:
         content: Report content dictionary that may contain seqQC array
 
     Returns:
-        The content dictionary with seqQC fields normalized in-place
+        A new content dictionary with seqQC fields normalized
     """
+    content = {**content}
     # Field name mapping from production/legacy format to schema format
     field_mapping = {
         'Reads': 'reads',
@@ -829,6 +830,7 @@ def normalize_seqqc(content: Dict) -> Dict:
     normalized_keys = set(field_mapping.values())
 
     if 'seqQC' in content and isinstance(content['seqQC'], list):
+        content['seqQC'] = list(content['seqQC'])
         for i, item in enumerate(content['seqQC']):
             if not isinstance(item, dict):
                 continue

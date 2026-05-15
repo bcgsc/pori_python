@@ -405,7 +405,7 @@ def ipr_report(
 
     # seqqc normalization is a bridging measure only;
     # validate_json should be called on non-normalized json
-    normalize_seqqc(content)
+    content = normalize_seqqc(content)
 
     if upload_json:
         if not ipr_conn:
