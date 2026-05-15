@@ -28,6 +28,7 @@ from .constants import TMB_SIGNATURE_HIGH_THRESHOLD
 from .inputs import (
     check_comparators,
     check_variant_links,
+    normalize_seqqc,
     preprocess_copy_variants,
     preprocess_cosmic,
     preprocess_expression_variants,
@@ -405,6 +406,10 @@ def ipr_report(
             raise ValueError('ipr_url required to validate json')
         ipr_result = ipr_conn.validate_json(content)
         return ipr_result
+
+    # seqqc normalization is a bridging measure only;
+    # validate_json should be called on non-normalized json
+    content = normalize_seqqc(content)
 
     if upload_json:
         if not ipr_conn:
