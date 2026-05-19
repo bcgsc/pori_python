@@ -95,3 +95,125 @@ class TestPostImages:
                         )
                     },
                 )
+
+
+class TestCheckUploadPermission:
+    def _user_response(self, groups=None, projects=None):
+        return {
+            'groups': [{'name': g} for g in (groups or [])],
+            'projects': [{'name': p} for p in (projects or [])],
+        }
+
+    def test_rejects_user_without_create_report_access(self):
+        conn = IprConnection('user', 'pass')
+        conn.get = mock.MagicMock(
+            side_effect=[[{'name': 'TEST'}], self._user_response(projects=['TEST'])]
+        )
+        conn.post = mock.MagicMock()
+
+        with pytest.raises(Exception, match='User does not have report creation permission'):
+            conn.check_upload_permission('TEST')
+
+        conn.post.assert_not_called()
+
+    def test_rejects_user_without_project_access(self):
+        conn = IprConnection('user', 'pass')
+        conn.get = mock.MagicMock(
+            side_effect=[
+                [{'name': 'TEST'}],
+                self._user_response(groups=['create report access'], projects=['OTHER']),
+            ]
+        )
+        conn.post = mock.MagicMock()
+
+        with pytest.raises(
+            Exception, match='User has no permission to create report in project TEST'
+        ):
+            conn.check_upload_permission('TEST')
+
+        conn.post.assert_not_called()
+
+    def test_allows_user_with_project_and_create_report_access(self):
+        conn = IprConnection('user', 'pass')
+        conn.get = mock.MagicMock(
+            side_effect=[
+                [{'name': 'TEST'}],
+                self._user_response(groups=['create report access'], projects=['TEST']),
+            ]
+        )
+        conn.post = mock.MagicMock()
+
+        conn.check_upload_permission('TEST')
+
+        conn.post.assert_not_called()
+
+    def test_project_not_found_raises(self):
+        conn = IprConnection('user', 'pass')
+        conn.get = mock.MagicMock(side_effect=[[{'name': 'OTHER'}]])
+        conn.post = mock.MagicMock()
+
+        with pytest.raises(Exception, match='Project TEST does not exist'):
+            conn.check_upload_permission('TEST')
+
+        conn.post.assert_not_called()
+
+    def test_manager_without_project_membership_raises(self):
+        conn = IprConnection('user', 'pass')
+        conn.get = mock.MagicMock(
+            side_effect=[
+                [{'name': 'TEST'}],
+                self._user_response(groups=['manager'], projects=[]),
+            ]
+        )
+        conn.post = mock.MagicMock()
+
+        with pytest.raises(
+            Exception, match='User has no permission to create report in project TEST'
+        ):
+            conn.check_upload_permission('TEST')
+
+        conn.post.assert_not_called()
+
+    def test_manager_with_project_membership_allowed(self):
+        conn = IprConnection('user', 'pass')
+        conn.get = mock.MagicMock(
+            side_effect=[
+                [{'name': 'TEST'}],
+                self._user_response(groups=['manager'], projects=['TEST']),
+            ]
+        )
+        conn.post = mock.MagicMock()
+
+        conn.check_upload_permission('TEST')
+
+        conn.post.assert_not_called()
+
+    def test_admin_bypasses_all_checks(self):
+        conn = IprConnection('user', 'pass')
+        conn.get = mock.MagicMock(
+            side_effect=[
+                [{'name': 'TEST'}],
+                self._user_response(groups=['admin'], projects=[]),
+            ]
+        )
+        conn.post = mock.MagicMock()
+
+        conn.check_upload_permission('TEST')
+
+        conn.post.assert_not_called()
+
+    def test_all_projects_access_without_project_membership(self):
+        conn = IprConnection('user', 'pass')
+        conn.get = mock.MagicMock(
+            side_effect=[
+                [{'name': 'TEST'}],
+                self._user_response(
+                    groups=['create report access', 'all projects access'], projects=[]
+                ),
+            ]
+        )
+        conn.post = mock.MagicMock()
+
+        conn.check_upload_permission('TEST')
+
+        conn.post.assert_not_called()
