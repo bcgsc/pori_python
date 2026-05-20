@@ -152,7 +152,7 @@ class TestStringifyVariant:
             assert util.stringifyVariant(variant=variant, **opt) == stringifiedVariant
 
 
-class TestVersion:
+class TestGraphKBConnection:
     def test_version(self, conn):
         version = conn.version
         assert version['db'] in [
@@ -164,3 +164,30 @@ class TestVersion:
         assert SEMANTIC_VERSIONING_REGEX.match(version['api'])
         assert SEMANTIC_VERSIONING_REGEX.match(version['parser'])
         assert SEMANTIC_VERSIONING_REGEX.match(version['schema'])
+
+    def test_get_related_records(self, conn):
+        base = util.convert_to_rid_list(
+            conn.query({'target': 'Vocabulary', 'filters': {'name': 'missense'}})
+        )
+        records = conn.get_related_records(
+            base=base,
+            ontology='Vocabulary',
+            subgraphType='similar',
+            returnProperties=['displayName'],
+        )
+        assert 'missense mutation' in list(map(lambda x: x['displayName'], records.values()))
+
+    def test_get_related_terms(self, conn):
+        # with defaults
+        vocab_terms = conn.get_related_terms(
+            terms='missense',
+        )
+        assert 'missense mutation' in vocab_terms
+
+        # overriding ontology & subgraphType defaults
+        disease_terms = conn.get_related_terms(
+            terms='all solid tumors',
+            ontology='Disease',
+            subgraphType='parents',
+        )
+        assert 'cancer' in disease_terms
