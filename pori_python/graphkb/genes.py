@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence, Set, Tuple, cast
+from typing import Any, Dict, List, Sequence, Set, Tuple, cast, Union
 from typing_extensions import deprecated
 
 from pori_python.types import IprGene, Ontology, Record, Statement, Variant
@@ -27,8 +27,117 @@ from .util import get_rid, logger, looks_like_rid
 from .vocab import get_terms_set
 
 
+def get_cancer_gene_flags(
+    conn: GraphKBConnection,
+    flags: bool = False,
+    ignore_cache: bool = False,
+) -> Union[List[Record], Dict[str, List[Record]]]:
+    """
+    Return all cancer genes, optionally sorted by flags.
+
+    Flag definitions:
+        oncogenic: relevance 'oncogenic' from OncoKB
+        tumourSuppressive: relevance 'tumour suppressive' from OncoKB
+        cancerGene: relevance 'cancer gene' AND child terms ('oncogenic', 'tumour suppressive', 'other cancer gene'), from OncoKB AND TSO500
+
+    Args:
+        conn: the graphkb connection object
+        flags: if the results should be sorted by flags
+        ignore_cache: if cache should be ignored when querying GraphKB API
+
+    Returns (if flags=False; default): list of unique gene records
+        [ <record>, <record>, ... ]
+
+    Returns (if flags=True): dict of flags as keys, and list of gene records as value
+        {
+            'oncogenic': [ <record>, <record>, ... ],
+            'tumourSuppressive': [ <record>, <record>, ... ],
+            'cancerGene': [ <record>, <record>, ... ],
+        }
+    """
+    # all cancer gene statements
+    cancer_genes = conn.get_related_terms(
+        terms=CANCER_GENE,
+        subgraphType='children',
+    )
+    statements = cast(
+        List[Statement],
+        conn.query(
+            {
+                'target': 'Statement',
+                'filters': {
+                    'relevance': {'target': 'Vocabulary', 'filters': {'name': cancer_genes}}
+                },
+                'returnProperties': [
+                    'source.name',
+                    'relevance.name',
+                    *[f'subject.{prop}' for prop in GENE_RETURN_PROPERTIES],
+                ],
+            },
+            ignore_cache=ignore_cache,
+        ),
+    )
+
+    # post-query filtering (faster)
+    cancerGeneStms = list(
+        filter(
+            lambda r: (
+                r['subject']['@class'] == 'Feature'
+                and r['subject']['biotype'] == 'gene'
+                and r['source']['name'] in [ONCOKB_SOURCE_NAME, TSO500_SOURCE_NAME]
+            ),
+            statements,
+        )
+    )
+    oncogenicStms = list(
+        filter(
+            lambda r: (
+                r['relevance']['name'] == ONCOGENE and r['source']['name'] == ONCOKB_SOURCE_NAME
+            ),
+            cancerGeneStms,
+        )
+    )
+    tumourSuppressiveStms = list(
+        filter(
+            lambda r: (
+                r['relevance']['name'] == TUMOUR_SUPPRESSIVE
+                and r['source']['name'] == ONCOKB_SOURCE_NAME
+            ),
+            cancerGeneStms,
+        )
+    )
+
+    # Returning a sorted list of unique gene records, based on iProbe requirements
+    # Unique by name, sorted by displayName
+    if not flags:
+        seen: set = set()
+        unique_genes: List[Record] = []
+        for r in cancerGeneStms:
+            name = r['subject']['name']
+            if name not in seen:
+                seen.add(name)
+                unique_genes.append(r['subject'])
+
+        return cast(
+            List[Record],
+            sorted(unique_genes, key=lambda gene: gene['displayName']),
+        )
+
+    # Returning a Dict of flags, with list of associated gene records
+    # Duplicates are ok
+    return {
+        'cancerGene': [r['subject'] for r in cancerGeneStms],
+        'oncogenic': [r['subject'] for r in oncogenicStms],
+        'tumourSuppressive': [r['subject'] for r in tumourSuppressiveStms],
+    }
+
+
+@deprecated('functionality replaced by get_cancer_gene_flags')
 def _get_tumourigenesis_genes_list(
-    conn: GraphKBConnection, relevance: str, sources: List[str], ignore_cache: bool = False
+    conn: GraphKBConnection,
+    relevance: Union[str, List[str]],
+    sources: Union[str, List[str]],
+    ignore_cache: bool = False,
 ) -> List[Ontology]:
     statements = cast(
         List[Statement],
@@ -57,6 +166,7 @@ def _get_tumourigenesis_genes_list(
     return [gene for gene in genes.values()]
 
 
+@deprecated('functionality replaced by get_cancer_gene_flags')
 def get_oncokb_oncogenes(conn: GraphKBConnection) -> List[Ontology]:
     """Get the list of oncogenes stored in GraphKB derived from OncoKB.
 
@@ -66,9 +176,10 @@ def get_oncokb_oncogenes(conn: GraphKBConnection) -> List[Ontology]:
     Returns:
         gene (Feature) records
     """
-    return _get_tumourigenesis_genes_list(conn, ONCOGENE, [ONCOKB_SOURCE_NAME])
+    return _get_tumourigenesis_genes_list(conn, ONCOGENE, ONCOKB_SOURCE_NAME)
 
 
+@deprecated('functionality replaced by get_cancer_gene_flags')
 def get_oncokb_tumour_supressors(conn: GraphKBConnection) -> List[Ontology]:
     """Get the list of tumour supressor genes stored in GraphKB derived from OncoKB.
 
@@ -78,11 +189,14 @@ def get_oncokb_tumour_supressors(conn: GraphKBConnection) -> List[Ontology]:
     Returns:
         gene (Feature) records
     """
-    return _get_tumourigenesis_genes_list(conn, TUMOUR_SUPPRESSIVE, [ONCOKB_SOURCE_NAME])
+    return _get_tumourigenesis_genes_list(conn, TUMOUR_SUPPRESSIVE, ONCOKB_SOURCE_NAME)
 
 
+@deprecated('functionality replaced by get_cancer_gene_flags')
 def get_cancer_genes(conn: GraphKBConnection) -> List[Ontology]:
-    """Get the list of cancer genes stored in GraphKB derived from OncoKB & TSO500.
+    """
+    Get the list of cancer genes stored in GraphKB derived from OncoKB & TSO500.
+    Cancer genes include oncogenes, tumour supressor genes and other cancer genes.
 
     Args:
         conn: the graphkb connection object
@@ -90,8 +204,12 @@ def get_cancer_genes(conn: GraphKBConnection) -> List[Ontology]:
     Returns:
         gene (Feature) records
     """
+    cancer_gene_terms = conn.get_related_terms(
+        terms=CANCER_GENE,
+        subgraphType='children',
+    )
     return _get_tumourigenesis_genes_list(
-        conn, CANCER_GENE, [ONCOKB_SOURCE_NAME, TSO500_SOURCE_NAME]
+        conn, cancer_gene_terms, [ONCOKB_SOURCE_NAME, TSO500_SOURCE_NAME]
     )
 
 
@@ -513,12 +631,12 @@ def get_gene_information(
                     # PositionalVariant without a reference2 implies a smallMutation type
                     gene_flags['knownSmallMutation'].add(condition['reference1'])  # type: ignore
 
-    logger.info('fetching oncogenes list')
-    gene_flags['oncogene'] = convert_to_rid_set(get_oncokb_oncogenes(graphkb_conn))
-    logger.info('fetching tumour supressors list')
-    gene_flags['tumourSuppressor'] = convert_to_rid_set(get_oncokb_tumour_supressors(graphkb_conn))
-    logger.info('fetching cancerGeneListMatch list')
-    gene_flags['cancerGeneListMatch'] = convert_to_rid_set(get_cancer_genes(graphkb_conn))
+    # cancer gene flags
+    logger.info('fetching cancer genes')
+    cancer_gene_flags = get_cancer_gene_flags(graphkb_conn, flags=True)
+    gene_flags['oncogene'] = convert_to_rid_set(cancer_gene_flags['oncogenic'])
+    gene_flags['tumourSuppressor'] = convert_to_rid_set(cancer_gene_flags['tumourSuppressive'])
+    gene_flags['cancerGeneListMatch'] = convert_to_rid_set(cancer_gene_flags['cancerGene'])
 
     logger.info('fetching therapeutic associated genes lists')
     gene_flags['therapeuticAssociated'] = convert_to_rid_set(

@@ -19,7 +19,7 @@ INCLUDE_UPLOAD_TESTS = os.environ.get('INCLUDE_UPLOAD_TESTS', '0') == '1'
 DELETE_UPLOAD_TEST_REPORTS = os.environ.get('DELETE_UPLOAD_TEST_REPORTS', '1') == '1'
 
 
-def get_test_spec():
+def get_test_spec() -> dict:
     ipr_spec = {'components': {'schemas': {'genesCreate': {'properties': {}}}}}
     ipr_gene_keys = IprGene.__required_keys__ | IprGene.__optional_keys__
     for key in ipr_gene_keys:
@@ -31,12 +31,35 @@ def get_test_file(name: str) -> str:
     return os.path.join(os.path.dirname(__file__), 'test_data', name)
 
 
+def get_test_transcript_flags(json_contents) -> pd.DataFrame:
+    """creates a dataframe of transcript flags for test purposes, based on the input json contents"""
+    transcript_flags = []
+    for item in json_contents['structuralVariants']:
+        transcript_flags.append((item['ntermTranscript'], 'TRANSCRIPT FLAG'))
+        transcript_flags.append((item['ctermTranscript'], 'TRANSCRIPT FLAG'))
+    for item in json_contents['smallMutations']:
+        transcript_flags.append((item['transcript'], 'TRANSCRIPT FLAG'))
+    df = pd.DataFrame(transcript_flags, columns=['transcript', 'flags'])
+    df = df.drop_duplicates()
+    return df
+
+
+def add_test_variant_flags_to_input_data(json_contents) -> dict:
+    """adds flags to the input variants for test purposes"""
+    for vtype in ['structuralVariants', 'smallMutations', 'copyVariants', 'expressionVariants']:
+        for item in json_contents[vtype]:
+            item['flags'] = ['TEST FLAG']
+    return json_contents
+
+
 @pytest.fixture(scope='module')
 def loaded_reports(tmp_path_factory) -> Generator:
     json_file = tmp_path_factory.mktemp('inputs') / 'content.json'
     async_json_file = tmp_path_factory.mktemp('inputs') / 'async_content.json'
+    transcript_flags_file = tmp_path_factory.mktemp('inputs') / 'transcript_flags.tsv'
     patient_id = f'TEST_{str(uuid.uuid4())}'
     async_patient_id = f'TEST_ASYNC_{str(uuid.uuid4())}'
+
     json_contents = {
         'comparators': [
             {'analysisRole': 'expression (disease)', 'name': '1'},
@@ -106,8 +129,39 @@ def loaded_reports(tmp_path_factory) -> Generator:
                 'caption': 'Test adding a caption to an image',
             }
         ],
+        'seqQC': [
+            {
+                'sample': 'Tumour DNA',
+                'reads': '2534M',
+                'library': 'LIB0001',
+                'coverage': '80x',
+                'inputNg': '500',
+                'protocol': 'WGS',
+                'sampleName': 'SAMPLE2-FF-1',
+                'bioQC': 'passed',
+                'labQC': 'passed',
+                'duplicateReadsPerc': '12.3',
+            },
+            {
+                'sample': 'Constitutional DNA',
+                'reads': '1200M',
+                'library': 'LIB0002',
+                'coverage': '40x',
+                'inputNg': '300',
+                'protocol': 'WGS',
+                'sampleName': 'SAMPLE1-PB',
+                'bioQC': 'passed',
+                'labQC': 'passed',
+                'duplicateReadsPerc': '8.1',
+            },
+        ],
         'config': 'test config',
     }
+
+    json_contents = add_test_variant_flags_to_input_data(json_contents)
+
+    transcript_flags_df = get_test_transcript_flags(json_contents)
+    transcript_flags_df.to_csv(transcript_flags_file, sep='\t', index=False)
 
     json_file.write_text(
         json.dumps(
@@ -140,6 +194,8 @@ def loaded_reports(tmp_path_factory) -> Generator:
         os.environ.get('GRAPHKB_URL', False),
         '--therapeutics',
         '--allow_partial_matches',
+        '--transcript_flags',
+        str(transcript_flags_file),
     ]
 
     sync_argslist = argslist.copy()
@@ -192,7 +248,7 @@ def stringify_sorted(obj):
         obj.sort()
         return str(obj)
     elif isinstance(obj, dict):
-        for key in ('ident', 'updatedAt', 'createdAt', 'deletedAt'):
+        for key in ('ident', 'updatedAt', 'createdAt', 'deletedAt', 'variantId', 'id', 'reportId'):
             obj.pop(key, None)
         keys = obj.keys()
         for key in keys:
@@ -329,6 +385,18 @@ class TestCreateReport:
         async_section = get_section(loaded_reports['async'], 'summary/analyst-comments')
         assert async_section['comments']
         assert sync_section['comments'] == async_section['comments']
+
+    def test_seqqc_loaded(self, loaded_reports) -> None:
+        """Test that seqQC data is present in the loaded report."""
+        sync_report = loaded_reports['sync'][1]['reports'][0]
+        assert 'seqQC' in sync_report
+        assert len(sync_report['seqQC']) == 2
+        samples = [item['sample'] for item in sync_report['seqQC']]
+        assert 'Tumour DNA' in samples
+        assert 'Constitutional DNA' in samples
+        async_report = loaded_reports['async'][1]['reports'][0]
+        assert 'seqQC' in async_report
+        assert len(async_report['seqQC']) == 2
 
     def test_sample_info_loaded(self, loaded_reports) -> None:
         sync_section = get_section(loaded_reports['sync'], 'sample-info')

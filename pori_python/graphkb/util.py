@@ -354,6 +354,74 @@ class GraphKBConnection:
             raise AssertionError(f'Unable to unqiuely identify source with name {name}')
         return source[0]
 
+    @property
+    def version(self) -> Dict[str, str]:
+        """
+        Retrieve GraphKB components version
+
+        Returns:
+            Dict[str, str]: component keys with version values
+
+            e.g. > {"api":"3.17.3","db":"production","parser":"2.1.0","schema":"4.1.1"}
+        """
+        return self.request('version')
+
+    def get_related_records(
+        self,
+        base: Union[str, List[str]],
+        ontology: str,
+        subgraphType: str,
+        returnProperties: Optional[List[str]] = None,
+    ) -> List[Record]:
+        """
+        Given some base node RIDs, an ontology class and a subgraph type,
+        leverage the subgraphs route to return the list of related nodes.
+
+        Args:
+            base: the base node RIDs to start the graph traversal from
+            ontology: the ontology class to traverse
+            subgraphType: the type of traversal. See options in API specs
+            returnProperties: additional record properties to return
+
+        Returns:
+            list of related node record(s) traversed
+        """
+        related = self.post(
+            uri=f'/subgraphs/{ontology}',
+            data={
+                'base': base if isinstance(base, list) else [base],
+                'subgraphType': subgraphType,
+                'returnProperties': returnProperties or [],
+            },
+        )
+        return related['result']['g']['nodes']
+
+    def get_related_terms(
+        self,
+        terms: Union[str, List[str]],
+        ontology: str = 'Vocabulary',
+        subgraphType: str = 'similar',
+    ) -> List[str]:
+        """
+        Given some base term name(s), an ontology class and a subgraph type,
+        leverage the subgraphs route to return the list of related term name(s)
+
+        Args:
+            terms: the base term name(s) to start the graph traversal from
+            ontology: the ontology class to traverse
+            subgraphType: the type of traversal
+
+        Returns:
+            list of related term name(s)
+        """
+        rids = convert_to_rid_list(self.query({'target': ontology, 'filters': {'name': terms}}))
+        nodes = self.get_related_records(
+            base=rids,
+            ontology=ontology,
+            subgraphType=subgraphType,
+        )
+        return [x['name'] for x in nodes.values()]
+
 
 def get_rid(conn: GraphKBConnection, target: str, name: str) -> str:
     """

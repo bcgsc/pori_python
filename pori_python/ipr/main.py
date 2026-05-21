@@ -6,6 +6,7 @@ import json
 import jsonschema.exceptions
 import logging
 import os
+import pandas as pd
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from typing import Callable, Dict, List, Optional, Sequence, Set
 
@@ -27,6 +28,7 @@ from .constants import TMB_SIGNATURE_HIGH_THRESHOLD
 from .inputs import (
     check_comparators,
     check_variant_links,
+    normalize_seqqc,
     preprocess_copy_variants,
     preprocess_cosmic,
     preprocess_expression_variants,
@@ -46,6 +48,8 @@ from .ipr import (
     get_kb_disease_matches,
     get_kb_matches_sections,
     select_expression_plots,
+    get_variant_flags,
+    add_transcript_flags,
 )
 from .summary import auto_analyst_comments, get_ipr_analyst_comments
 from .therapeutic_options import create_therapeutic_options
@@ -67,6 +71,26 @@ def file_path(path: str) -> str:
 
 def timestamp() -> str:
     return datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+
+
+def load_transcript_flags(path: str) -> pd.DataFrame:
+    transcript_flags_df = pd.read_csv(
+        path,
+        sep='\t',
+        names=['transcript', 'flags'],
+        dtype=str,
+        keep_default_na=False,
+    )
+    if transcript_flags_df.empty:
+        return transcript_flags_df
+
+    first_row = transcript_flags_df.iloc[0]
+    if [str(first_row[col]).strip().lower() for col in ['transcript', 'flags']] == [
+        'transcript',
+        'flags',
+    ]:
+        transcript_flags_df = transcript_flags_df.iloc[1:].reset_index(drop=True)
+    return transcript_flags_df
 
 
 def command_interface() -> None:
@@ -129,7 +153,7 @@ def command_interface() -> None:
     )
     parser.add_argument(
         '--mins_to_wait',
-        default=5,
+        default=10,
         action='store',
         help='is using reports-async, number of minutes to wait before throwing error',
     )
@@ -157,6 +181,12 @@ def command_interface() -> None:
         action='store_true',
         help='True if ignore extra fields in json',
     )
+    parser.add_argument(
+        '--transcript_flags',
+        required=False,
+        type=file_path,
+        help='TSV without header, with two columns: transcripts and flags (comma-separated list of flags eg "MANE"). If header is included, it will be skipped. Matching uses direct string comparison, so transcript identifiers must match exactly, including version numbers (e.g., if input variants use ENST00000390477.1, this file must also use ENST00000390477.1, not ENST00000390477).',
+    )
     args = parser.parse_args()
 
     with open(args.content, 'r') as fh:
@@ -181,6 +211,7 @@ def command_interface() -> None:
         upload_json=args.upload_json,
         validate_json=args.validate_json,
         ignore_extra_fields=args.ignore_extra_fields,
+        transcript_flags=args.transcript_flags,
     )
 
 
@@ -234,7 +265,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
         for key, count in removed_keys.items():
             logger.warning(f"IPR unsupported property '{key}' removed from {count} genes.")
 
-    drop_columns = ['variant', 'variantType', 'histogramImage']
+    drop_columns = ['variant', 'variantType', 'histogramImage', 'flags']
     # DEVSU-2034 - use a 'displayName'
     VARIANT_LIST_KEYS = [
         'expressionVariants',
@@ -281,7 +312,6 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
 
     # Removing cosmicSignatures. Temporary
     upload_content.pop('cosmicSignatures', None)
-
     return upload_content
 
 
@@ -308,7 +338,7 @@ def ipr_report(
     match_germline: bool = False,
     custom_kb_match_filter: Optional[Callable] = None,
     async_upload: bool = False,
-    mins_to_wait: int = 5,
+    mins_to_wait: int = 10,
     include_ipr_variant_text: bool = True,
     include_nonspecific_disease: bool = False,
     include_nonspecific_project: bool = False,
@@ -318,6 +348,7 @@ def ipr_report(
     validate_json: bool = False,
     ignore_extra_fields: bool = False,
     tmb_high: float = TMB_SIGNATURE_HIGH_THRESHOLD,
+    transcript_flags: str = '',
 ) -> Dict:
     """Run the matching and create the report JSON for upload to IPR.
 
@@ -347,6 +378,7 @@ def ipr_report(
         include_nonspecific_template: if include_ipr_variant_text is True, if no template match is found use template-nonspecific variant comment
         allow_partial_matches: allow matches to statements where not all conditions are satisfied
         tmb_high: mutation burden threshold/cutoff to qualify as 'high'
+        transcript_flags: path to a tsv file with two columns (no header) of transcript identifiers and flags to be added to any observed variants with matching transcript in the report upload. If header is included, it will be skipped. Matching uses direct string comparison, so transcript identifiers must match exactly, including version numbers (e.g., if input variants use ENST00000390477.1, this file must also use ENST00000390477.1, not ENST00000390477).
     Returns:
         ipr_conn.upload_report return dictionary
     """
@@ -365,11 +397,19 @@ def ipr_report(
     else:
         logger.warning('No ipr_url given')
 
+    # Verify upload permission before doing any expensive processing
+    if ipr_upload and ipr_conn:
+        ipr_conn.check_upload_permission(content['project'])
+
     if validate_json:
         if not ipr_conn:
             raise ValueError('ipr_url required to validate json')
         ipr_result = ipr_conn.validate_json(content)
         return ipr_result
+
+    # seqqc normalization is a bridging measure only;
+    # validate_json should be called on non-normalized json
+    content = normalize_seqqc(content)
 
     if upload_json:
         if not ipr_conn:
@@ -385,6 +425,10 @@ def ipr_report(
     except jsonschema.exceptions.ValidationError as err:
         logger.error('Failed schema check - report variants may be corrupted or unmatched.')
         logger.error(f'Failed schema check: {err}')
+
+    transcript_flags_df = None
+    if transcript_flags:
+        transcript_flags_df = load_transcript_flags(transcript_flags)
 
     # INPUT VARIANTS VALIDATION & PREPROCESSING (OBSERVED BIOMARKERS)
     signature_variants: List[IprSignatureVariant] = preprocess_signature_variants(
@@ -410,6 +454,7 @@ def ipr_report(
     expression_variants: List[IprExprVariant] = preprocess_expression_variants(
         content.get('expressionVariants', [])
     )
+
     # Additional checks
     if expression_variants:
         check_comparators(content, expression_variants)
@@ -458,6 +503,10 @@ def ipr_report(
         *small_mutations,
         *structural_variants,
     ]  # type: ignore
+
+    # ANNOTATING VARIANTS WITH TRANSCRIPT FLAGS
+    if transcript_flags_df is not None and not transcript_flags_df.empty:
+        all_variants = add_transcript_flags(all_variants, transcript_flags_df)
 
     # GKB_MATCHES FILTERING
     if match_germline:
@@ -531,6 +580,7 @@ def ipr_report(
     # thread safe deep-copy the original content
     output = json.loads(json.dumps(content))
     output.update(kb_matched_sections)
+
     output.update(
         {
             'copyVariants': [
@@ -559,6 +609,25 @@ def ipr_report(
             'therapeuticTarget': targets,
         }
     )
+
+    # ADD OBSERVED VARIANT ANNOTATIONS SECTION
+    annotatable_variant_sources = [
+        v
+        for source in [
+            output[section]
+            for section in [
+                'smallMutations',
+                'copyVariants',
+                'expressionVariants',
+                'structuralVariants',
+            ]
+            if section in output
+        ]
+        for v in source
+    ]
+
+    output['observedVariantAnnotations'] = get_variant_flags(annotatable_variant_sources)
+
     output.setdefault('images', []).extend(select_expression_plots(gkb_matches, all_variants))
 
     # if input includes hrdScore field, that is ok to pass to db
@@ -577,6 +646,7 @@ def ipr_report(
         if not ipr_conn:
             raise ValueError('ipr_url required to upload report')
         ipr_spec = ipr_conn.get_spec()
+
         output = clean_unsupported_content(output, ipr_spec)
         try:
             logger.info(f'Uploading to IPR {ipr_conn.url}')
@@ -593,7 +663,7 @@ def ipr_report(
     if always_write_output_json:
         logger.info(f'Writing IPR upload json to: {output_json_path}')
         with open(output_json_path, 'w') as fh:
-            fh.write(json.dumps(output))
+            json.dump(output, fh, indent=4)
 
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
