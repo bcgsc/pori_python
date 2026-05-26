@@ -564,6 +564,10 @@
         "hrd": {
             "properties": {
                 "kbCategory": {
+                    "enum": [
+                        "homologous recombination deficiency strong signature",
+                        "homologous recombination deficiency moderate signature"
+                    ],
                     "type": "string"
                 },
                 "score": {
