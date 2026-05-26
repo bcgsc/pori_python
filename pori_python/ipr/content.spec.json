@@ -564,7 +564,7 @@
         "hrd": {
             "properties": {
                 "kbCategory": {
-                    "enum": [
+                    "examples": [
                         "homologous recombination deficiency strong signature",
                         "homologous recombination deficiency moderate signature"
                     ],
