@@ -1,0 +1,84 @@
+# Extended testing, INCLUDDING integration tests
+# Python:
+#   - 3.9
+#   - 3.10
+#   - 3.11
+#   - 3.12
+# Triggered by:
+#   - Creating a new PR to main branch
+#   - Addind commit(s) to an existing PR to main branch
+#   - Addind commit(s) to main branch:
+#     - Direct commit without PR
+#     - Updating the out-of-date base branch to an existing PR to main branch
+
+name: extended-tests-integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+  workflow_dispatch:
+
+jobs:
+
+  extended-tests-integration:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+    steps:
+    - name: Checkout repository
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools
+        pip install -e .[test]  # coverage reports need -e to capture properly
+
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 pori_python --count --select=E9,F63,F7,F82 --show-source --statistics
+
+    - name: Check with black
+      run: |
+        pip install black
+        black --check -S -l 100 pori_python tests
+
+    - name: Tests with pytest, including integration tests
+      run: |
+        pip list
+        pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml --cov pori_python --cov-report term --cov-report xml
+      env:
+        IPR_USER: ${{ secrets.IPR_TEST_USER }}
+        IPR_PASS: ${{ secrets.IPR_TEST_PASSWORD }}
+        GRAPHKB_USER: ${{ secrets.GKB_TEST_USER }}
+        GRAPHKB_PASS: ${{ secrets.GKB_TEST_PASS }}
+        EXCLUDE_INTEGRATION_TESTS: 0
+
+    - name: Upload pytest test results
+      if: ${{ matrix.python-version == '3.9' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: pytest-results-${{ matrix.python-version }}
+        path: junit/test-results-${{ matrix.python-version }}.xml
+        # Use always() to always run this step to publish test results when there are test failures
+
+    - name: Update code coverage report to CodeCov
+      if: ${{ matrix.python-version == '3.9' }}
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unittests
+        env_vars: OS,PYTHON
+        name: codecov-umbrella
+        fail_ci_if_error: true
