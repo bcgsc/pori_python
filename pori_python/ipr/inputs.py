@@ -801,6 +801,58 @@ def extend_with_default(validator_class):
 DefaultValidatingDraft7Validator = extend_with_default(jsonschema.Draft7Validator)
 
 
+def normalize_seqqc(content: Dict) -> Dict:
+    """
+    Normalize seqQC field names from production report format to schema format.
+
+    Maps inconsistent casing and underscores in field names to match content.spec.json requirements.
+    For example: 'Reads' -> 'reads', 'Sample Name' -> 'sampleName', etc.
+
+    Args:
+        content: Report content dictionary that may contain seqQC array
+
+    Returns:
+        A new content dictionary with seqQC fields normalized
+    """
+    content = {**content}
+    # Field name mapping from production/legacy format to schema format
+    field_mapping = {
+        'Reads': 'reads',
+        'Sample': 'sample',
+        'Library': 'library',
+        'Coverage': 'coverage',
+        'Input_ng': 'inputNg',
+        'Input_ug': 'inputUg',
+        'Protocol': 'protocol',
+        'Sample Name': 'sampleName',
+        'Duplicate_Reads_Perc': 'duplicateReadsPerc',
+    }
+    normalized_keys = set(field_mapping.values())
+
+    if 'seqQC' in content and isinstance(content['seqQC'], list):
+        content['seqQC'] = list(content['seqQC'])
+        for i, item in enumerate(content['seqQC']):
+            if not isinstance(item, dict):
+                continue
+            # Preserve already-normalized keys (and unrelated keys) first so
+            # legacy aliases cannot overwrite them based on insertion order.
+            normalized_item = {}
+            for key, value in item.items():
+                if key in normalized_keys or key not in field_mapping:
+                    normalized_item[key] = value
+
+            # Add legacy aliases only when the normalized key is not already
+            # present. This makes collision handling explicit and stable.
+            for old_key, new_key in field_mapping.items():
+                if old_key in item and new_key not in normalized_item:
+                    normalized_item[new_key] = item[old_key]
+
+            # Replace the item with normalized version
+            content['seqQC'][i] = normalized_item
+
+    return content
+
+
 def validate_report_content(content: Dict, schema_file: str = SPECIFICATION) -> None:
     """
     Validate a report content input JSON object against the schema specification
