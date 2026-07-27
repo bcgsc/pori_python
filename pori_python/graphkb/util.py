@@ -100,7 +100,7 @@ class CachedSession(CacheMixin, requests.Session):
     pass
 
 
-class CachedLimiterSession(LimiterMixin, CachedSession):
+class CachedLimiterSession(CacheMixin, LimiterMixin, requests.Session):
     pass
 
 
