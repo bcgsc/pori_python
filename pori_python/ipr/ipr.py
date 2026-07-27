@@ -160,7 +160,6 @@ def convert_statements_to_alterations(
             )
             if query_result:
                 recruitment_statuses[rid] = query_result[0]['recruitmentStatus']  # type: ignore
-
     for statement in statements:
         variants = [
             cast(Variant, c) for c in statement['conditions'] if c['@class'] in VARIANT_CLASSES
@@ -229,6 +228,7 @@ def convert_statements_to_alterations(
                     row['kbContextId'], 'not found'
                 )
             rows.append(row)
+
     return rows
 
 
@@ -668,7 +668,6 @@ def get_kb_disease_matches(
     verbose: bool = True,
     useSubgraphsRoute: bool = True,
 ) -> list[Dict]:
-
     disease_matches = []
 
     if not kb_disease_match:
@@ -728,3 +727,82 @@ def get_kb_disease_matches(
         raise ValueError(msg)
 
     return disease_matches
+
+
+def ensure_str_list(val):
+    if isinstance(val, str):
+        return [f.strip() for f in val.split(',') if f.strip()]
+    if isinstance(val, list):
+        if not all(isinstance(item, str) for item in val):
+            raise TypeError('All items in flags must be strings')
+        return val
+    raise TypeError(f'Unexpected type in flags field: {type(val).__name__}')
+
+
+def add_transcript_flags(variant_sources, transcript_flags_df):
+    """
+    Add flags from the input transcript_flags_df to the variant_sources
+    records based on matching transcript keys.
+     - For non-fusion records with a 'transcript' field, add flags directly based on that field.
+     - For fusion records without a 'transcript' field but with 'ctermTranscript' and
+        'ntermTranscript' fields, add flags based on both transcripts with appropriate labeling
+    """
+    lookup = {}
+
+    # create transcript:flags dict from input df
+    for _, row in (
+        transcript_flags_df[['transcript', 'flags']].dropna(subset=['transcript']).iterrows()
+    ):
+        transcript = row['transcript']
+        flags = lookup.setdefault(transcript, [])
+        for flag in ensure_str_list(str(row['flags'])):
+            if flag not in flags:
+                flags.append(flag)
+
+    # for fusions: check both transcripts for flags and add to the same record
+    label_map = {'ctermTranscript': 'cterm', 'ntermTranscript': 'nterm'}
+
+    # single pass: add plain transcript flags and labeled fusion transcript flags
+    for record in variant_sources:
+        flags = ensure_str_list(record.setdefault('flags', []))
+
+        if record.get('transcript'):
+            # non-fusion: plain transcript only, no cterm/nterm
+            transcript_flags = lookup.get(record['transcript'])
+            if transcript_flags:
+                for new_flag in transcript_flags:
+                    if new_flag not in flags:
+                        flags.append(new_flag)
+        else:
+            # fusion: check cterm/nterm transcripts with labels
+            for key, label in label_map.items():
+                transcript = record.get(key)
+                transcript_flags = lookup.get(transcript)
+                if not transcript_flags:
+                    continue
+                for flag in transcript_flags:
+                    new_flag = f'{flag} ({label})'
+                    if new_flag not in flags:
+                        flags.append(new_flag)
+
+        record['flags'] = flags
+    return variant_sources
+
+
+def get_variant_flags(variant_sources):
+    flags = []
+    for item in variant_sources:
+        raw_flags = item.get('flags')
+        if not raw_flags:  # skips None and ''
+            continue
+        unique_flags = list(dict.fromkeys(f for f in ensure_str_list(raw_flags) if f))
+        # create record, removing dupes from flags list
+        flags.append(
+            {
+                'variant': item['key'],
+                'variantType': item['variantType'],
+                'flags': unique_flags,
+            }
+        )
+        item.pop('flags', None)  # remove after extraction
+    return flags

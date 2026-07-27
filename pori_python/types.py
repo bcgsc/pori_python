@@ -134,11 +134,12 @@ class Hashabledict(dict):
 
 
 class IprVariantBase(TypedDict):
-    """Required properties of all variants for IPR."""
+    """Required or possible properties of all variants for IPR."""
 
     key: str
     variantType: str
     variant: str
+    flags: Optional[List[str]]
 
 
 class IprGeneVariant(IprVariantBase):

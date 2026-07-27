@@ -61,6 +61,11 @@ def create_variant_name_tuple(variant: IprVariant) -> Tuple[str, str]:
         return (gene, str(variant.get('expressionState', '')))
     elif variant_type == 'cnv':
         return (gene, str(variant.get('cnvState', '')))
+    elif variant_type == 'sigv':
+        return (
+            variant.get('signatureName', variant.get('displayName')),
+            str(variant.get('variantTypeName', '')),
+        )
     variant_split = (
         variant['variant'].split(':', 1)[1] if ':' in variant['variant'] else variant['variant']
     )

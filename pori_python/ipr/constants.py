@@ -38,3 +38,4 @@ HRD_MAPPING = {
         'variantTypeName': 'moderate signature',
     },
 }
+HRD_SIGNATURE_OVER_CUTOFF = HRD_MAPPING['homologous recombination deficiency strong signature']

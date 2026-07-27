@@ -6,6 +6,7 @@ from pori_python.ipr.annotate import annotate_positional_variants, annotate_sign
 from pori_python.ipr.constants import (
     COSMIC_SIGNATURE_VARIANT_TYPE,
     HLA_SIGNATURE_VARIANT_TYPE,
+    HRD_MAPPING,
     MSI_MAPPING,
     TMB_SIGNATURE,
     TMB_SIGNATURE_VARIANT_TYPE,
@@ -13,7 +14,7 @@ from pori_python.ipr.constants import (
 from pori_python.ipr.inputs import preprocess_signature_variants
 from pori_python.types import IprSmallMutationVariant
 
-from .test_ipr import DISEASE_RIDS
+from .test_ipr import DISEASE_RIDS  # dummy RIDs; will always result in matchedCancer == false
 
 EXCLUDE_BCGSC_TESTS = os.environ.get('EXCLUDE_BCGSC_TESTS') == '1'
 
@@ -202,6 +203,29 @@ class TestAnnotation:
             preprocess_signature_variants([MSI_MAPPING.get('microsatellite instability')]),
         )
         assert len(msi) != 0
+
+    def test_annotate_signature_variants_hrd_strong(self, graphkb_conn):
+        """Test HRD strong signature"""
+        hrd = annotate_signature_variants(
+            graphkb_conn,
+            DISEASE_RIDS,
+            preprocess_signature_variants(
+                [HRD_MAPPING['homologous recombination deficiency strong signature']]
+            ),
+        )
+        assert len(hrd) != 0
+
+    @pytest.mark.skip(reason='no GKB statement for HRD moderate Signature CVs yet')
+    def test_annotate_signature_variants_hrd_moderate(self, graphkb_conn):
+        """Test HRD moderate signature"""
+        hrd = annotate_signature_variants(
+            graphkb_conn,
+            DISEASE_RIDS,
+            preprocess_signature_variants(
+                [HRD_MAPPING['homologous recombination deficiency moderate signature']]
+            ),
+        )
+        assert len(hrd) != 0
 
     def test_annotate_structural_variants_tp53(self, graphkb_conn):
         """Verify alternate TP53 variants match."""
