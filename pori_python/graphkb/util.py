@@ -15,6 +15,7 @@ try:
 except ImportError:
     from pyrate_limiter import RequestRate as Rate
 
+import requests_cache
 from requests_cache import CacheMixin
 from requests_ratelimiter import LimiterMixin
 from typing import Any, Dict, Iterable, List, Optional, Union, cast
@@ -96,10 +97,6 @@ def millis_interval(start: datetime, end: datetime) -> int:
     return millis
 
 
-class CachedSession(CacheMixin, requests.Session):
-    pass
-
-
 class CachedLimiterSession(CacheMixin, LimiterMixin, requests.Session):
     pass
 
@@ -146,11 +143,11 @@ class GraphKBConnection:
             if not cache_name:
                 session_kwargs['backend'] = 'memory'
             else:
-                session_kwargs['cache_name'] = cache_name
-            session_kwargs['allowable_methods'] = ['GET', 'POST']
-            session_kwargs['ignored_parameters'] = ['Authorization']
-            session_kwargs['cache_control'] = True
-            session_cls = CachedSession
+                session_kwargs["cache_name"] = cache_name
+            session_kwargs["allowable_methods"] = ["GET", "POST"]
+            session_kwargs["ignored_parameters"] = ["Authorization"]
+            session_kwargs["cache_control"] = True
+            session_cls = requests_cache.CachedSession
 
         if 'PYTEST_CURRENT_TEST' not in os.environ:
             if limiter:
