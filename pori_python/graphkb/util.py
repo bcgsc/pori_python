@@ -1,27 +1,27 @@
-import requests
-from requests.adapters import HTTPAdapter
-
-import hashlib
 import json
 import logging
 import os
 import re
 import time
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Union, cast
-from urllib3.util.retry import Retry
+from typing import Dict, Iterable, List, Optional, Union, cast
 from urllib.parse import urlsplit
+
+import requests
+from requests.adapters import HTTPAdapter
+from requests_cache import CachedSession
+from requests_ratelimiter import LimiterAdapter
+from urllib3.util.retry import Retry
 
 from pori_python.types import ParsedVariant, PositionalVariant, Record
 
 from .constants import DEFAULT_LIMIT, TYPES_TO_NOTATION, AA_3to1_MAPPING
 
-QUERY_CACHE: Dict[Any, Any] = {}
-
 # name the logger after the package to make it simple to disable for packages using this one as a dependency
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
 
 logger = logging.getLogger('graphkb')
+DEFAULT_LIMITER = LimiterAdapter(per_second=3)
 
 
 def convert_to_rid_list(records: Iterable[Record]) -> List[str]:
@@ -88,13 +88,6 @@ def millis_interval(start: datetime, end: datetime) -> int:
     return millis
 
 
-def cache_key(request_body) -> str:
-    """Create a cache key for a query request to GraphKB."""
-    body = json.dumps(request_body, sort_keys=True)
-    hash_code = hashlib.md5(f'/query{body}'.encode('utf-8')).hexdigest()
-    return hash_code
-
-
 class GraphKBConnection:
     def __init__(
         self,
@@ -102,23 +95,84 @@ class GraphKBConnection:
         username: str = '',
         password: str = '',
         use_global_cache: bool = True,
+        cache_name: str = '',
+        only_if_cached: bool = False,
+        session: Optional[requests.Session] = None,
+        limiter: LimiterAdapter = DEFAULT_LIMITER,
+        **session_kwargs,
     ):
-        self.http = requests.Session()
-        retries = Retry(
-            total=100,
-            connect=5,
-            status=5,
-            backoff_factor=5,
-            status_forcelist=[429, 500, 502, 503, 504],
-        )
-        self.http.mount('https://', HTTPAdapter(max_retries=retries))
+        """
+        Docstring for __init__
+
+        Args:
+        - use_global_cache: cache requests across all requests to GKB
+        - cache_name: Path or connection URL to the database which stors the requests cache. see https://requests-cache.readthedocs.io/en/v0.6.4/user_guide.html#cache-name
+        - only_if_cached: this will set the cache-control header for all requests to only-if-cached which will raise 504 errors if a request does not exist in the cache already rather than making a new network request
+        """
+        session_cls = requests.Session
+        if limiter and not use_global_cache:
+            raise NotImplementedError(f'currently rate limiting by default also implements caching')
+        if session is not None:
+            if limiter is not None:
+                raise NotImplementedError('cannot add limiter to an existing session')
+            if use_global_cache:
+                raise NotImplementedError(
+                    'the use_global_cache parameter should not be used with a custom session'
+                )
+            if cache_name:
+                raise NotImplementedError(
+                    'cache_name should not be used with a custom input session'
+                )
+        if not use_global_cache and cache_name:
+            raise NotImplementedError('cache_name only applies when use_global_cache is True')
+
+        if use_global_cache:
+            session_cls = CachedSession
+            if not cache_name:
+                session_kwargs['backend'] = 'memory'
+            else:
+                session_kwargs['cache_name'] = cache_name
+            session_kwargs['allowable_methods'] = ['GET', 'POST']
+            session_kwargs['ignored_parameters'] = ['Authorization']
+            session_kwargs['cache_control'] = True
+
+        if 'PYTEST_CURRENT_TEST' in os.environ or only_if_cached:
+            logging.warning(
+                f'rate limiting is by default turned off for tests and cache-only queries'
+            )
+            limiter = None
+
+        if not session:
+            self.http = session_cls(**session_kwargs)
+        else:
+            self.http = session
+
+        if limiter is not None:
+            self.http.mount('http://', limiter)
+            self.http.mount('https://', limiter)
+
+        if not only_if_cached:
+            # requests-cache returns 504 when something is not in cache, since we don't want to fetch networkx requests when this flag is set, retries are redundant
+            retries = Retry(
+                total=100,
+                connect=5,
+                status=5,
+                backoff_factor=5,
+                status_forcelist=[429, 500, 502, 503, 504],
+            )
+            self.http.mount('http://', HTTPAdapter(max_retries=retries))
+            self.http.mount('https://', HTTPAdapter(max_retries=retries))
+        self.only_if_cached = only_if_cached
+
         self.token = ''
         self.token_kc = ''
         self.url = url
         self.username = username
         self.password = password
-        self.headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
-        self.cache: Dict[Any, Any] = {} if not use_global_cache else QUERY_CACHE
+        self.headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
         self.request_count = 0
         self.first_request: Optional[datetime] = None
         self.last_request: Optional[datetime] = None
@@ -137,7 +191,16 @@ class GraphKBConnection:
                 return self.request_count * 1000 / msec
         return None
 
-    def request(self, endpoint: str, method: str = 'GET', **kwargs) -> Dict:
+    def request(
+        self,
+        endpoint: str,
+        method: str = 'GET',
+        headers: Optional[dict[str, str]] = None,
+        ignore_cache=False,
+        force_refresh=False,
+        only_if_cached=False,
+        **kwargs,
+    ) -> Dict:
         """Request wrapper to handle adding common headers and logging.
 
         Args:
@@ -147,6 +210,13 @@ class GraphKBConnection:
         Returns:
             dict: the json response as a python dict
         """
+        if headers is None:
+            headers = {}
+
+        if ignore_cache or force_refresh:
+            headers['Cache-Control'] = 'no-cache'
+        elif only_if_cached or self.only_if_cached:
+            headers['Cache-Control'] = 'only-if-cached'
         url = join_url(self.url, endpoint)
         self.request_count += 1
         connect_timeout = 7
@@ -157,6 +227,11 @@ class GraphKBConnection:
         timeout = None
         if endpoint in ['query', 'parse']:
             timeout = (connect_timeout, read_timeout)
+
+        request_headers = {}
+        request_headers.update(self.headers)
+        if headers is not None:
+            request_headers.update(headers)
 
         start_time = datetime.now()
 
@@ -179,8 +254,8 @@ class GraphKBConnection:
                     need_refresh_login = False
 
                 self.request_count += 1
-                resp = requests.request(
-                    method, url, headers=self.headers, timeout=timeout, **kwargs
+                resp = self.http.request(
+                    method, url, headers=request_headers, timeout=timeout, **kwargs
                 )
                 if resp.status_code == 401 or resp.status_code == 403:
                     logger.debug(f'/{endpoint} - {resp.status_code} - retrying')
@@ -293,39 +368,29 @@ class GraphKBConnection:
     def refresh_login(self) -> None:
         self.login(self.username, self.password)
 
-    def set_cache_data(self, request_body: Dict, result: List[Record]) -> None:
-        """Explicitly add a query to the cache."""
-        hash_code = cache_key(request_body)
-        self.cache[hash_code] = result
-
     def query(
         self,
         request_body: Dict = {},
         paginate: bool = True,
-        ignore_cache: bool = False,
-        force_refresh: bool = False,
         limit: int = DEFAULT_LIMIT,
+        **kwargs,
     ) -> List[Record]:
         """
         Query GraphKB
         """
+
         result: List[Record] = []
-        hash_code = ''
-
-        if not ignore_cache and paginate:
-            hash_code = cache_key(request_body)
-            if hash_code in self.cache and not force_refresh:
-                return self.cache[hash_code]
-
         while True:
-            content = self.post('query', data={**request_body, 'limit': limit, 'skip': len(result)})
+            content = self.post(
+                'query',
+                data={**request_body, 'limit': limit, 'skip': len(result)},
+                **kwargs,
+            )
             records = content['result']
             result.extend(records)
             if len(records) < limit or not paginate:
                 break
 
-        if not ignore_cache and paginate:
-            self.cache[hash_code] = result
         return result
 
     def parse(self, hgvs_string: str, requireFeatures: bool = False) -> ParsedVariant:
@@ -500,7 +565,9 @@ def stripDisplayName(displayName: str, withRef: bool = True, withRefSeq: bool = 
 
 
 def stringifyVariant(
-    variant: Union[PositionalVariant, ParsedVariant], withRef: bool = True, withRefSeq: bool = True
+    variant: Union[PositionalVariant, ParsedVariant],
+    withRef: bool = True,
+    withRefSeq: bool = True,
 ) -> str:
     """
     Convert variant record to a string representation (displayName/hgvs)
