@@ -434,7 +434,8 @@ def get_ipr_analyst_comments(
             project_matches = [
                 item
                 for item in itemlist
-                if 'projects' in item.keys() and project_name in [p['name'] for p in item['projects']]
+                if 'projects' in item.keys()
+                and project_name in [p['name'] for p in item['projects']]
             ]
             if project_matches:
                 itemlist = project_matches
