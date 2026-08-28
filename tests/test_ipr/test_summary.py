@@ -166,14 +166,14 @@ mock_ipr_results = [
             'variantName': 'ERBB2 amplification',
             'cancerType': [],
             'template': {'name': 'test3'},
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
         {
             'text': '<p>normal</p>',
             'variantName': 'ERBB2 amplification',
             'cancerType': ['test1', 'test'],
             'template': {'name': 'test3'},
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
         {
             'text': '<p>no project</p>',
@@ -185,7 +185,7 @@ mock_ipr_results = [
             'text': '<p>no template</p>',
             'variantName': 'ERBB2 amplification',
             'cancerType': ['test1', 'test'],
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
     ],
     [
@@ -194,7 +194,7 @@ mock_ipr_results = [
             'variantName': 'second variant',
             'cancerType': ['test1', 'test'],
             'template': {'name': 'test3'},
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
     ],
 ]
