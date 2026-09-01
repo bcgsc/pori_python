@@ -327,15 +327,15 @@ def create_key_alterations(
             if variant.get('germline'):
                 alterations.append(
                     {
-                        "variantType": variant_type,
-                        "variant": variant['key'],
+                        'variantType': variant_type,
+                        'variant': variant['key'],
                     },
                 )
         else:
             alterations.append(
                 {
-                    "variantType": variant_type,
-                    "variant": variant['key'],
+                    'variantType': variant_type,
+                    'variant': variant['key'],
                 },
             )
 
