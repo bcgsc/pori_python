@@ -1,6 +1,7 @@
 from copy import copy
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
+from pori_python.ipr.connection import IprConnection
 from pori_python.ipr.summary import (
     GRAPHKB_GUI,
     get_ipr_analyst_comments,
@@ -166,14 +167,14 @@ mock_ipr_results = [
             'variantName': 'ERBB2 amplification',
             'cancerType': [],
             'template': {'name': 'test3'},
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
         {
             'text': '<p>normal</p>',
             'variantName': 'ERBB2 amplification',
             'cancerType': ['test1', 'test'],
             'template': {'name': 'test3'},
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
         {
             'text': '<p>no project</p>',
@@ -185,7 +186,7 @@ mock_ipr_results = [
             'text': '<p>no template</p>',
             'variantName': 'ERBB2 amplification',
             'cancerType': ['test1', 'test'],
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
     ],
     [
@@ -194,7 +195,7 @@ mock_ipr_results = [
             'variantName': 'second variant',
             'cancerType': ['test1', 'test'],
             'template': {'name': 'test3'},
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
     ],
 ]
@@ -202,163 +203,207 @@ mock_ipr_results = [
 no_comments_found_output = 'No comments found in IPR for variants in this report'
 
 
+def make_ipr_get_mock(results):
+    """Build a requests.request mock so IprConnection.get() runs for real against fake HTTP responses."""
+    responses = [
+        MagicMock(json=MagicMock(return_value=r), raise_for_status=MagicMock()) for r in results
+    ]
+    return MagicMock(side_effect=responses)
+
+
 class TestVariantTextFromIPR:
     def test_gets_fully_matched_output_when_possible(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
-        ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
-            matches=matches,
-            disease_name='test1',
-            disease_match_names=[],
-            project_name='test2',
-            report_type='test3',
-            include_nonspecific_project=False,
-            include_nonspecific_disease=True,
-            include_nonspecific_template=True,
-        )
+        with patch(
+            'pori_python.ipr.connection.requests.request',
+            make_ipr_get_mock(copy(mock_ipr_results)),
+        ):
+            ipr_conn = IprConnection('user', 'pass')
+            ipr_summary = get_ipr_analyst_comments(
+                ipr_conn,
+                matches=matches,
+                disease_name='test1',
+                disease_match_names=[],
+                project_name='test2',
+                report_type='test3',
+                include_nonspecific_project=False,
+                include_nonspecific_disease=True,
+                include_nonspecific_template=True,
+            )
         summary_lines = ipr_summary.split('\n')
         assert summary_lines[1] == '<h2>ERBB2 amplification (test1,test)</h2>'
         assert summary_lines[2] == '<p><p>normal</p></p>'
         assert len(summary_lines) == 3
 
     def test_omits_nonspecific_project_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
-        ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
-            matches=matches,
-            disease_name='test1',
-            disease_match_names=[],
-            project_name='notfound',
-            report_type='test3',
-            include_nonspecific_project=False,
-            include_nonspecific_disease=True,
-            include_nonspecific_template=True,
-        )
+        with patch(
+            'pori_python.ipr.connection.requests.request',
+            make_ipr_get_mock(copy(mock_ipr_results)),
+        ):
+            ipr_conn = IprConnection('user', 'pass')
+            ipr_summary = get_ipr_analyst_comments(
+                ipr_conn,
+                matches=matches,
+                disease_name='test1',
+                disease_match_names=[],
+                project_name='notfound',
+                report_type='test3',
+                include_nonspecific_project=False,
+                include_nonspecific_disease=True,
+                include_nonspecific_template=True,
+            )
         assert ipr_summary == no_comments_found_output
 
     def test_omits_nonspecific_template_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
-        ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
-            matches=matches,
-            disease_name='test1',
-            disease_match_names=[],
-            project_name='test2',
-            report_type='notfound',
-            include_nonspecific_project=True,
-            include_nonspecific_disease=True,
-            include_nonspecific_template=False,
-        )
+        with patch(
+            'pori_python.ipr.connection.requests.request',
+            make_ipr_get_mock(copy(mock_ipr_results)),
+        ):
+            ipr_conn = IprConnection('user', 'pass')
+            ipr_summary = get_ipr_analyst_comments(
+                ipr_conn,
+                matches=matches,
+                disease_name='test1',
+                disease_match_names=[],
+                project_name='test2',
+                report_type='notfound',
+                include_nonspecific_project=True,
+                include_nonspecific_disease=True,
+                include_nonspecific_template=False,
+            )
         assert ipr_summary == no_comments_found_output
 
     def test_omits_nonspecific_disease_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
-        ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
-            matches=matches,
-            disease_name='notfound',
-            disease_match_names=[],
-            project_name='test2',
-            report_type='test3',
-            include_nonspecific_project=True,
-            include_nonspecific_disease=False,
-            include_nonspecific_template=True,
-        )
+        with patch(
+            'pori_python.ipr.connection.requests.request',
+            make_ipr_get_mock(copy(mock_ipr_results)),
+        ):
+            ipr_conn = IprConnection('user', 'pass')
+            ipr_summary = get_ipr_analyst_comments(
+                ipr_conn,
+                matches=matches,
+                disease_name='notfound',
+                disease_match_names=[],
+                project_name='test2',
+                report_type='test3',
+                include_nonspecific_project=True,
+                include_nonspecific_disease=False,
+                include_nonspecific_template=True,
+            )
         assert ipr_summary == no_comments_found_output
 
     def test_includes_nonspecific_project_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
-        ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
-            matches=matches,
-            disease_name='test1',
-            disease_match_names=[],
-            project_name='notfound',
-            report_type='test3',
-            include_nonspecific_project=True,
-            include_nonspecific_disease=False,
-            include_nonspecific_template=False,
-        )
+        with patch(
+            'pori_python.ipr.connection.requests.request',
+            make_ipr_get_mock(copy(mock_ipr_results)),
+        ):
+            ipr_conn = IprConnection('user', 'pass')
+            ipr_summary = get_ipr_analyst_comments(
+                ipr_conn,
+                matches=matches,
+                disease_name='test1',
+                disease_match_names=[],
+                project_name='notfound',
+                report_type='test3',
+                include_nonspecific_project=True,
+                include_nonspecific_disease=False,
+                include_nonspecific_template=False,
+            )
         summary_lines = ipr_summary.split('\n')
         assert summary_lines[2] == '<p><p>no project</p></p>'
         assert len(summary_lines) == 3
 
     def test_includes_nonspecific_template_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
-        ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
-            matches=matches,
-            disease_name='test1',
-            disease_match_names=[],
-            project_name='test2',
-            report_type='notfound',
-            include_nonspecific_project=False,
-            include_nonspecific_disease=False,
-            include_nonspecific_template=True,
-        )
+        with patch(
+            'pori_python.ipr.connection.requests.request',
+            make_ipr_get_mock(copy(mock_ipr_results)),
+        ):
+            ipr_conn = IprConnection('user', 'pass')
+            ipr_summary = get_ipr_analyst_comments(
+                ipr_conn,
+                matches=matches,
+                disease_name='test1',
+                disease_match_names=[],
+                project_name='test2',
+                report_type='notfound',
+                include_nonspecific_project=False,
+                include_nonspecific_disease=False,
+                include_nonspecific_template=True,
+            )
         summary_lines = ipr_summary.split('\n')
         assert summary_lines[2] == '<p><p>no template</p></p>'
         assert len(summary_lines) == 3
 
     def test_includes_nonspecific_disease_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
-        ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
-            matches=matches,
-            disease_name='notfound',
-            disease_match_names=[],
-            project_name='test2',
-            report_type='test3',
-            include_nonspecific_project=False,
-            include_nonspecific_disease=True,
-            include_nonspecific_template=False,
-        )
+        with patch(
+            'pori_python.ipr.connection.requests.request',
+            make_ipr_get_mock(copy(mock_ipr_results)),
+        ):
+            ipr_conn = IprConnection('user', 'pass')
+            ipr_summary = get_ipr_analyst_comments(
+                ipr_conn,
+                matches=matches,
+                disease_name='notfound',
+                disease_match_names=[],
+                project_name='test2',
+                report_type='test3',
+                include_nonspecific_project=False,
+                include_nonspecific_disease=True,
+                include_nonspecific_template=False,
+            )
         summary_lines = ipr_summary.split('\n')
         assert summary_lines[1] == '<h2>ERBB2 amplification (no specific cancer types)</h2>'
         assert summary_lines[2] == '<p><p>no cancerType</p></p>'
         assert len(summary_lines) == 3
 
     def test_includes_all_graphkb_disease_matches(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
-        ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
-            matches=matches,
-            disease_name='notfound',
-            disease_match_names=['TEST1'],
-            project_name='test2',
-            report_type='test3',
-            include_nonspecific_project=False,
-            include_nonspecific_disease=False,
-            include_nonspecific_template=False,
-        )
+        with patch(
+            'pori_python.ipr.connection.requests.request',
+            make_ipr_get_mock(copy(mock_ipr_results)),
+        ):
+            ipr_conn = IprConnection('user', 'pass')
+            ipr_summary = get_ipr_analyst_comments(
+                ipr_conn,
+                matches=matches,
+                disease_name='notfound',
+                disease_match_names=['TEST1'],
+                project_name='test2',
+                report_type='test3',
+                include_nonspecific_project=False,
+                include_nonspecific_disease=False,
+                include_nonspecific_template=False,
+            )
         summary_lines = ipr_summary.split('\n')
         assert summary_lines[1] == '<h2>ERBB2 amplification (test1,test)</h2>'
         assert summary_lines[2] == '<p><p>normal</p></p>'
         assert len(summary_lines) == 3
 
     def test_prepare_section_for_multiple_variants(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         # NB this test relies on matches being processed in this order
         matches = [{'kbVariant': 'ERBB2 amplification'}, {'kbVariant': 'second variant'}]
-        ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
-            matches=matches,
-            disease_name='test1',
-            disease_match_names=[],
-            project_name='test2',
-            report_type='test3',
-            include_nonspecific_project=False,
-            include_nonspecific_disease=False,
-            include_nonspecific_template=False,
-        )
+        with patch(
+            'pori_python.ipr.connection.requests.request',
+            make_ipr_get_mock(copy(mock_ipr_results)),
+        ):
+            ipr_conn = IprConnection('user', 'pass')
+            ipr_summary = get_ipr_analyst_comments(
+                ipr_conn,
+                matches=matches,
+                disease_name='test1',
+                disease_match_names=[],
+                project_name='test2',
+                report_type='test3',
+                include_nonspecific_project=False,
+                include_nonspecific_disease=False,
+                include_nonspecific_template=False,
+            )
         summary_lines = ipr_summary.split('\n')
         assert len(summary_lines) == 5
         assert (
@@ -367,17 +412,21 @@ class TestVariantTextFromIPR:
         )
 
     def test_empty_section_when_no_variant_match(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=[[], []]))
         matches = [{'kbVariant': 'notfound1'}, {'kbVariant': 'notfound2'}]
-        ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
-            matches=matches,
-            disease_name='test1',
-            disease_match_names=[],
-            project_name='test2',
-            report_type='test3',
-            include_nonspecific_project=False,
-            include_nonspecific_disease=False,
-            include_nonspecific_template=False,
-        )
+        with patch(
+            'pori_python.ipr.connection.requests.request',
+            make_ipr_get_mock([[], []]),
+        ):
+            ipr_conn = IprConnection('user', 'pass')
+            ipr_summary = get_ipr_analyst_comments(
+                ipr_conn,
+                matches=matches,
+                disease_name='test1',
+                disease_match_names=[],
+                project_name='test2',
+                report_type='test3',
+                include_nonspecific_project=False,
+                include_nonspecific_disease=False,
+                include_nonspecific_template=False,
+            )
         assert ipr_summary == no_comments_found_output
