@@ -322,6 +322,10 @@ def create_key_alterations(
 
         counts[type_mapping[variant_type]].add(variant_key)
 
+        # DEVSU-2013 returning an alteration object for IPR API to look up an observed variant for association at report creation.
+        # variantType: the type of variant (mut, cnv, sv, exp)
+        # variant: the observed variant's key property (eg: e90293983749cf4)
+        # Example value: {'variantType': 'mut', 'variant': 'e90293983749cf4'}
         if kb_match['category'] in GERMLINE_BASE_TERMS:
             # only include germline-category matches when the observed variant is germline
             if variant.get('germline'):
@@ -332,6 +336,7 @@ def create_key_alterations(
                     },
                 )
         else:
+            print(variant_type, variant['key'])
             alterations.append(
                 {
                     'variantType': variant_type,
