@@ -336,7 +336,6 @@ def create_key_alterations(
                     },
                 )
         else:
-            print(variant_type, variant['key'])
             alterations.append(
                 {
                     'variantType': variant_type,
