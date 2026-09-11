@@ -240,7 +240,8 @@ def make_ipr_connection():
     return IprConnection(
         username=os.environ.get('IPR_USER', os.environ['USER']),
         password=os.environ['IPR_PASS'],
-        url=os.environ['IPR_URL'],
+        # TO-DO: DEVSU-3011 revert dev url used for testing back to IPR_URL which uses staging api url. Using dev url temporarily before API is released to prevent github test failing
+        url=os.environ['IPR_DEV_URL'],
     )
 
 
