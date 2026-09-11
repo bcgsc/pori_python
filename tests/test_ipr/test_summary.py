@@ -240,7 +240,7 @@ def make_ipr_connection():
     return IprConnection(
         username=os.environ.get('IPR_USER', os.environ['USER']),
         password=os.environ['IPR_PASS'],
-        url=os.environ['IPR_TEST_URL'],
+        url=os.environ['IPR_URL'],
     )
 
 
