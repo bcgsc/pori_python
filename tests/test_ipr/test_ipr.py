@@ -1034,3 +1034,9 @@ class TestKbMatchSectionPrep:
         # partial matches is false
         assert len(key_alts1) == 3
         assert len(key_alts2) == 4
+        assert {(alt['variantType'], alt['variant']) for alt in key_alts1} == {
+            (variant['variantType'], variant['key']) for variant in ALL_VARIANTS[:3]
+        }
+        assert {(alt['variantType'], alt['variant']) for alt in key_alts2} == {
+            (variant['variantType'], variant['key']) for variant in ALL_VARIANTS[:4]
+        }

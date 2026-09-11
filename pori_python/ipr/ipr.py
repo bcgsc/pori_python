@@ -322,15 +322,26 @@ def create_key_alterations(
 
         counts[type_mapping[variant_type]].add(variant_key)
 
-        if variant_type == 'exp':
-            alterations.append(f'{variant.get("gene", "")} ({variant.get("expressionState")})')
-        elif variant_type == 'cnv':
-            alterations.append(f'{variant.get("gene", "")} ({variant.get("cnvState")})')
-        # only show germline if relevant
-        elif kb_match['category'] in GERMLINE_BASE_TERMS and variant.get('germline'):
-            alterations.append(f'germline {variant["variant"]}')
+        # DEVSU-2013 returning an alteration object for IPR API to look up an observed variant for association at report creation.
+        # variantType: the type of variant (mut, cnv, sv, exp)
+        # variant: the observed variant's key property (eg: e90293983749cf4)
+        # Example value: {'variantType': 'mut', 'variant': 'e90293983749cf4'}
+        if kb_match['category'] in GERMLINE_BASE_TERMS:
+            # only include germline-category matches when the observed variant is germline
+            if variant.get('germline'):
+                alterations.append(
+                    {
+                        'variantType': variant_type,
+                        'variant': variant['key'],
+                    },
+                )
         else:
-            alterations.append(variant['variant'])
+            alterations.append(
+                {
+                    'variantType': variant_type,
+                    'variant': variant['key'],
+                },
+            )
 
     counted_variants = set.union(*counts.values())
     counts['variantsUnknown'] = set()
@@ -340,8 +351,17 @@ def create_key_alterations(
         if variant['variant'] and variant['key'] not in counted_variants:
             counts['variantsUnknown'].add(variant['key'])
 
+    unique_alterations = []
+    seen = set()
+    for alt in alterations:
+        dedupe_key = (alt['variantType'], alt['variant'])
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        unique_alterations.append(alt)
+
     return (
-        [{'geneVariant': alt} for alt in set(alterations)],
+        unique_alterations,
         {k: len(v) for k, v in counts.items()},
     )
 
