@@ -189,7 +189,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
         '--graphkb_password',
         os.environ.get('GRAPHKB_PASS', os.environ['IPR_PASS']),
         '--ipr_url',
-        os.environ['IPR_TEST_URL'],
+        os.environ['IPR_URL'],
         '--graphkb_url',
         os.environ.get('GRAPHKB_URL', False),
         '--therapeutics',
@@ -213,7 +213,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
     ipr_conn = IprConnection(
         username=os.environ.get('IPR_USER', os.environ['USER']),
         password=os.environ['IPR_PASS'],
-        url=os.environ['IPR_TEST_URL'],
+        url=os.environ['IPR_URL'],
     )
     loaded_report = ipr_conn.get(uri=f'reports?searchText={patient_id}')
     async_loaded_report = ipr_conn.get(uri=f'reports?searchText={async_patient_id}')
@@ -233,7 +233,7 @@ def get_section(loaded_report, section_name):
     ipr_conn = IprConnection(
         username=os.environ.get('IPR_USER', os.environ['USER']),
         password=os.environ['IPR_PASS'],
-        url=os.environ['IPR_TEST_URL'],
+        url=os.environ['IPR_URL'],
     )
     return ipr_conn.get(uri=f'reports/{ident}/{section_name}')
 
