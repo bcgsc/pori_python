@@ -2,6 +2,7 @@ import os
 from copy import copy
 from unittest.mock import MagicMock
 
+import json
 import jsonschema
 import pytest
 
@@ -250,7 +251,10 @@ def make_ipr_connection():
 class TestVariantTextSchema:
     def test_mock_ipr_results_match_variant_text_schema(self):
         ipr_conn = make_ipr_connection()
-        schema = ipr_conn.get('variant-text/schema')
+        headers = json.dumps({
+            'Content-Length': '0',  # Tells the server explicitly no body is processing
+        })
+        schema = ipr_conn.get('variant-text/schema', headers=headers)
         validate_mock_ipr_results_against_schema(schema, mock_ipr_results)
 
 
