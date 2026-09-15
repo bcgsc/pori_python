@@ -251,9 +251,11 @@ def make_ipr_connection():
 class TestVariantTextSchema:
     def test_mock_ipr_results_match_variant_text_schema(self):
         ipr_conn = make_ipr_connection()
-        headers = json.dumps({
-            'Content-Length': '0',  # Tells the server explicitly no body is processing
-        })
+        headers = json.dumps(
+            {
+                'Content-Length': '0',  # Tells the server explicitly no body is processing
+            }
+        )
         schema = ipr_conn.get('variant-text/schema', headers=headers)
         validate_mock_ipr_results_against_schema(schema, mock_ipr_results)
 
