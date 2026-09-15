@@ -241,7 +241,6 @@ def make_ipr_connection():
     return IprConnection(
         username=os.environ.get('IPR_USER', os.environ['USER']),
         password=os.environ['IPR_PASS'],
-        # TO-DO: DEVSU-3011 revert dev url used for testing back to IPR_URL which uses staging api url. Using dev url temporarily before API is released to prevent github test failing
         url=os.environ['IPR_URL'],
     )
 
@@ -251,7 +250,16 @@ def make_ipr_connection():
 class TestVariantTextSchema:
     def test_mock_ipr_results_match_variant_text_schema(self):
         ipr_conn = make_ipr_connection()
-        schema = ipr_conn.get('variant-text/schema')
+        schema = ipr_conn.request(
+            'variant-text/schema',
+            method='GET',
+            headers=json.dumps(
+                {
+                    'Content-Length': '0',
+                    'Accept': 'application/json',
+                }
+            ),
+        )
         validate_mock_ipr_results_against_schema(schema, mock_ipr_results)
 
 
