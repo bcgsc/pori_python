@@ -25,6 +25,11 @@ def probe_upload_content() -> Dict:
             return [{'name': 'genomic', 'ident': '001'}]
         elif args[0] == 'project':
             return [{'name': 'TEST', 'ident': '001'}]
+        elif args[0] == 'user/me':
+            return {
+                'groups': [{'name': 'admin'}],
+                'projects': [{'name': 'TEST'}],
+            }
         else:
             return []
 

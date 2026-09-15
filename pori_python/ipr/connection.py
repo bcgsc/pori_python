@@ -93,10 +93,54 @@ class IprConnection:
             **kwargs,
         )
 
+    def check_upload_permission(self, project_name: str) -> None:
+        """Check that the current user has permission to upload to the given project.
+
+        Fetches all projects and the current user info (including groups and
+        projects) up front. Checks for admin, manager, create report access,
+        all projects access, and project membership.
+        """
+        projects = self.get('project')
+        project_exists = any(p['name'] == project_name for p in projects)
+        if not project_exists:
+            raise Exception(
+                f'Project {project_name} does not exist or user does not have permission to view it'
+            )
+
+        user = self.get('user/me')
+        user_groups = user.get('groups', []) if isinstance(user, dict) else []
+        group_names = {
+            group.get('name', '').strip().lower()
+            if isinstance(group, dict)
+            else group.strip().lower()
+            for group in user_groups
+        }
+
+        is_admin = 'admin' in group_names
+        is_manager = 'manager' in group_names
+        has_create_report_access = 'create report access' in group_names
+        has_all_projects_access = 'all projects access' in group_names
+
+        # admins and managers can always create reports
+        can_create_report = is_admin or is_manager or has_create_report_access
+
+        user_projects = user.get('projects', []) if isinstance(user, dict) else []
+        has_project_access = (
+            is_admin
+            or has_all_projects_access
+            or any(isinstance(p, dict) and p.get('name') == project_name for p in user_projects)
+        )
+
+        if not can_create_report:
+            raise Exception('User does not have report creation permission')
+
+        if not has_project_access:
+            raise Exception(f'User has no permission to create report in project {project_name}')
+
     def upload_report(
         self,
         content: Dict,
-        mins_to_wait: int = 5,
+        mins_to_wait: int = 10,
         async_upload: bool = False,
         ignore_extra_fields: bool = False,
     ) -> Dict:
@@ -104,19 +148,6 @@ class IprConnection:
             # if async is used, the response for reports-async contains either 'jobStatus'
             # or 'report'. jobStatus is no longer available once the report is successfully
             # uploaded.
-
-            projects = self.get('project')
-            project_names = [item['name'] for item in projects]
-
-            # if project is not exist, create one
-            if content['project'] not in project_names:
-                logger.info(
-                    f'Project not found - attempting to create project {content["project"]}'
-                )
-                try:
-                    self.post('project', {'name': content['project']})
-                except Exception as err:
-                    raise Exception(f'Project creation failed due to {err}')
 
             if ignore_extra_fields:
                 initial_result = self.post('reports-async?ignore_extra_fields=true', content)

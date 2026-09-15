@@ -28,6 +28,7 @@ from .constants import TMB_SIGNATURE_HIGH_THRESHOLD
 from .inputs import (
     check_comparators,
     check_variant_links,
+    normalize_seqqc,
     preprocess_copy_variants,
     preprocess_cosmic,
     preprocess_expression_variants,
@@ -152,7 +153,7 @@ def command_interface() -> None:
     )
     parser.add_argument(
         '--mins_to_wait',
-        default=5,
+        default=10,
         action='store',
         help='is using reports-async, number of minutes to wait before throwing error',
     )
@@ -337,7 +338,7 @@ def ipr_report(
     match_germline: bool = False,
     custom_kb_match_filter: Optional[Callable] = None,
     async_upload: bool = False,
-    mins_to_wait: int = 5,
+    mins_to_wait: int = 10,
     include_ipr_variant_text: bool = True,
     include_nonspecific_disease: bool = False,
     include_nonspecific_project: bool = False,
@@ -396,11 +397,19 @@ def ipr_report(
     else:
         logger.warning('No ipr_url given')
 
+    # Verify upload permission before doing any expensive processing
+    if ipr_upload and ipr_conn:
+        ipr_conn.check_upload_permission(content['project'])
+
     if validate_json:
         if not ipr_conn:
             raise ValueError('ipr_url required to validate json')
         ipr_result = ipr_conn.validate_json(content)
         return ipr_result
+
+    # seqqc normalization is a bridging measure only;
+    # validate_json should be called on non-normalized json
+    content = normalize_seqqc(content)
 
     if upload_json:
         if not ipr_conn:
@@ -654,7 +663,7 @@ def ipr_report(
     if always_write_output_json:
         logger.info(f'Writing IPR upload json to: {output_json_path}')
         with open(output_json_path, 'w') as fh:
-            fh.write(json.dumps(output))
+            json.dump(output, fh, indent=4)
 
     logger.info(f'made {graphkb_conn.request_count} requests to graphkb')
     logger.info(f'average load {int(graphkb_conn.load or 0)} req/s')
