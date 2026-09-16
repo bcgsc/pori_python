@@ -166,14 +166,14 @@ mock_ipr_results = [
             'variantName': 'ERBB2 amplification',
             'cancerType': [],
             'template': {'name': 'test3'},
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
         {
             'text': '<p>normal</p>',
             'variantName': 'ERBB2 amplification',
             'cancerType': ['test1', 'test'],
             'template': {'name': 'test3'},
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
         {
             'text': '<p>no project</p>',
@@ -185,7 +185,7 @@ mock_ipr_results = [
             'text': '<p>no template</p>',
             'variantName': 'ERBB2 amplification',
             'cancerType': ['test1', 'test'],
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
     ],
     [
@@ -194,7 +194,7 @@ mock_ipr_results = [
             'variantName': 'second variant',
             'cancerType': ['test1', 'test'],
             'template': {'name': 'test3'},
-            'project': {'name': 'test2'},
+            'projects': [{'name': 'test2'}],
         },
     ],
 ]
@@ -204,10 +204,10 @@ no_comments_found_output = 'No comments found in IPR for variants in this report
 
 class TestVariantTextFromIPR:
     def test_gets_fully_matched_output_when_possible(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
+        mock_ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
+            mock_ipr_conn,
             matches=matches,
             disease_name='test1',
             disease_match_names=[],
@@ -223,10 +223,10 @@ class TestVariantTextFromIPR:
         assert len(summary_lines) == 3
 
     def test_omits_nonspecific_project_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
+        mock_ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
+            mock_ipr_conn,
             matches=matches,
             disease_name='test1',
             disease_match_names=[],
@@ -239,10 +239,10 @@ class TestVariantTextFromIPR:
         assert ipr_summary == no_comments_found_output
 
     def test_omits_nonspecific_template_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
+        mock_ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
+            mock_ipr_conn,
             matches=matches,
             disease_name='test1',
             disease_match_names=[],
@@ -255,10 +255,10 @@ class TestVariantTextFromIPR:
         assert ipr_summary == no_comments_found_output
 
     def test_omits_nonspecific_disease_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
+        mock_ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
+            mock_ipr_conn,
             matches=matches,
             disease_name='notfound',
             disease_match_names=[],
@@ -271,10 +271,10 @@ class TestVariantTextFromIPR:
         assert ipr_summary == no_comments_found_output
 
     def test_includes_nonspecific_project_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
+        mock_ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
+            mock_ipr_conn,
             matches=matches,
             disease_name='test1',
             disease_match_names=[],
@@ -289,10 +289,10 @@ class TestVariantTextFromIPR:
         assert len(summary_lines) == 3
 
     def test_includes_nonspecific_template_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
+        mock_ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
+            mock_ipr_conn,
             matches=matches,
             disease_name='test1',
             disease_match_names=[],
@@ -307,10 +307,10 @@ class TestVariantTextFromIPR:
         assert len(summary_lines) == 3
 
     def test_includes_nonspecific_disease_matches_when_specified(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
+        mock_ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
+            mock_ipr_conn,
             matches=matches,
             disease_name='notfound',
             disease_match_names=[],
@@ -326,10 +326,10 @@ class TestVariantTextFromIPR:
         assert len(summary_lines) == 3
 
     def test_includes_all_graphkb_disease_matches(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         matches = [{'kbVariant': 'ERBB2 amplification'}]
+        mock_ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
+            mock_ipr_conn,
             matches=matches,
             disease_name='notfound',
             disease_match_names=['TEST1'],
@@ -345,14 +345,14 @@ class TestVariantTextFromIPR:
         assert len(summary_lines) == 3
 
     def test_prepare_section_for_multiple_variants(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         # NB this test relies on matches being processed in this order
         matches = [{'kbVariant': 'ERBB2 amplification'}, {'kbVariant': 'second variant'}]
+        mock_ipr_conn = MagicMock(get=MagicMock(side_effect=copy(mock_ipr_results)))
         ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
+            mock_ipr_conn,
             matches=matches,
-            disease_name='test1',
-            disease_match_names=[],
+            disease_name='notfound',
+            disease_match_names=['TEST1'],
             project_name='test2',
             report_type='test3',
             include_nonspecific_project=False,
@@ -367,13 +367,13 @@ class TestVariantTextFromIPR:
         )
 
     def test_empty_section_when_no_variant_match(self):
-        ipr_conn = MagicMock(get=MagicMock(side_effect=[[], []]))
         matches = [{'kbVariant': 'notfound1'}, {'kbVariant': 'notfound2'}]
+        mock_ipr_conn = MagicMock(get=MagicMock(side_effect=[[], []]))
         ipr_summary = get_ipr_analyst_comments(
-            ipr_conn,
+            mock_ipr_conn,
             matches=matches,
-            disease_name='test1',
-            disease_match_names=[],
+            disease_name='notfound',
+            disease_match_names=['TEST1'],
             project_name='test2',
             report_type='test3',
             include_nonspecific_project=False,

@@ -385,7 +385,7 @@ def get_ipr_analyst_comments(
     ipr_conn: IprConnection,
     matches: Sequence[KbMatch] | Sequence[Hashabledict],
     disease_name: str,
-    disease_match_names: [str],
+    disease_match_names: list[str],
     project_name: str,
     report_type: str,
     include_nonspecific_disease: bool = False,
@@ -434,12 +434,13 @@ def get_ipr_analyst_comments(
             project_matches = [
                 item
                 for item in itemlist
-                if 'project' in item.keys() and item['project']['name'] == project_name
+                if 'projects' in item.keys()
+                and project_name in [p['name'] for p in item['projects']]
             ]
             if project_matches:
                 itemlist = project_matches
             elif include_nonspecific_project:
-                itemlist = [item for item in itemlist if 'project' not in item.keys()]
+                itemlist = [item for item in itemlist if 'projects' not in item.keys()]
             else:
                 itemlist = []
 
@@ -463,7 +464,6 @@ def get_ipr_analyst_comments(
                 )
                 > 0
             ]
-
             if disease_matches:
                 itemlist = disease_matches
             elif include_nonspecific_disease:
