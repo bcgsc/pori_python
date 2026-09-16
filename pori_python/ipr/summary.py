@@ -372,11 +372,11 @@ def prep_single_ipr_variant_comment(variant_text):
     Returns:
         section: html-formatted string
     """
-    cancer_type = ','.join(variant_text['cancerType'])
+    cancer_type = ', '.join(variant_text['cancerType'])
     if not cancer_type:
         cancer_type = 'no specific cancer types'
     cancer_type = f' ({cancer_type})'
-    section = [f'<h2>{variant_text["variantName"]}{cancer_type}</h2>']
+    section = [f'<h3>{variant_text["variantName"]}{cancer_type}</h3>']
     section.append(f'<p>{variant_text["text"]}</p>')
     return section
 
