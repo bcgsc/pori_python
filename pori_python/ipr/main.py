@@ -657,10 +657,13 @@ def ipr_report(
             logger.info(ipr_result)
             if async_upload and 'report' in ipr_result:
                 # async uploads return the report nested under 'report' alongside
-                # job-tracking fields (eg. 'ident' of the job, 'jobStatus'); unwrap it
-                # so the merged shape matches the non-async (sync) upload result.
+                # job-tracking fields (eg. 'ident' of the job, 'jobStatus')
+                # full contents of 'report' aren't needed and can be ignored.
+                # no 'message' value is available for async results
+                # but 'ident' is, and is required by users.
                 output['ident'] = ipr_result['report']['ident']
             else:
+                # for sync uploads, add 'ident' and 'message' fields to the output.
                 output.update(ipr_result)
         except Exception as err:
             upload_error = err
