@@ -385,7 +385,7 @@ def get_ipr_analyst_comments(
     ipr_conn: IprConnection,
     matches: Sequence[KbMatch] | Sequence[Hashabledict],
     disease_name: str,
-    disease_match_names: [str],
+    disease_match_names: list[str],
     project_name: str,
     report_type: str,
     include_nonspecific_disease: bool = False,
