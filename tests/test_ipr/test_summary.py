@@ -218,7 +218,7 @@ class TestVariantTextFromIPR:
             include_nonspecific_template=True,
         )
         summary_lines = ipr_summary.split('\n')
-        assert summary_lines[1] == '<h2>ERBB2 amplification (test1,test)</h2>'
+        assert summary_lines[1] == '<h3>ERBB2 amplification (test1, test)</h3>'
         assert summary_lines[2] == '<p><p>normal</p></p>'
         assert len(summary_lines) == 3
 
@@ -321,7 +321,7 @@ class TestVariantTextFromIPR:
             include_nonspecific_template=False,
         )
         summary_lines = ipr_summary.split('\n')
-        assert summary_lines[1] == '<h2>ERBB2 amplification (no specific cancer types)</h2>'
+        assert summary_lines[1] == '<h3>ERBB2 amplification (no specific cancer types)</h3>'
         assert summary_lines[2] == '<p><p>no cancerType</p></p>'
         assert len(summary_lines) == 3
 
@@ -340,7 +340,7 @@ class TestVariantTextFromIPR:
             include_nonspecific_template=False,
         )
         summary_lines = ipr_summary.split('\n')
-        assert summary_lines[1] == '<h2>ERBB2 amplification (test1,test)</h2>'
+        assert summary_lines[1] == '<h3>ERBB2 amplification (test1, test)</h3>'
         assert summary_lines[2] == '<p><p>normal</p></p>'
         assert len(summary_lines) == 3
 
@@ -363,7 +363,7 @@ class TestVariantTextFromIPR:
         assert len(summary_lines) == 5
         assert (
             '\n'.join(summary_lines[1:])
-            == '<h2>ERBB2 amplification (test1,test)</h2>\n<p><p>normal</p></p>\n<h2>second variant (test1,test)</h2>\n<p><p>normal, second variant</p></p>'
+            == '<h3>ERBB2 amplification (test1, test)</h3>\n<p><p>normal</p></p>\n<h3>second variant (test1, test)</h3>\n<p><p>normal, second variant</p></p>'
         )
 
     def test_empty_section_when_no_variant_match(self):
