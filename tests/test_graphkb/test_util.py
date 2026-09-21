@@ -1,6 +1,8 @@
 import os
-import pytest
 import re
+
+import pytest
+from requests_ratelimiter import LimiterAdapter
 
 from pori_python.graphkb import GraphKBConnection, util
 
@@ -16,7 +18,7 @@ class OntologyTerm:
 
 @pytest.fixture(scope='module')
 def conn() -> GraphKBConnection:
-    conn = GraphKBConnection()
+    conn = GraphKBConnection(url=os.environ['GRAPHKB_URL'])
     conn.login(os.environ['GRAPHKB_USER'], os.environ['GRAPHKB_PASS'])
     return conn
 
@@ -191,3 +193,69 @@ class TestGraphKBConnection:
             subgraphType='parents',
         )
         assert 'cancer' in disease_terms
+
+
+class TestRateLimitingOptIn:
+    """Rate limiting must stay off unless GRAPHKB_RATE_LIMIT is explicitly truthy."""
+
+    @pytest.fixture(autouse=True)
+    def clear_env_var(self, monkeypatch):
+        monkeypatch.delenv(util.RATE_LIMIT_ENV_VAR, raising=False)
+        monkeypatch.delenv(util.RATE_LIMIT_PER_SECOND_ENV_VAR, raising=False)
+
+    @pytest.mark.parametrize('value', ['1', 'true', 'TRUE', 'yes', 'on'])
+    def test_env_var_truthy_values_enable(self, monkeypatch, value):
+        monkeypatch.setenv(util.RATE_LIMIT_ENV_VAR, value)
+        assert util.rate_limiting_enabled() is True
+
+    @pytest.mark.parametrize('value', ['0', 'false', 'no', 'off', ''])
+    def test_env_var_falsy_values_disable(self, monkeypatch, value):
+        monkeypatch.setenv(util.RATE_LIMIT_ENV_VAR, value)
+        assert util.rate_limiting_enabled() is False
+
+    def test_env_var_unset_defaults_to_disabled(self):
+        assert util.RATE_LIMIT_ENV_VAR not in os.environ
+        assert util.rate_limiting_enabled() is False
+
+    def test_connection_default_has_rate_limiting_disabled(self):
+        conn = GraphKBConnection(url='http://localhost:8080')
+        assert conn.rate_limiting_enabled is False
+
+    def test_connection_env_var_enables_rate_limiting(self, monkeypatch):
+        monkeypatch.setenv(util.RATE_LIMIT_ENV_VAR, '1')
+        conn = GraphKBConnection(url='http://localhost:8080')
+        assert conn.rate_limiting_enabled is True
+
+    def test_explicit_none_overrides_env_var(self, monkeypatch):
+        monkeypatch.setenv(util.RATE_LIMIT_ENV_VAR, '1')
+        conn = GraphKBConnection(url='http://localhost:8080', limiter=None)
+        assert conn.rate_limiting_enabled is False
+
+    def test_explicit_limiter_overrides_env_var(self):
+        custom_limiter = LimiterAdapter(per_second=1)
+        conn = GraphKBConnection(url='http://localhost:8080', limiter=custom_limiter)
+        assert conn.rate_limiting_enabled is True
+
+    def test_use_global_cache_false_no_longer_raises_by_default(self):
+        # limiter defaults to disabled now, so this combination should be valid
+        conn = GraphKBConnection(url='http://localhost:8080', use_global_cache=False)
+        assert conn.rate_limiting_enabled is False
+
+    def test_rate_limit_per_second_defaults_when_unset(self):
+        assert util.rate_limit_per_second() == util.DEFAULT_RATE_LIMIT_PER_SECOND
+
+    def test_rate_limit_per_second_reads_override(self, monkeypatch):
+        monkeypatch.setenv(util.RATE_LIMIT_PER_SECOND_ENV_VAR, '25')
+        assert util.rate_limit_per_second() == 25
+
+    @pytest.mark.parametrize('value', ['not-a-number', '0', '-5'])
+    def test_rate_limit_per_second_rejects_invalid_values(self, monkeypatch, value):
+        monkeypatch.setenv(util.RATE_LIMIT_PER_SECOND_ENV_VAR, value)
+        with pytest.raises(ValueError):
+            util.rate_limit_per_second()
+
+    def test_connection_env_var_uses_overridden_rate(self, monkeypatch):
+        monkeypatch.setenv(util.RATE_LIMIT_ENV_VAR, '1')
+        monkeypatch.setenv(util.RATE_LIMIT_PER_SECOND_ENV_VAR, '25')
+        conn = GraphKBConnection(url='http://localhost:8080')
+        assert conn.rate_limiting_enabled is True
