@@ -3,12 +3,13 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
-import jsonschema.exceptions
 import logging
 import os
-import pandas as pd
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
-from typing import Callable, Dict, List, Optional, Sequence, Set
+from collections.abc import Callable, Sequence
+
+import jsonschema.exceptions
+import pandas as pd
 
 from pori_python.graphkb import GraphKBConnection
 from pori_python.graphkb.genes import get_gene_information
@@ -42,14 +43,14 @@ from .inputs import (
     validate_report_content,
 )
 from .ipr import (
+    add_transcript_flags,
     create_key_alterations,
     filter_structural_variants,
     germline_kb_matches,
     get_kb_disease_matches,
     get_kb_matches_sections,
-    select_expression_plots,
     get_variant_flags,
-    add_transcript_flags,
+    select_expression_plots,
 )
 from .summary import auto_analyst_comments, get_ipr_analyst_comments
 from .therapeutic_options import create_therapeutic_options
@@ -65,7 +66,7 @@ RENAMED_GENE_PROPERTIES = {
 
 def file_path(path: str) -> str:
     if not os.path.exists(path):
-        raise argparse.ArgumentTypeError(f'{repr(path)} is not a valid filename. does not exist')
+        raise argparse.ArgumentTypeError(f'{path!r} is not a valid filename. does not exist')
     return path
 
 
@@ -215,7 +216,7 @@ def command_interface() -> None:
     )
 
 
-def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict:
+def clean_unsupported_content(upload_content: dict, ipr_spec: dict = {}) -> dict:
     """Remove unsupported content.
     This content is either added to facilitate creation
     or to support upcoming and soon to be supported content that we would like
@@ -223,7 +224,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
     """
     if (
         ipr_spec
-        and 'components' in ipr_spec.keys()
+        and 'components' in ipr_spec
         and 'schemas' in ipr_spec['components'].keys()
         and 'genesCreate' in ipr_spec['components']['schemas'].keys()
         and 'properties' in ipr_spec['components']['schemas']['genesCreate'].keys()
@@ -253,7 +254,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
                     )
 
         # remove any unhandled incompatible keys
-        removed_keys: Dict[str, int] = {}
+        removed_keys: dict[str, int] = {}
         for gene in upload_content['genes']:
             unsupported_keys = [key for key in gene.keys() if key not in genes_spec]
             for key in unsupported_keys:
@@ -315,7 +316,7 @@ def clean_unsupported_content(upload_content: Dict, ipr_spec: Dict = {}) -> Dict
     return upload_content
 
 
-def create_report(**kwargs) -> Dict:
+def create_report(**kwargs) -> dict:
     logger.warning("Deprecated function 'create_report' called - use ipr_report instead")
     return ipr_report(**kwargs)
 
@@ -323,7 +324,7 @@ def create_report(**kwargs) -> Dict:
 def ipr_report(
     username: str,
     password: str,
-    content: Dict,
+    content: dict,
     ipr_url: str = '',
     log_level: str = 'info',
     output_json_path: str = '',
@@ -336,7 +337,7 @@ def ipr_report(
     generate_therapeutics: bool = False,
     generate_comments: bool = True,
     match_germline: bool = False,
-    custom_kb_match_filter: Optional[Callable] = None,
+    custom_kb_match_filter: Callable | None = None,
     async_upload: bool = False,
     mins_to_wait: int = 10,
     include_ipr_variant_text: bool = True,
@@ -349,7 +350,7 @@ def ipr_report(
     ignore_extra_fields: bool = False,
     tmb_high: float = TMB_SIGNATURE_HIGH_THRESHOLD,
     transcript_flags: str = '',
-) -> Dict:
+) -> dict:
     """Run the matching and create the report JSON for upload to IPR.
 
     Args:
@@ -431,7 +432,7 @@ def ipr_report(
         transcript_flags_df = load_transcript_flags(transcript_flags)
 
     # INPUT VARIANTS VALIDATION & PREPROCESSING (OBSERVED BIOMARKERS)
-    signature_variants: List[IprSignatureVariant] = preprocess_signature_variants(
+    signature_variants: list[IprSignatureVariant] = preprocess_signature_variants(
         [
             *preprocess_cosmic(content.get('cosmicSignatures', [])),  # includes dMMR
             *preprocess_hla(content.get('hlaTypes', [])),
@@ -444,14 +445,14 @@ def ipr_report(
             *preprocess_hrd(content.get('hrd', None)),
         ]
     )
-    small_mutations: List[IprSmallMutationVariant] = preprocess_small_mutations(
+    small_mutations: list[IprSmallMutationVariant] = preprocess_small_mutations(
         content.get('smallMutations', [])
     )
-    structural_variants: List[IprFusionVariant] = preprocess_structural_variants(
+    structural_variants: list[IprFusionVariant] = preprocess_structural_variants(
         content.get('structuralVariants', [])
     )
-    copy_variants: List[IprCopyVariant] = preprocess_copy_variants(content.get('copyVariants', []))
-    expression_variants: List[IprExprVariant] = preprocess_expression_variants(
+    copy_variants: list[IprCopyVariant] = preprocess_copy_variants(content.get('copyVariants', []))
+    expression_variants: list[IprExprVariant] = preprocess_expression_variants(
         content.get('expressionVariants', [])
     )
 
@@ -459,7 +460,7 @@ def ipr_report(
     if expression_variants:
         check_comparators(content, expression_variants)
 
-    genes_with_variants: Set[str] = check_variant_links(
+    genes_with_variants: set[str] = check_variant_links(
         small_mutations, expression_variants, copy_variants, structural_variants
     )
 
@@ -478,12 +479,12 @@ def ipr_report(
 
     # Matching disease RIDs from GraphKB using term tree
     # (Will raise uncatched error if no match)
-    disease_match_records: list[Dict] = get_kb_disease_matches(graphkb_conn, kb_disease_match)
+    disease_match_records: list[dict] = get_kb_disease_matches(graphkb_conn, kb_disease_match)
     disease_match_rids: list[str] = [item['@rid'] for item in disease_match_records]
     disease_match_names: list[str] = [item['name'] for item in disease_match_records]
 
     # GKB MATCHING (AKA ANNOTATION)
-    gkb_matches: List[Hashabledict] = annotate_variants(
+    gkb_matches: list[Hashabledict] = annotate_variants(
         graphkb_conn=graphkb_conn,
         interactive=interactive,
         disease_matches=disease_match_rids,
@@ -654,7 +655,16 @@ def ipr_report(
                 output, mins_to_wait, async_upload, ignore_extra_fields
             )
             logger.info(ipr_result)
-            output.update(ipr_result)
+            if async_upload and 'report' in ipr_result:
+                # async uploads return the report nested under 'report' alongside
+                # job-tracking fields (eg. 'ident' of the job, 'jobStatus')
+                # full contents of 'report' aren't needed and can be ignored.
+                # no 'message' value is available for async results
+                # but 'ident' is, and is required by users.
+                output['ident'] = ipr_result['report']['ident']
+            else:
+                # for sync uploads, add 'ident' and 'message' fields to the output.
+                output.update(ipr_result)
         except Exception as err:
             upload_error = err
             logger.error(f'ipr_conn.upload_report failed: {err}', exc_info=True)

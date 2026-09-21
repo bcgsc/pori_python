@@ -1,25 +1,17 @@
-import requests
-from requests.adapters import HTTPAdapter
-
-import hashlib
 import json
 import logging
 import os
 import re
 import time
 from datetime import datetime
-from pyrate_limiter import Duration, Limiter
-
-try:
-    from pyrate_limiter import Rate
-except ImportError:
-    from pyrate_limiter import RequestRate as Rate
-
-from requests_cache import CacheMixin
-from requests_ratelimiter import LimiterMixin
-from typing import Any, Dict, Iterable, List, Optional, Union, cast
-from urllib3.util.retry import Retry
+from typing import Dict, Iterable, List, Optional, Union, cast
 from urllib.parse import urlsplit
+
+import requests
+from requests.adapters import HTTPAdapter
+from requests_cache import CachedSession
+from requests_ratelimiter import LimiterAdapter
+from urllib3.util.retry import Retry
 
 from pori_python.types import ParsedVariant, PositionalVariant, Record
 
@@ -40,8 +32,6 @@ RATE_LIMIT_PER_SECOND_ENV_VAR = 'GRAPHKB_RATE_LIMIT_PER_SECOND'
 DEFAULT_RATE_LIMIT_PER_SECOND = 3
 _TRUTHY_VALUES = {'1', 'true', 'yes', 'on'}
 _UNSET = object()  # sentinel distinguishing "not passed" from an explicit None/limiter
-
-LIMITER = Limiter(Rate(DEFAULT_RATE_LIMIT_PER_SECOND, Duration.SECOND))
 
 
 def rate_limiting_enabled() -> bool:
@@ -66,9 +56,9 @@ def rate_limit_per_second() -> float:
     return value
 
 
-def build_rate_limiter() -> Limiter:
-    """Build a Limiter using the configured requests/sec (see rate_limit_per_second)."""
-    return Limiter(Rate(rate_limit_per_second(), Duration.SECOND))
+def build_rate_limiter() -> LimiterAdapter:
+    """Build a LimiterAdapter using the configured requests/sec (see rate_limit_per_second)."""
+    return LimiterAdapter(per_second=rate_limit_per_second())
 
 
 def convert_to_rid_list(records: Iterable[Record]) -> List[str]:
@@ -135,14 +125,6 @@ def millis_interval(start: datetime, end: datetime) -> int:
     return millis
 
 
-class CachedSession(CacheMixin, requests.Session):
-    pass
-
-
-class CachedLimiterSession(LimiterMixin, CachedSession):
-    pass
-
-
 class GraphKBConnection:
     def __init__(
         self,
@@ -153,7 +135,7 @@ class GraphKBConnection:
         cache_name: str = '',
         only_if_cached: bool = False,
         session: Optional[requests.Session] = None,
-        limiter: Optional[Limiter] = _UNSET,  # type: ignore[assignment]
+        limiter: Optional[LimiterAdapter] = _UNSET,  # type: ignore[assignment]
         **session_kwargs,
     ):
         """
@@ -166,10 +148,11 @@ class GraphKBConnection:
         - limiter: rate limiting is off by default. Set GRAPHKB_RATE_LIMIT to a truthy value
           to enable it, and optionally GRAPHKB_RATE_LIMIT_PER_SECOND to override the
           requests/sec threshold (defaults to DEFAULT_RATE_LIMIT_PER_SECOND). Pass an
-          explicit Limiter or None here to override the env vars.
+          explicit LimiterAdapter or None here to override the env vars.
         """
         if limiter is _UNSET:
             limiter = build_rate_limiter() if rate_limiting_enabled() else None
+        self.rate_limiting_enabled = limiter is not None
 
         session_cls = requests.Session
         if limiter and not use_global_cache:
@@ -189,34 +172,44 @@ class GraphKBConnection:
             raise NotImplementedError('cache_name only applies when use_global_cache is True')
 
         if use_global_cache:
+            session_cls = CachedSession
             if not cache_name:
                 session_kwargs['backend'] = 'memory'
             else:
                 session_kwargs['cache_name'] = cache_name
             session_kwargs['allowable_methods'] = ['GET', 'POST']
             session_kwargs['ignored_parameters'] = ['Authorization']
-            session_kwargs['cache_control'] = False  # GKB/IPR send no Cache-Control headers; cache unconditionally
-            session_cls = CachedSession
+            session_kwargs['cache_control'] = True
 
-        if 'PYTEST_CURRENT_TEST' not in os.environ:
-            if limiter:
-                session_kwargs['limiter'] = limiter
-                session_cls = CachedLimiterSession
+        if 'PYTEST_CURRENT_TEST' in os.environ or only_if_cached:
+            if limiter is not None:
+                logging.warning(
+                    'rate limiting is by default turned off for tests and cache-only queries. Setting limiter to None'
+                )
+                limiter = None
 
         if not session:
             self.http = session_cls(**session_kwargs)
         else:
             self.http = session
-        self.rate_limiting_enabled = limiter is not None
-        retries = Retry(
-            total=100,
-            connect=5,
-            status=5,
-            backoff_factor=5,
-            status_forcelist=[429, 500, 502, 503, 504],
-        )
+
+        if limiter is not None:
+            self.http.mount('http://', limiter)
+            self.http.mount('https://', limiter)
+
+        if not only_if_cached:
+            # requests-cache returns 504 when something is not in cache, since we don't want to fetch networkx requests when this flag is set, retries are redundant
+            retries = Retry(
+                total=100,
+                connect=5,
+                status=5,
+                backoff_factor=5,
+                status_forcelist=[429, 500, 502, 503, 504],
+            )
+            self.http.mount('http://', HTTPAdapter(max_retries=retries))
+            self.http.mount('https://', HTTPAdapter(max_retries=retries))
         self.only_if_cached = only_if_cached
-        self.http.mount('https://', HTTPAdapter(max_retries=retries))
+
         self.token = ''
         self.token_kc = ''
         self.url = url

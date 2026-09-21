@@ -2,12 +2,7 @@ import os
 import re
 
 import pytest
-from pyrate_limiter import Duration, Limiter
-
-try:
-    from pyrate_limiter import Rate
-except ImportError:
-    from pyrate_limiter import RequestRate as Rate
+from requests_ratelimiter import LimiterAdapter
 
 from pori_python.graphkb import GraphKBConnection, util
 
@@ -237,7 +232,7 @@ class TestRateLimitingOptIn:
         assert conn.rate_limiting_enabled is False
 
     def test_explicit_limiter_overrides_env_var(self):
-        custom_limiter = Limiter(Rate(1, Duration.SECOND))
+        custom_limiter = LimiterAdapter(per_second=1)
         conn = GraphKBConnection(url='http://localhost:8080', limiter=custom_limiter)
         assert conn.rate_limiting_enabled is True
 
