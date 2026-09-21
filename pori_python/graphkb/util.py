@@ -29,7 +29,46 @@ from .constants import DEFAULT_LIMIT, TYPES_TO_NOTATION, AA_3to1_MAPPING
 # https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
 
 logger = logging.getLogger('graphkb')
-LIMITER = Limiter(Rate(3, Duration.SECOND))
+
+# Rate limiting is opt-in: it stays off unless GRAPHKB_RATE_LIMIT is set to a
+# truthy value ('1', 'true', 'yes', 'on'; case-insensitive). This keeps existing
+# workflows that don't set the variable unaffected. When enabled, the requests/sec
+# threshold defaults to DEFAULT_RATE_LIMIT_PER_SECOND and can be overridden with
+# GRAPHKB_RATE_LIMIT_PER_SECOND.
+RATE_LIMIT_ENV_VAR = 'GRAPHKB_RATE_LIMIT'
+RATE_LIMIT_PER_SECOND_ENV_VAR = 'GRAPHKB_RATE_LIMIT_PER_SECOND'
+DEFAULT_RATE_LIMIT_PER_SECOND = 3
+_TRUTHY_VALUES = {'1', 'true', 'yes', 'on'}
+_UNSET = object()  # sentinel distinguishing "not passed" from an explicit None/limiter
+
+LIMITER = Limiter(Rate(DEFAULT_RATE_LIMIT_PER_SECOND, Duration.SECOND))
+
+
+def rate_limiting_enabled() -> bool:
+    """Check whether GRAPHKB_RATE_LIMIT is set to a truthy value."""
+    return os.environ.get(RATE_LIMIT_ENV_VAR, '').strip().lower() in _TRUTHY_VALUES
+
+
+def rate_limit_per_second() -> float:
+    """Requests/sec to use when rate limiting is enabled.
+
+    Defaults to DEFAULT_RATE_LIMIT_PER_SECOND; override with GRAPHKB_RATE_LIMIT_PER_SECOND.
+    """
+    raw = os.environ.get(RATE_LIMIT_PER_SECOND_ENV_VAR, '').strip()
+    if not raw:
+        return DEFAULT_RATE_LIMIT_PER_SECOND
+    try:
+        value = float(raw)
+    except ValueError:
+        raise ValueError(f'{RATE_LIMIT_PER_SECOND_ENV_VAR} must be a number, got {raw!r}')
+    if value <= 0:
+        raise ValueError(f'{RATE_LIMIT_PER_SECOND_ENV_VAR} must be > 0, got {value}')
+    return value
+
+
+def build_rate_limiter() -> Limiter:
+    """Build a Limiter using the configured requests/sec (see rate_limit_per_second)."""
+    return Limiter(Rate(rate_limit_per_second(), Duration.SECOND))
 
 
 def convert_to_rid_list(records: Iterable[Record]) -> List[str]:
@@ -114,7 +153,7 @@ class GraphKBConnection:
         cache_name: str = '',
         only_if_cached: bool = False,
         session: Optional[requests.Session] = None,
-        limiter: Limiter = LIMITER,
+        limiter: Optional[Limiter] = _UNSET,  # type: ignore[assignment]
         **session_kwargs,
     ):
         """
@@ -124,10 +163,17 @@ class GraphKBConnection:
         - use_global_cache: cache requests across all requests to GKB
         - cache_name: Path or connection URL to the database which stors the requests cache. see https://requests-cache.readthedocs.io/en/v0.6.4/user_guide.html#cache-name
         - only_if_cached: this will set the cache-control header for all requests to only-if-cached which will raise 504 errors if a request does not exist in the cache already rather than making a new network request
+        - limiter: rate limiting is off by default. Set GRAPHKB_RATE_LIMIT to a truthy value
+          to enable it, and optionally GRAPHKB_RATE_LIMIT_PER_SECOND to override the
+          requests/sec threshold (defaults to DEFAULT_RATE_LIMIT_PER_SECOND). Pass an
+          explicit Limiter or None here to override the env vars.
         """
+        if limiter is _UNSET:
+            limiter = build_rate_limiter() if rate_limiting_enabled() else None
+
         session_cls = requests.Session
         if limiter and not use_global_cache:
-            raise NotImplementedError(f'currently rate limiting by default also implements caching')
+            raise NotImplementedError('currently rate limiting by default also implements caching')
         if session is not None:
             if limiter is not None:
                 raise NotImplementedError('cannot add limiter to an existing session')
@@ -161,6 +207,7 @@ class GraphKBConnection:
             self.http = session_cls(**session_kwargs)
         else:
             self.http = session
+        self.rate_limiting_enabled = limiter is not None
         retries = Retry(
             total=100,
             connect=5,
