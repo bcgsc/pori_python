@@ -137,10 +137,11 @@ class GraphKBConnection:
             session_kwargs['cache_control'] = True
 
         if 'PYTEST_CURRENT_TEST' in os.environ or only_if_cached:
-            logging.warning(
-                f'rate limiting is by default turned off for tests and cache-only queries'
-            )
-            limiter = None
+            if limiter is not None:
+                logging.warning(
+                    'rate limiting is by default turned off for tests and cache-only queries. Setting limiter to None'
+                )
+                limiter = None
 
         if not session:
             self.http = session_cls(**session_kwargs)
