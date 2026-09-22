@@ -2,7 +2,7 @@
 Functions which return Variants from GraphKB which match some input variant definition
 """
 
-from typing import Dict, List, Optional, Set, Union, cast
+from typing import Dict, List, Optional, Union, cast
 
 from pori_python.types import (
     BasicPosition,
@@ -32,8 +32,6 @@ from .util import (
     stringifyVariant,
 )
 from .vocab import get_equivalent_terms, get_term_by_name, get_term_tree, get_terms_set
-
-FEATURES_CACHE: Set[str] = set()
 
 
 def get_equivalent_features(
@@ -92,8 +90,6 @@ def get_equivalent_features(
             filters.append(
                 {'OR': [{'sourceIdVersion': source_id_version}, {'sourceIdVersion': None}]}
             )
-    elif FEATURES_CACHE and gene_name.lower() not in FEATURES_CACHE and not ignore_cache:
-        return []
     else:
         filters.append({'OR': [{'sourceId': gene_name}, {'name': gene_name}]})
 
