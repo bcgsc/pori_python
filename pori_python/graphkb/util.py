@@ -98,7 +98,7 @@ class GraphKBConnection:
         cache_name: str = '',
         only_if_cached: bool = False,
         session: Optional[requests.Session] = None,
-        limiter: Optional[LimiterAdapter] = None,
+        limiter_kwargs: Optional[dict] = None,
         **session_kwargs,
     ):
         """
@@ -110,10 +110,10 @@ class GraphKBConnection:
         - only_if_cached: this will set the cache-control header for all requests to only-if-cached which will raise 504 errors if a request does not exist in the cache already rather than making a new network request
         """
         session_cls = requests.Session
-        if limiter and not use_global_cache:
+        if limiter_kwargs and not use_global_cache:
             raise NotImplementedError('currently rate limiting by default also implements caching')
         if session is not None:
-            if limiter is not None:
+            if limiter_kwargs is not None:
                 raise NotImplementedError('cannot add limiter to an existing session')
             if use_global_cache:
                 raise NotImplementedError(
@@ -137,32 +137,34 @@ class GraphKBConnection:
             session_kwargs['cache_control'] = True
 
         if 'PYTEST_CURRENT_TEST' in os.environ or only_if_cached:
-            if limiter is not None:
+            if limiter_kwargs is not None:
                 logging.warning(
                     'rate limiting is by default turned off for tests and cache-only queries. Setting limiter to None'
                 )
-                limiter = None
+                limiter_kwargs = None
 
         if not session:
             self.http = session_cls(**session_kwargs)
         else:
             self.http = session
 
-        if limiter is not None:
-            self.http.mount('http://', limiter)
-            self.http.mount('https://', limiter)
-
-        if not only_if_cached:
-            # requests-cache returns 504 when something is not in cache, since we don't want to fetch networkx requests when this flag is set, retries are redundant
-            retries = Retry(
+        adapter = HTTPAdapter(
+            max_retries=Retry(
                 total=100,
                 connect=5,
                 status=5,
                 backoff_factor=5,
                 status_forcelist=[429, 500, 502, 503, 504],
             )
-            self.http.mount('http://', HTTPAdapter(max_retries=retries))
-            self.http.mount('https://', HTTPAdapter(max_retries=retries))
+        )
+
+        if limiter_kwargs:
+            adapter = LimiterAdapter(poolmanager=adapter.poolmanager, **limiter_kwargs)
+
+        if not only_if_cached:
+            # do not need adapters at all for cache-only hits
+            self.http.mount('http://', adapter)
+            self.http.mount('https://', adapter)
         self.only_if_cached = only_if_cached
 
         self.token = ''
