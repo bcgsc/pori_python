@@ -98,7 +98,7 @@ class GraphKBConnection:
         cache_name: str = '',
         only_if_cached: bool = False,
         session: Optional[requests.Session] = None,
-        limiter: LimiterAdapter | None = None,
+        limiter: Optional[LimiterAdapter] = None,
         **session_kwargs,
     ):
         """
