@@ -98,7 +98,7 @@ class GraphKBConnection:
         cache_name: str = '',
         only_if_cached: bool = False,
         session: Optional[requests.Session] = None,
-        limiter: LimiterAdapter = DEFAULT_LIMITER,
+        limiter: LimiterAdapter | None = None,
         **session_kwargs,
     ):
         """
@@ -111,7 +111,7 @@ class GraphKBConnection:
         """
         session_cls = requests.Session
         if limiter and not use_global_cache:
-            raise NotImplementedError(f'currently rate limiting by default also implements caching')
+            raise NotImplementedError('currently rate limiting by default also implements caching')
         if session is not None:
             if limiter is not None:
                 raise NotImplementedError('cannot add limiter to an existing session')
