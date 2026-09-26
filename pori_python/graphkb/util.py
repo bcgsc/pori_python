@@ -125,6 +125,10 @@ class GraphKBConnection:
                 )
         if not use_global_cache and cache_name:
             raise NotImplementedError('cache_name only applies when use_global_cache is True')
+        if only_if_cached and not use_global_cache:
+            raise NotImplementedError(
+                'only_if_cached=True and use_global_cache=False are conflicting settings'
+            )
 
         if use_global_cache:
             session_cls = CachedSession
