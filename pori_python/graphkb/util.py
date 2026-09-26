@@ -148,18 +148,18 @@ class GraphKBConnection:
         else:
             self.http = session
 
-        adapter = HTTPAdapter(
-            max_retries=Retry(
-                total=100,
-                connect=5,
-                status=5,
-                backoff_factor=5,
-                status_forcelist=[429, 500, 502, 503, 504],
-            )
+        max_retries = Retry(
+            total=100,
+            connect=5,
+            status=5,
+            backoff_factor=5,
+            status_forcelist=[429, 500, 502, 503, 504],
         )
 
         if limiter_kwargs:
-            adapter = LimiterAdapter(poolmanager=adapter.poolmanager, **limiter_kwargs)
+            adapter = LimiterAdapter(max_retries=max_retries, **limiter_kwargs)
+        else:
+            adapter = HTTPAdapter(max_retries=max_retries)
 
         if not only_if_cached:
             # do not need adapters at all for cache-only hits
@@ -254,6 +254,7 @@ class GraphKBConnection:
             try:
                 if need_refresh_login:
                     self.refresh_login()
+                    request_headers.update(self.headers)
                     need_refresh_login = False
 
                 self.request_count += 1
