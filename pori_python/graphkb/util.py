@@ -88,6 +88,19 @@ def millis_interval(start: datetime, end: datetime) -> int:
     return millis
 
 
+def cache_filter(response):
+    """
+    Only cache POST requests when they are for the /query endpoint. Otherwise they are creating content
+    and should not be cached
+    """
+    request = response.request
+
+    if request.method == 'POST':
+        return request.url.rstrip('/').endswith('/query')
+
+    return True
+
+
 class GraphKBConnection:
     def __init__(
         self,
@@ -137,7 +150,7 @@ class GraphKBConnection:
             else:
                 session_kwargs['cache_name'] = cache_name
             session_kwargs['allowable_methods'] = ['GET', 'POST']
-            session_kwargs['ignored_parameters'] = ['Authorization']
+            session_kwargs['filter_fn'] = cache_filter
             session_kwargs['cache_control'] = True
 
         if 'PYTEST_CURRENT_TEST' in os.environ or only_if_cached:
