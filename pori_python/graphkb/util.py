@@ -123,8 +123,6 @@ class GraphKBConnection:
         - only_if_cached: this will set the cache-control header for all requests to only-if-cached which will raise 504 errors if a request does not exist in the cache already rather than making a new network request
         """
         session_cls = requests.Session
-        if limiter_kwargs and not use_global_cache:
-            raise NotImplementedError('currently rate limiting by default also implements caching')
         if session is not None:
             if limiter_kwargs is not None:
                 raise NotImplementedError('cannot add limiter to an existing session')
