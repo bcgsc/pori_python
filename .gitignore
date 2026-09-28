@@ -15,6 +15,7 @@ htmlcov
 # common virtual environment names
 venv*
 env
+.venv
 
 # editors
 .idea
