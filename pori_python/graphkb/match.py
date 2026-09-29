@@ -2,7 +2,7 @@
 Functions which return Variants from GraphKB which match some input variant definition
 """
 
-from typing import Dict, List, Optional, Set, Union, cast
+from typing import Dict, List, Optional, Union, cast
 
 from pori_python.types import (
     BasicPosition,
@@ -31,14 +31,7 @@ from .util import (
     looks_like_rid,
     stringifyVariant,
 )
-from .vocab import (
-    get_equivalent_terms,
-    get_term_by_name,
-    get_term_tree,
-    get_terms_set,
-)
-
-FEATURES_CACHE: Set[str] = set()
+from .vocab import get_equivalent_terms, get_term_by_name, get_term_tree, get_terms_set
 
 
 def get_equivalent_features(
@@ -97,8 +90,6 @@ def get_equivalent_features(
             filters.append(
                 {'OR': [{'sourceIdVersion': source_id_version}, {'sourceIdVersion': None}]}
             )
-    elif FEATURES_CACHE and gene_name.lower() not in FEATURES_CACHE and not ignore_cache:
-        return []
     else:
         filters.append({'OR': [{'sourceId': gene_name}, {'name': gene_name}]})
 
@@ -109,22 +100,6 @@ def get_equivalent_features(
             ignore_cache=ignore_cache,
         ),
     )
-
-
-def cache_missing_features(conn: GraphKBConnection) -> None:
-    """
-    Create a cache of features that exist to avoid repeatedly querying
-    for missing features
-    """
-    genes = cast(
-        List[Ontology],
-        conn.query({'target': 'Feature', 'returnProperties': ['name', 'sourceId'], 'neighbors': 0}),
-    )
-    for gene in genes:
-        if gene['name']:
-            FEATURES_CACHE.add(gene['name'].lower())
-        if gene['sourceId']:
-            FEATURES_CACHE.add(gene['sourceId'].lower())
 
 
 def match_category_variant(
