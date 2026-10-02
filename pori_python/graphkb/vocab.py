@@ -1,9 +1,11 @@
-from typing import Callable, Dict, Iterable, List, Set, cast, Union
+from typing import Callable, Dict, Iterable, List, Set, Union, cast
 
 from pori_python.types import Ontology
 
 from . import GraphKBConnection
 from .util import convert_to_rid_list
+
+DEFAULT_RETURN_PROPERTIES = ['sourceId', 'sourceIdVersion', 'deprecated', 'name', '@rid']
 
 
 def query_by_name(ontology_class: str, base_term_name: Union[str, list[str]]) -> Dict:
@@ -17,6 +19,7 @@ def get_equivalent_terms(
     ontology_class: str = 'Vocabulary',
     ignore_cache: bool = False,
     build_base_query: Callable = query_by_name,
+    return_properties=DEFAULT_RETURN_PROPERTIES,
 ) -> List[Ontology]:
     """
     Get a list of terms equivalent to the current term up to the root term
@@ -35,7 +38,7 @@ def get_equivalent_terms(
                 'target': {'target': base_records, 'queryType': 'descendants'},
                 'queryType': 'similarTo',
                 'treeEdges': [],
-                'returnProperties': ['sourceId', 'sourceIdVersion', 'deprecated', 'name', '@rid'],
+                'returnProperties': return_properties,
             },
             ignore_cache=ignore_cache,
         ),
@@ -54,13 +57,7 @@ def get_equivalent_terms(
                         'target': {'target': root_records, 'queryType': 'descendants'},
                         'queryType': 'similarTo',
                         'treeEdges': [],
-                        'returnProperties': [
-                            'sourceId',
-                            'sourceIdVersion',
-                            'deprecated',
-                            'name',
-                            '@rid',
-                        ],
+                        'returnProperties': ['@rid'],
                     },
                     ignore_cache=ignore_cache,
                 )
@@ -78,6 +75,7 @@ def get_term_tree(
     include_superclasses: bool = True,
     ignore_cache: bool = False,
     build_base_query: Callable = query_by_name,
+    return_properties=DEFAULT_RETURN_PROPERTIES,
 ) -> List[Ontology]:
     """
     Get terms equivalent to the base term by traversing the subclassOf tree and expanding related
@@ -105,7 +103,7 @@ def get_term_tree(
                 'target': {'target': base_records, 'queryType': 'ancestors'},
                 'queryType': 'similarTo',
                 'treeEdges': [],
-                'returnProperties': ['sourceId', 'sourceIdVersion', 'deprecated', 'name', '@rid'],
+                'returnProperties': return_properties,
             },
             ignore_cache=ignore_cache,
         ),
@@ -119,6 +117,7 @@ def get_term_tree(
             ontology_class=ontology_class,
             ignore_cache=ignore_cache,
             build_base_query=build_base_query,
+            return_properties=return_properties,
         )
     else:
         parent_terms = []
