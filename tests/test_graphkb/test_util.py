@@ -1,10 +1,40 @@
+import io
+import json
 import os
-import pytest
 import re
+
+import pytest
+import requests
+import urllib3
+from requests.adapters import HTTPAdapter
+from requests_ratelimiter import LimiterAdapter
 
 from pori_python.graphkb import GraphKBConnection, util
 
 EXCLUDE_BCGSC_TESTS = os.environ.get('EXCLUDE_BCGSC_TESTS') == '1'
+
+
+class CountingAdapter(HTTPAdapter):
+    """Test transport adapter that returns a canned JSON response without any
+    real network I/O, and counts how many times it was actually invoked (i.e.
+    how many requests were NOT served from cache).
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.calls = 0
+        super().__init__(*args, **kwargs)
+
+    def send(self, request, **kwargs):
+        self.calls += 1
+        body = json.dumps({'call': self.calls}).encode('utf-8')
+        raw = urllib3.HTTPResponse(
+            body=io.BytesIO(body),
+            status=200,
+            preload_content=False,
+            headers={},
+            request_url=request.url,
+        )
+        return self.build_response(request, raw)
 
 
 class OntologyTerm:
@@ -16,7 +46,7 @@ class OntologyTerm:
 
 @pytest.fixture(scope='module')
 def conn() -> GraphKBConnection:
-    conn = GraphKBConnection()
+    conn = GraphKBConnection(url=os.environ['GRAPHKB_URL'])
     conn.login(os.environ['GRAPHKB_USER'], os.environ['GRAPHKB_PASS'])
     return conn
 
@@ -191,3 +221,173 @@ class TestGraphKBConnection:
             subgraphType='parents',
         )
         assert 'cancer' in disease_terms
+
+
+class TestRateLimitingOptIn:
+    """Rate limiting is opt-in per-connection via the `limiter_kwargs` argument.
+
+    Passing a truthy `limiter_kwargs` dict (e.g. `{'per_second': 3}`) mounts a
+    `LimiterAdapter`; leaving it unset (None/default) or empty leaves the plain
+    `HTTPAdapter` in place, i.e. rate limiting disabled. Regardless of
+    `limiter_kwargs`, rate limiting is always forced off while running under
+    pytest (`PYTEST_CURRENT_TEST` set) or when `only_if_cached=True`.
+    """
+
+    def test_default_has_no_rate_limiting(self):
+        conn = GraphKBConnection(url='http://localhost:8080')
+        assert isinstance(conn.http.adapters['https://'], HTTPAdapter)
+        assert not isinstance(conn.http.adapters['https://'], LimiterAdapter)
+
+    def test_empty_limiter_kwargs_has_no_rate_limiting(self):
+        conn = GraphKBConnection(url='http://localhost:8080', limiter_kwargs={})
+        assert not isinstance(conn.http.adapters['https://'], LimiterAdapter)
+
+    def test_limiter_kwargs_forced_off_while_under_pytest(self, caplog):
+        # PYTEST_CURRENT_TEST is set while running under pytest, so rate
+        # limiting should stay disabled even when limiter_kwargs is provided.
+        assert 'PYTEST_CURRENT_TEST' in os.environ
+        conn = GraphKBConnection(url='http://localhost:8080', limiter_kwargs={'per_second': 3})
+        assert not isinstance(conn.http.adapters['https://'], LimiterAdapter)
+        assert 'rate limiting is by default turned off' in caplog.text
+
+    def test_limiter_kwargs_enables_rate_limiting_outside_pytest(self, monkeypatch):
+        monkeypatch.delenv('PYTEST_CURRENT_TEST', raising=False)
+        conn = GraphKBConnection(url='http://localhost:8080', limiter_kwargs={'per_second': 3})
+        assert isinstance(conn.http.adapters['https://'], LimiterAdapter)
+
+    def test_only_if_cached_forces_rate_limiting_off(self, monkeypatch, caplog):
+        monkeypatch.delenv('PYTEST_CURRENT_TEST', raising=False)
+        conn = GraphKBConnection(
+            url='http://localhost:8080', only_if_cached=True, limiter_kwargs={'per_second': 3}
+        )
+        assert conn.only_if_cached is True
+        assert 'rate limiting is by default turned off' in caplog.text
+
+    def test_limiter_kwargs_with_custom_session_raises(self):
+        with pytest.raises(NotImplementedError):
+            GraphKBConnection(
+                url='http://localhost:8080',
+                session=requests.Session(),
+                limiter_kwargs={'per_second': 3},
+            )
+
+
+class TestCacheFilter:
+    """Unit tests for util.cache_filter, which decides which responses requests-cache
+    is allowed to store: all GETs, but only POSTs to the /query endpoint (other POSTs
+    create content and must never be cached).
+    """
+
+    class _FakeRequest:
+        def __init__(self, method, url):
+            self.method = method
+            self.url = url
+
+    class _FakeResponse:
+        def __init__(self, method, url):
+            self.request = TestCacheFilter._FakeRequest(method, url)
+
+    def test_get_requests_are_always_cacheable(self):
+        response = self._FakeResponse('GET', 'http://fake/api/statement')
+        assert util.cache_filter(response) is True
+
+    @pytest.mark.parametrize('url', ['http://fake/api/query', 'http://fake/api/query/'])
+    def test_post_to_query_endpoint_is_cacheable(self, url):
+        response = self._FakeResponse('POST', url)
+        assert util.cache_filter(response) is True
+
+    @pytest.mark.parametrize('url', ['http://fake/api/statement', 'http://fake/api/query/similar'])
+    def test_post_to_other_endpoints_is_not_cacheable(self, url):
+        response = self._FakeResponse('POST', url)
+        assert util.cache_filter(response) is False
+
+
+class TestCachingBehavior:
+    """End-to-end tests that mount a counting fake adapter under GraphKBConnection's
+    session so we can assert whether a real request was made (adapter.calls
+    incremented) or the response was served from the requests-cache layer instead.
+    """
+
+    def test_repeated_get_is_served_from_cache(self):
+        conn = GraphKBConnection(url='http://fake-graphkb', use_global_cache=True)
+        adapter = CountingAdapter()
+        conn.http.mount('http://', adapter)
+
+        first = conn.http.get('http://fake-graphkb/api/version')
+        second = conn.http.get('http://fake-graphkb/api/version')
+
+        assert adapter.calls == 1
+        assert first.json() == second.json()
+        assert getattr(second, 'from_cache', False) is True
+
+    def test_no_cache_header_bypasses_cache(self):
+        conn = GraphKBConnection(url='http://fake-graphkb', use_global_cache=True)
+        adapter = CountingAdapter()
+        conn.http.mount('http://', adapter)
+
+        conn.http.get('http://fake-graphkb/api/version')
+        conn.http.get('http://fake-graphkb/api/version', headers={'Cache-Control': 'no-cache'})
+
+        assert adapter.calls == 2
+
+    def test_only_if_cached_returns_504_when_not_cached(self):
+        conn = GraphKBConnection(url='http://fake-graphkb', use_global_cache=True)
+        adapter = CountingAdapter()
+        conn.http.mount('http://', adapter)
+
+        resp = conn.http.get(
+            'http://fake-graphkb/api/never-requested',
+            headers={'Cache-Control': 'only-if-cached'},
+        )
+
+        assert resp.status_code == 504
+        assert adapter.calls == 0
+
+    def test_only_if_cached_returns_cached_value_without_new_request(self):
+        conn = GraphKBConnection(url='http://fake-graphkb', use_global_cache=True)
+        adapter = CountingAdapter()
+        conn.http.mount('http://', adapter)
+
+        conn.http.get('http://fake-graphkb/api/version')
+        resp = conn.http.get(
+            'http://fake-graphkb/api/version', headers={'Cache-Control': 'only-if-cached'}
+        )
+
+        assert resp.status_code == 200
+        assert adapter.calls == 1
+
+    def test_post_to_query_endpoint_is_cached(self):
+        conn = GraphKBConnection(url='http://fake-graphkb', use_global_cache=True)
+        adapter = CountingAdapter()
+        conn.http.mount('http://', adapter)
+
+        conn.http.post('http://fake-graphkb/api/query', data='{}')
+        conn.http.post('http://fake-graphkb/api/query', data='{}')
+
+        assert adapter.calls == 1
+
+    def test_post_to_non_query_endpoint_is_never_cached(self):
+        conn = GraphKBConnection(url='http://fake-graphkb', use_global_cache=True)
+        adapter = CountingAdapter()
+        conn.http.mount('http://', adapter)
+
+        conn.http.post('http://fake-graphkb/api/statement', data='{}')
+        conn.http.post('http://fake-graphkb/api/statement', data='{}')
+
+        assert adapter.calls == 2
+
+    def test_use_global_cache_false_hits_adapter_every_time(self):
+        conn = GraphKBConnection(url='http://fake-graphkb', use_global_cache=False)
+        adapter = CountingAdapter()
+        conn.http.mount('http://', adapter)
+
+        conn.http.get('http://fake-graphkb/api/version')
+        conn.http.get('http://fake-graphkb/api/version')
+
+        assert adapter.calls == 2
+
+    def test_use_global_cache_false_raises_with_cache_name(self):
+        with pytest.raises(NotImplementedError):
+            GraphKBConnection(
+                url='http://fake-graphkb', use_global_cache=False, cache_name='somewhere'
+            )
