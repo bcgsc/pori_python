@@ -17,11 +17,21 @@ def conn() -> GraphKBConnection:
 
 @pytest.fixture()
 def graphkb_conn():
+    """
+    Mocks the query functionality required by the calls made for the categorize_relevance function
+
+    categorize_relevance calls query twice for each term in the values of the category_base_terms object
+
+    - get_terms_set ([term, term, term...])
+        - get_term_tree(term)
+            - query(query(term))
+    """
+
     def make_rid_list(*values):
         return [{'@rid': v} for v in values]
 
     def term_tree_calls(*final_values):
-        # this function makes 2 calls to conn.query here
+        # this function makes 2 calls to conn.query here b/c the get_terms_set function will always call query twice
         sets = [['fake'], final_values]
         return [make_rid_list(*s) for s in sets]
 
@@ -41,7 +51,7 @@ def graphkb_conn():
 
     query_mock = Mock()
     query_mock.side_effect = return_values
-    return Mock(query=query_mock, cache={})
+    return Mock(query=query_mock)
 
 
 class TestCategorizeRelevance:
@@ -77,12 +87,13 @@ class TestCategorizeRelevance:
         category = statement.categorize_relevance(graphkb_conn, 'x')
         assert category == ''
 
-    def test_custom_categories(self, graphkb_conn):
+    def test_custom_categories_not_found(self, graphkb_conn):
         category = statement.categorize_relevance(
             graphkb_conn, 'x', [('blargh', ['some', 'blargh'])]
         )
         assert category == ''
 
+    def test_custom_categories_match(self, graphkb_conn):
         category = statement.categorize_relevance(
             graphkb_conn, '1', [('blargh', ['some', 'blargh'])]
         )
