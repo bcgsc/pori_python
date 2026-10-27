@@ -388,7 +388,7 @@ class TestConvertStatementsToAlterations:
         )
         assert len(result) == 1
         row = result[0]
-        assert row['reference'] == 'pmid12345'
+        assert row['reference'] == 'pmid12345;nct12345'
 
     def test_reference_from_sourceid_for_clinical_trial_evidence(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
@@ -399,7 +399,7 @@ class TestConvertStatementsToAlterations:
         )
         assert len(result) == 1
         row = result[0]
-        assert row['reference'] == 'nct12345'
+        assert row['reference'] == 'pmid12345;nct12345'
 
     @patch('pori_python.ipr.ipr.get_evidencelevel_mapping')
     def test_unapproved_therapeutic(self, mock_get_evidencelevel_mapping, graphkb_conn) -> None:
