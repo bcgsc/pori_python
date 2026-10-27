@@ -204,7 +204,7 @@ def base_graphkb_statement(disease_id: str = 'disease', relevance_rid: str = 'ot
                     'displayName': 'pmid12345',
                     'sourceId': 'nct12345',
                     'source': {'name': 'ClinicalTrials.gov'},
-                }
+                },
             ],
             'subject': {
                 '@class': 'dummy_value',
