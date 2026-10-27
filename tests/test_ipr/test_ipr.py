@@ -193,7 +193,13 @@ def base_graphkb_statement(disease_id: str = 'disease', relevance_rid: str = 'ot
                     'displayName': 'KRAS increased expression',
                 },
             ],
-            'evidence': [{'displayName': 'pmid12345', 'sourceId': 'nct12345'}],
+            'evidence': [
+                {
+                    '@class': 'Publication',
+                    'displayName': 'pmid12345',
+                    'sourceId': '12345',
+                }
+            ],
             'subject': {
                 '@class': 'dummy_value',
                 '@rid': '101:010',
@@ -368,7 +374,9 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'diagnostic'
 
-    def test_reference_from_displayname_for_noneligibility_stmts(self, graphkb_conn) -> None:
+    def test_reference_from_displayname_for_nonclinical_trial_evidence(
+        self, graphkb_conn
+    ) -> None:
         statement = base_graphkb_statement()
 
         result = convert_statements_to_alterations(
@@ -378,9 +386,9 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['reference'] == 'pmid12345'
 
-    def test_reference_from_sourceid_for_eligibility_stmts(self, graphkb_conn) -> None:
+    def test_reference_from_sourceid_for_clinical_trial_evidence(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
-        statement['relevance']['name'] = 'eligibility'
+        statement['evidence'][0]['@class'] = 'ClinicalTrial'
 
         result = convert_statements_to_alterations(
             graphkb_conn, [statement], DISEASE_RIDS, {'variant_rid'}
