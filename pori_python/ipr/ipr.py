@@ -166,10 +166,13 @@ def convert_statements_to_alterations(
         ]
         diseases = [c for c in statement['conditions'] if c['@class'] == 'Disease']
         disease_match = len(diseases) == 1 and diseases[0]['@rid'] in disease_matches
-        reference = ';'.join([e['displayName'] for e in statement['evidence']])
 
-        if statement['relevance']['name'] == 'eligibility':
-            reference = ';'.join([e['sourceId'] for e in statement['evidence']])
+        reference = ';'.join(
+            evidence['sourceId']
+            if evidence.get('@class') == 'ClinicalTrial' and evidence.get('source').get('name') == 'ClinicalTrials.gov'
+            else evidence['displayName']
+            for evidence in statement['evidence']
+        )
 
         ipr_section = gkb_statement.categorize_relevance(
             graphkb_conn, statement['relevance']['@rid']
