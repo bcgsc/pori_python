@@ -374,9 +374,7 @@ class TestConvertStatementsToAlterations:
         row = result[0]
         assert row['category'] == 'diagnostic'
 
-    def test_reference_from_displayname_for_nonclinical_trial_evidence(
-        self, graphkb_conn
-    ) -> None:
+    def test_reference_from_displayname_for_nonclinical_trial_evidence(self, graphkb_conn) -> None:
         statement = base_graphkb_statement()
 
         result = convert_statements_to_alterations(

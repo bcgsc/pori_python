@@ -169,7 +169,8 @@ def convert_statements_to_alterations(
 
         reference = ';'.join(
             evidence['sourceId']
-            if evidence.get('@class') == 'ClinicalTrial' and evidence.get('source').get('name') == 'ClinicalTrials.gov'
+            if evidence.get('@class') == 'ClinicalTrial'
+            and evidence.get('source').get('name') == 'ClinicalTrials.gov'
             else evidence['displayName']
             for evidence in statement['evidence']
         )
