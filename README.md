@@ -1,7 +1,7 @@
 
 # PORI Python Adaptor
 
-![build](https://github.com/bcgsc/pori_python/workflows/build/badge.svg) [![codecov](https://codecov.io/gh/bcgsc/pori_python/branch/master/graph/badge.svg)](https://codecov.io/gh/bcgsc/pori_python)
+![build](https://github.com/bcgsc/pori_python/workflows/build/badge.svg) [![codecov](https://codecov.io/gh/bcgsc/pori_python/branch/main/graph/badge.svg)](https://codecov.io/gh/bcgsc/pori_python)
 
 This repository is part of the [Platform for Oncogenomic Reporting and Interpretation (PORI)](https://bcgsc.github.io/pori/).
 
