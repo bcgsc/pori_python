@@ -389,7 +389,7 @@ class TestCreateReport:
 
     def test_seqqc_loaded(self, loaded_reports) -> None:
         """Test that seqQC data is present in the loaded report."""
-        sync_section = get_section(loaded_reports['async'], 'appendices')
+        sync_section = get_section(loaded_reports['sync'], 'appendices')
         async_section = get_section(loaded_reports['async'], 'appendices')
 
         assert 'seqQC' in sync_section
