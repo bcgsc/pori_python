@@ -365,12 +365,13 @@ class TestCreateReport:
     def test_genomic_alterations_identified_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports['sync'], 'summary/genomic-alterations-identified')
         variants = set([item['geneVariant'] for item in section])
+        # we expect to see the observed variant name, as it appears in the test data input
         for variant in [
-            'FGFR2:p.R421C',
+            'FGFR2:p.Arg421Cys',
             'PTP4A3 (high_percentile)',
             'ERBB2 (Amplification)',
             '(EWSR1,FLI1):fusion(e.7,e.4)',
-            'CDKN2A:p.T18M',
+            'CDKN2A:p.Thr18Met',
         ]:
             assert variant in variants
         async_section = get_section(
@@ -388,21 +389,20 @@ class TestCreateReport:
 
     def test_seqqc_loaded(self, loaded_reports) -> None:
         """Test that seqQC data is present in the loaded report."""
-        sync_report = loaded_reports['sync'][1]['reports'][0]
-        assert 'seqQC' in sync_report
-        assert len(sync_report['seqQC']) == 2
-        samples = [item['sample'] for item in sync_report['seqQC']]
+        sync_section = get_section(loaded_reports['async'], 'appendices')
+        async_section = get_section(loaded_reports['async'], 'appendices')
+
+        assert 'seqQC' in sync_section
+        assert len(sync_section['seqQC']) == 2
+        samples = [item['sample'] for item in sync_section['seqQC']]
         assert 'Tumour DNA' in samples
         assert 'Constitutional DNA' in samples
-        async_report = loaded_reports['async'][1]['reports'][0]
-        assert 'seqQC' in async_report
-        assert len(async_report['seqQC']) == 2
+        assert 'seqQC' in async_section
+        assert len(async_section['seqQC']) == 2
 
     def test_state_loaded(self, loaded_reports) -> None:
-        sync_state = get_section(loaded_reports['sync'], 'state')
-        async_state = get_section(loaded_reports['async'], 'state')
-        assert async_state == 'nonproduction'
-        assert sync_state == 'ready'
+        assert loaded_reports['sync'][1]['reports'][0]['state'] == 'nonproduction'
+        assert loaded_reports['async'][1]['reports'][0]['state'] == 'ready'
 
     def test_sample_info_loaded(self, loaded_reports) -> None:
         sync_section = get_section(loaded_reports['sync'], 'sample-info')
