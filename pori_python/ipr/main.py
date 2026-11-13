@@ -188,6 +188,12 @@ def command_interface() -> None:
         type=file_path,
         help='TSV without header, with two columns: transcripts and flags (comma-separated list of flags eg "MANE"). If header is included, it will be skipped. Matching uses direct string comparison, so transcript identifiers must match exactly, including version numbers (e.g., if input variants use ENST00000390477.1, this file must also use ENST00000390477.1, not ENST00000390477).',
     )
+    parser.add_argument(
+        '--state',
+        required=False,
+        choices=['ready', 'nonproduction'],
+        help="Status to create the report with if not default (ready). If 'nonproduction', the report will be created with state='nonproduction' in the uploaded report content.",
+    )
     args = parser.parse_args()
 
     with open(args.content, 'r') as fh:
@@ -213,6 +219,7 @@ def command_interface() -> None:
         validate_json=args.validate_json,
         ignore_extra_fields=args.ignore_extra_fields,
         transcript_flags=args.transcript_flags,
+        state=args.state,
     )
 
 
@@ -350,6 +357,7 @@ def ipr_report(
     ignore_extra_fields: bool = False,
     tmb_high: float = TMB_SIGNATURE_HIGH_THRESHOLD,
     transcript_flags: str = '',
+    state: str = 'ready',
 ) -> dict:
     """Run the matching and create the report JSON for upload to IPR.
 
@@ -380,6 +388,7 @@ def ipr_report(
         allow_partial_matches: allow matches to statements where not all conditions are satisfied
         tmb_high: mutation burden threshold/cutoff to qualify as 'high'
         transcript_flags: path to a tsv file with two columns (no header) of transcript identifiers and flags to be added to any observed variants with matching transcript in the report upload. If header is included, it will be skipped. Matching uses direct string comparison, so transcript identifiers must match exactly, including version numbers (e.g., if input variants use ENST00000390477.1, this file must also use ENST00000390477.1, not ENST00000390477).
+        state: the state to create the report with if not default ('ready'). If 'nonproduction', the report will be created with state='nonproduction' in the uploaded report content
     Returns:
         ipr_conn.upload_report return dictionary
     """
@@ -397,6 +406,10 @@ def ipr_report(
         ipr_conn = IprConnection(username, password, ipr_url)
     else:
         logger.warning('No ipr_url given')
+
+    if state:
+        # copy so the caller's content is not mutated
+        content = {**content, 'state': state}
 
     # Verify upload permission before doing any expensive processing
     if ipr_upload and ipr_conn:

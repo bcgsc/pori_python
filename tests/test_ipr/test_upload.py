@@ -1,11 +1,12 @@
 import json
 import os
-import pandas as pd
-import pytest
 import sys
 import uuid
-from typing import Generator
+from collections.abc import Generator
 from unittest.mock import patch
+
+import pandas as pd
+import pytest
 
 from pori_python.ipr.connection import IprConnection
 from pori_python.ipr.main import command_interface
@@ -57,8 +58,8 @@ def loaded_reports(tmp_path_factory) -> Generator:
     json_file = tmp_path_factory.mktemp('inputs') / 'content.json'
     async_json_file = tmp_path_factory.mktemp('inputs') / 'async_content.json'
     transcript_flags_file = tmp_path_factory.mktemp('inputs') / 'transcript_flags.tsv'
-    patient_id = f'TEST_{str(uuid.uuid4())}'
-    async_patient_id = f'TEST_ASYNC_{str(uuid.uuid4())}'
+    patient_id = f'TEST_{uuid.uuid4()!s}'
+    async_patient_id = f'TEST_ASYNC_{uuid.uuid4()!s}'
 
     json_contents = {
         'comparators': [
@@ -200,6 +201,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
 
     sync_argslist = argslist.copy()
     sync_argslist.extend(['--content', str(json_file)])
+    sync_argslist.extend(['--state', 'nonproduction'])
     with patch.object(sys, 'argv', sync_argslist):
         with patch.object(IprConnection, 'get_spec', return_value=get_test_spec()):
             command_interface()
@@ -252,9 +254,7 @@ def stringify_sorted(obj):
             obj.pop(key, None)
         keys = obj.keys()
         for key in keys:
-            if isinstance(obj[key], list):
-                obj[key] = stringify_sorted(obj[key])
-            elif isinstance(obj[key], dict):
+            if isinstance(obj[key], list) or isinstance(obj[key], dict):
                 obj[key] = stringify_sorted(obj[key])
         return str(obj)
     elif isinstance(obj, str):
@@ -398,6 +398,12 @@ class TestCreateReport:
         assert 'seqQC' in async_report
         assert len(async_report['seqQC']) == 2
 
+    def test_state_loaded(self, loaded_reports) -> None:
+        sync_state = get_section(loaded_reports['sync'], 'state')
+        async_state = get_section(loaded_reports['async'], 'state')
+        assert async_state == 'nonproduction'
+        assert sync_state == 'ready'
+
     def test_sample_info_loaded(self, loaded_reports) -> None:
         sync_section = get_section(loaded_reports['sync'], 'sample-info')
         async_section = get_section(loaded_reports['async'], 'sample-info')
@@ -448,4 +454,4 @@ class TestCreateReport:
             # we expect the two observed variant sets to have one element in common
             # (the kras mutation)
             assert len(observedVariants1) == len(observedVariants2) == 2
-            assert len((set(observedVariants1 + observedVariants2))) == 3
+            assert len(set(observedVariants1 + observedVariants2)) == 3
