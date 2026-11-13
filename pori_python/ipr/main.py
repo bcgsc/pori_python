@@ -357,7 +357,7 @@ def ipr_report(
     ignore_extra_fields: bool = False,
     tmb_high: float = TMB_SIGNATURE_HIGH_THRESHOLD,
     transcript_flags: str = '',
-    state: str = 'ready',
+    state: str | None = None,
 ) -> dict:
     """Run the matching and create the report JSON for upload to IPR.
 
@@ -388,7 +388,7 @@ def ipr_report(
         allow_partial_matches: allow matches to statements where not all conditions are satisfied
         tmb_high: mutation burden threshold/cutoff to qualify as 'high'
         transcript_flags: path to a tsv file with two columns (no header) of transcript identifiers and flags to be added to any observed variants with matching transcript in the report upload. If header is included, it will be skipped. Matching uses direct string comparison, so transcript identifiers must match exactly, including version numbers (e.g., if input variants use ENST00000390477.1, this file must also use ENST00000390477.1, not ENST00000390477).
-        state: the state to create the report with if not default ('ready'). If 'nonproduction', the report will be created with state='nonproduction' in the uploaded report content
+        state: the state to create the report with if not default ('ready'). If 'nonproduction', the report will be created with state='nonproduction' in the uploaded report content. If uploading precreated report json, the state in the report content will be used instead of this argument.
     Returns:
         ipr_conn.upload_report return dictionary
     """
