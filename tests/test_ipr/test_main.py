@@ -73,13 +73,13 @@ class TestStateArgument:
         return mock_ipr_report
 
     @staticmethod
-    def upload_content_for(report_function, **kwargs) -> dict:
+    def upload_content_for(report_function, input_content=None, **kwargs) -> dict:
         """Run report_function up to the json upload step and return the uploaded content"""
         with patch('pori_python.ipr.main.IprConnection') as mock_conn_class:
             report_function(
                 username='user',
                 password='pass',
-                content={'project': 'TEST'},
+                content=input_content if input_content is not None else {'project': 'TEST'},
                 ipr_url='http://fake.url.ca',
                 upload_json=True,
                 **kwargs,
@@ -109,15 +109,29 @@ class TestStateArgument:
         assert content['state'] == 'nonproduction'
 
     @pytest.mark.parametrize('report_function', [ipr_report, create_report])
-    def test_state_defaults_to_ready(self, report_function) -> None:
+    def test_state_omitted_does_not_add_state(self, report_function) -> None:
         content = self.upload_content_for(report_function)
 
-        assert content['state'] == 'ready'
-
-    def test_empty_state_not_added(self) -> None:
-        content = self.upload_content_for(ipr_report, state=None)
-
         assert 'state' not in content
+
+    @pytest.mark.parametrize('report_function', [ipr_report, create_report])
+    @pytest.mark.parametrize('input_state', ['ready', 'nonproduction'])
+    def test_state_omitted_preserves_input_state(self, report_function, input_state) -> None:
+        content = self.upload_content_for(
+            report_function, input_content={'project': 'TEST', 'state': input_state}
+        )
+
+        assert content['state'] == input_state
+
+    @pytest.mark.parametrize('report_function', [ipr_report, create_report])
+    def test_state_arg_overrides_input_state(self, report_function) -> None:
+        content = self.upload_content_for(
+            report_function,
+            input_content={'project': 'TEST', 'state': 'ready'},
+            state='nonproduction',
+        )
+
+        assert content['state'] == 'nonproduction'
 
     def test_input_content_not_mutated(self) -> None:
         original = {'project': 'TEST'}
