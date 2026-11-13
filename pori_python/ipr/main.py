@@ -388,7 +388,7 @@ def ipr_report(
         allow_partial_matches: allow matches to statements where not all conditions are satisfied
         tmb_high: mutation burden threshold/cutoff to qualify as 'high'
         transcript_flags: path to a tsv file with two columns (no header) of transcript identifiers and flags to be added to any observed variants with matching transcript in the report upload. If header is included, it will be skipped. Matching uses direct string comparison, so transcript identifiers must match exactly, including version numbers (e.g., if input variants use ENST00000390477.1, this file must also use ENST00000390477.1, not ENST00000390477).
-        state: the state to create the report with if not default ('ready'). If 'nonproduction', the report will be created with state='nonproduction' in the uploaded report content. If uploading precreated report json, the state in the report content will be used instead of this argument.
+        state: optional report state override ('ready' or 'nonproduction'). When supplied, overrides the state in content, including when uploading precreated report JSON. When omitted, preserves any state in content; if neither supplies a state, the server default ('ready') applies.
     Returns:
         ipr_conn.upload_report return dictionary
     """
