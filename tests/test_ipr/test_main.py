@@ -1,13 +1,18 @@
 import json
 import os
-import pandas as pd
-import pytest
 import sys
-from typing import Dict
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
+import pytest
+
 from pori_python.ipr.connection import IprConnection
-from pori_python.ipr.main import command_interface, load_transcript_flags
+from pori_python.ipr.main import (
+    command_interface,
+    create_report,
+    ipr_report,
+    load_transcript_flags,
+)
 from pori_python.types import IprGene
 
 from .constants import EXCLUDE_INTEGRATION_TESTS
@@ -52,8 +57,85 @@ class TestLoadTranscriptFlags:
         ]
 
 
+class TestStateArgument:
+    """Unit tests (no network) for the report state option"""
+
+    @staticmethod
+    def run_cli(tmp_path, extra_args: list[str]) -> MagicMock:
+        json_file = tmp_path / 'content.json'
+        json_file.write_text(json.dumps({'project': 'TEST'}))
+        argv = ['ipr', '--username', 'user', '--password', 'pass', '--content', str(json_file)]
+        with (
+            patch.object(sys, 'argv', [*argv, *extra_args]),
+            patch('pori_python.ipr.main.ipr_report') as mock_ipr_report,
+        ):
+            command_interface()
+        return mock_ipr_report
+
+    @staticmethod
+    def upload_content_for(report_function, **kwargs) -> dict:
+        """Run report_function up to the json upload step and return the uploaded content"""
+        with patch('pori_python.ipr.main.IprConnection') as mock_conn_class:
+            report_function(
+                username='user',
+                password='pass',
+                content={'project': 'TEST'},
+                ipr_url='http://fake.url.ca',
+                upload_json=True,
+                **kwargs,
+            )
+        mock_conn = mock_conn_class.return_value
+        assert mock_conn.upload_report.called
+        return mock_conn.upload_report.call_args[0][0]
+
+    def test_cli_passes_state_to_ipr_report(self, tmp_path) -> None:
+        mock_ipr_report = self.run_cli(tmp_path, ['--state', 'nonproduction'])
+
+        assert mock_ipr_report.call_args.kwargs['state'] == 'nonproduction'
+
+    def test_cli_state_not_set_by_default(self, tmp_path) -> None:
+        mock_ipr_report = self.run_cli(tmp_path, [])
+
+        assert mock_ipr_report.call_args.kwargs['state'] is None
+
+    def test_cli_rejects_invalid_state(self, tmp_path) -> None:
+        with pytest.raises(SystemExit):
+            self.run_cli(tmp_path, ['--state', 'bogus'])
+
+    @pytest.mark.parametrize('report_function', [ipr_report, create_report])
+    def test_state_arg_set_in_output_content(self, report_function) -> None:
+        content = self.upload_content_for(report_function, state='nonproduction')
+
+        assert content['state'] == 'nonproduction'
+
+    @pytest.mark.parametrize('report_function', [ipr_report, create_report])
+    def test_state_defaults_to_ready(self, report_function) -> None:
+        content = self.upload_content_for(report_function)
+
+        assert content['state'] == 'ready'
+
+    def test_empty_state_not_added(self) -> None:
+        content = self.upload_content_for(ipr_report, state=None)
+
+        assert 'state' not in content
+
+    def test_input_content_not_mutated(self) -> None:
+        original = {'project': 'TEST'}
+        with patch('pori_python.ipr.main.IprConnection'):
+            ipr_report(
+                username='user',
+                password='pass',
+                content=original,
+                ipr_url='http://fake.url.ca',
+                upload_json=True,
+                state='nonproduction',
+            )
+
+        assert 'state' not in original
+
+
 @pytest.fixture(scope='module')
-def report_upload_content(tmp_path_factory) -> Dict:
+def report_upload_content(tmp_path_factory) -> dict:
     mock = MagicMock()
     json_file = tmp_path_factory.mktemp('inputs') / 'content.json'
     json_file.write_text(
@@ -118,32 +200,36 @@ def report_upload_content(tmp_path_factory) -> Dict:
         else:
             return []
 
-    with patch.object(
-        sys,
-        'argv',
-        [
-            'ipr',
-            '--username',
-            os.environ.get('IPR_USER', os.environ['USER']),
-            '--password',
-            os.environ['IPR_PASS'],
-            '--ipr_url',
-            'http://fake.url.ca',
-            '--graphkb_username',
-            os.environ.get('GRAPHKB_USER', os.environ['USER']),
-            '--graphkb_password',
-            os.environ.get('GRAPHKB_PASS', os.environ['IPR_PASS']),
-            '--graphkb_url',
-            os.environ.get('GRAPHKB_URL', False),
-            '--content',
-            str(json_file),
-            '--therapeutics',
-        ],
+    with (
+        patch.object(
+            sys,
+            'argv',
+            [
+                'ipr',
+                '--username',
+                os.environ.get('IPR_USER', os.environ['USER']),
+                '--password',
+                os.environ['IPR_PASS'],
+                '--ipr_url',
+                'http://fake.url.ca',
+                '--graphkb_username',
+                os.environ.get('GRAPHKB_USER', os.environ['USER']),
+                '--graphkb_password',
+                os.environ.get('GRAPHKB_PASS', os.environ['IPR_PASS']),
+                '--graphkb_url',
+                os.environ.get('GRAPHKB_URL', False),
+                '--content',
+                str(json_file),
+                '--therapeutics',
+                '--state',
+                'nonproduction',
+            ],
+        ),
+        patch.object(IprConnection, 'upload_report', new=mock),
     ):
-        with patch.object(IprConnection, 'upload_report', new=mock):
-            with patch.object(IprConnection, 'get_spec', return_value=get_test_spec()):
-                with patch.object(IprConnection, 'get', side_effect=side_effect_function):
-                    command_interface()
+        with patch.object(IprConnection, 'get_spec', return_value=get_test_spec()):
+            with patch.object(IprConnection, 'get', side_effect=side_effect_function):
+                command_interface()
 
     assert mock.called
 
@@ -153,7 +239,7 @@ def report_upload_content(tmp_path_factory) -> Dict:
 
 @pytest.mark.skipif(EXCLUDE_INTEGRATION_TESTS, reason='excluding long running integration tests')
 class TestCreateReport:
-    def test_main_sections_present(self, report_upload_content: Dict) -> None:
+    def test_main_sections_present(self, report_upload_content: dict) -> None:
         sections = set(report_upload_content.keys())
 
         for section in [
@@ -166,7 +252,11 @@ class TestCreateReport:
         ]:
             assert section in sections
 
-    def test_kept_low_quality_fusion(self, report_upload_content: Dict) -> None:
+    def test_state_set(self, report_upload_content: dict) -> None:
+        # the fixture passes --state nonproduction on the command line
+        assert report_upload_content['state'] == 'nonproduction'
+
+    def test_kept_low_quality_fusion(self, report_upload_content: dict) -> None:
         fusions = [(sv['gene1'], sv['gene2']) for sv in report_upload_content['structuralVariants']]
         if (
             EXCLUDE_BCGSC_TESTS
@@ -175,32 +265,32 @@ class TestCreateReport:
         else:
             assert ('SARM1', 'SUZ12') in fusions
 
-    def test_pass_through_content_added(self, report_upload_content: Dict) -> None:
+    def test_pass_through_content_added(self, report_upload_content: dict) -> None:
         # check the passthorough content was added
         assert 'blargh' in report_upload_content
 
-    def test_found_fusion_partner_gene(self, report_upload_content: Dict) -> None:
+    def test_found_fusion_partner_gene(self, report_upload_content: dict) -> None:
         genes = report_upload_content['genes']
         # eg, A1BG
         assert any([g.get('knownFusionPartner', False) for g in genes])
 
     @pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason='excluding tests that depend on oncokb data')
-    def test_found_oncogene(self, report_upload_content: Dict) -> None:
+    def test_found_oncogene(self, report_upload_content: dict) -> None:
         genes = report_upload_content['genes']
         # eg, ZBTB20
         assert any([g.get('oncogene', False) for g in genes])
 
     @pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason='excluding tests that depend on oncokb data)')
-    def test_found_tumour_supressor(self, report_upload_content: Dict) -> None:
+    def test_found_tumour_supressor(self, report_upload_content: dict) -> None:
         genes = report_upload_content['genes']
         # eg, ZNRF3
         assert any([g.get('tumourSuppressor', False) for g in genes])
 
-    def test_found_kb_statement_related_gene(self, report_upload_content: Dict) -> None:
+    def test_found_kb_statement_related_gene(self, report_upload_content: dict) -> None:
         genes = report_upload_content['genes']
         assert any([g.get('kbStatementRelated', False) for g in genes])
 
     @pytest.mark.skipif(EXCLUDE_ONCOKB_TESTS, reason='excluding tests that depend on oncokb data')
-    def test_found_cancer_gene_list_match_gene(self, report_upload_content: Dict) -> None:
+    def test_found_cancer_gene_list_match_gene(self, report_upload_content: dict) -> None:
         genes = report_upload_content['genes']
         assert any([g.get('cancerGeneListMatch', False) for g in genes])
