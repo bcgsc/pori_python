@@ -1,11 +1,12 @@
 import json
 import os
-import pandas as pd
-import pytest
 import sys
 import uuid
-from typing import Generator
+from collections.abc import Generator
 from unittest.mock import patch
+
+import pandas as pd
+import pytest
 
 from pori_python.ipr.connection import IprConnection
 from pori_python.ipr.main import command_interface
@@ -57,8 +58,8 @@ def loaded_reports(tmp_path_factory) -> Generator:
     json_file = tmp_path_factory.mktemp('inputs') / 'content.json'
     async_json_file = tmp_path_factory.mktemp('inputs') / 'async_content.json'
     transcript_flags_file = tmp_path_factory.mktemp('inputs') / 'transcript_flags.tsv'
-    patient_id = f'TEST_{str(uuid.uuid4())}'
-    async_patient_id = f'TEST_ASYNC_{str(uuid.uuid4())}'
+    patient_id = f'TEST_{uuid.uuid4()!s}'
+    async_patient_id = f'TEST_ASYNC_{uuid.uuid4()!s}'
 
     json_contents = {
         'comparators': [
@@ -200,6 +201,7 @@ def loaded_reports(tmp_path_factory) -> Generator:
 
     sync_argslist = argslist.copy()
     sync_argslist.extend(['--content', str(json_file)])
+    sync_argslist.extend(['--state', 'nonproduction'])
     with patch.object(sys, 'argv', sync_argslist):
         with patch.object(IprConnection, 'get_spec', return_value=get_test_spec()):
             command_interface()
@@ -252,9 +254,7 @@ def stringify_sorted(obj):
             obj.pop(key, None)
         keys = obj.keys()
         for key in keys:
-            if isinstance(obj[key], list):
-                obj[key] = stringify_sorted(obj[key])
-            elif isinstance(obj[key], dict):
+            if isinstance(obj[key], list) or isinstance(obj[key], dict):
                 obj[key] = stringify_sorted(obj[key])
         return str(obj)
     elif isinstance(obj, str):
@@ -365,12 +365,13 @@ class TestCreateReport:
     def test_genomic_alterations_identified_loaded(self, loaded_reports) -> None:
         section = get_section(loaded_reports['sync'], 'summary/genomic-alterations-identified')
         variants = set([item['geneVariant'] for item in section])
+        # we expect to see the observed variant name, as it appears in the test data input
         for variant in [
-            'FGFR2:p.R421C',
+            'FGFR2:p.Arg421Cys',
             'PTP4A3 (high_percentile)',
             'ERBB2 (Amplification)',
             '(EWSR1,FLI1):fusion(e.7,e.4)',
-            'CDKN2A:p.T18M',
+            'CDKN2A:p.Thr18Met',
         ]:
             assert variant in variants
         async_section = get_section(
@@ -388,15 +389,20 @@ class TestCreateReport:
 
     def test_seqqc_loaded(self, loaded_reports) -> None:
         """Test that seqQC data is present in the loaded report."""
-        sync_report = loaded_reports['sync'][1]['reports'][0]
-        assert 'seqQC' in sync_report
-        assert len(sync_report['seqQC']) == 2
-        samples = [item['sample'] for item in sync_report['seqQC']]
+        sync_section = get_section(loaded_reports['sync'], 'appendices')
+        async_section = get_section(loaded_reports['async'], 'appendices')
+
+        assert 'seqQC' in sync_section
+        assert len(sync_section['seqQC']) == 2
+        samples = [item['sample'] for item in sync_section['seqQC']]
         assert 'Tumour DNA' in samples
         assert 'Constitutional DNA' in samples
-        async_report = loaded_reports['async'][1]['reports'][0]
-        assert 'seqQC' in async_report
-        assert len(async_report['seqQC']) == 2
+        assert 'seqQC' in async_section
+        assert len(async_section['seqQC']) == 2
+
+    def test_state_loaded(self, loaded_reports) -> None:
+        assert loaded_reports['sync'][1]['reports'][0]['state'] == 'nonproduction'
+        assert loaded_reports['async'][1]['reports'][0]['state'] == 'ready'
 
     def test_sample_info_loaded(self, loaded_reports) -> None:
         sync_section = get_section(loaded_reports['sync'], 'sample-info')
@@ -448,4 +454,4 @@ class TestCreateReport:
             # we expect the two observed variant sets to have one element in common
             # (the kras mutation)
             assert len(observedVariants1) == len(observedVariants2) == 2
-            assert len((set(observedVariants1 + observedVariants2))) == 3
+            assert len(set(observedVariants1 + observedVariants2)) == 3
